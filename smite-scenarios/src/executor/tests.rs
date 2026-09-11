@@ -686,14 +686,11 @@ fn execute_affine_overuse_panics() {
 // MineBlocks should track calls to mine_blocks
 #[test]
 fn execute_mine_blocks_invokes_cli() {
-    let instrs = vec![Instruction {
-        operation: Operation::MineBlocks(6),
-        inputs: vec![],
-    }];
+    let mut b = ProgramBuilder::new();
+    b.append(Operation::MineBlocks(6), &[]);
+
     let mut fx = Fixture::new();
-    fx.run(&Program {
-        instructions: instrs,
-    });
+    fx.run(&b.build());
 
     // Verify that mine_blocks was called with the correct number
     assert_eq!(fx.bitcoin().mine_blocks_calls, vec![6]);
@@ -1106,25 +1103,14 @@ fn execute_send_channel_ready() {
 fn execute_send_shutdown() {
     let channel_id = ChannelId::new([0x7a; 32]);
     let script = ShutdownScriptVariant::P2wpkh([0xab; 20]);
-    let program = Program {
-        instructions: vec![
-            Instruction {
-                operation: Operation::LoadChannelId(channel_id.0),
-                inputs: vec![],
-            },
-            Instruction {
-                operation: Operation::LoadShutdownScript(script.clone()),
-                inputs: vec![],
-            },
-            Instruction {
-                operation: Operation::SendShutdown,
-                inputs: vec![0, 1],
-            },
-        ],
-    };
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let scriptpubkey = b.append(Operation::LoadShutdownScript(script.clone()), &[]);
+    b.append(Operation::SendShutdown, &[channel_id_var, scriptpubkey]);
 
     let mut fx = Fixture::new();
-    fx.run(&program);
+    fx.run(&b.build());
 
     assert_eq!(fx.sent_len(), 1);
     let sd: Shutdown = fx.sent(0);
@@ -1137,25 +1123,16 @@ fn execute_send_shutdown_empty_scriptpubkey() {
     let channel_id = ChannelId::new([0x7a; 32]);
     // The fuzzer should allow an empty scriptpubkey in the shutdown message
     // to exercise the target's behavior even though it's protocol-invalid.
-    let program = Program {
-        instructions: vec![
-            Instruction {
-                operation: Operation::LoadChannelId(channel_id.0),
-                inputs: vec![],
-            },
-            Instruction {
-                operation: Operation::LoadShutdownScript(ShutdownScriptVariant::Empty),
-                inputs: vec![],
-            },
-            Instruction {
-                operation: Operation::SendShutdown,
-                inputs: vec![0, 1],
-            },
-        ],
-    };
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let scriptpubkey = b.append(
+        Operation::LoadShutdownScript(ShutdownScriptVariant::Empty),
+        &[],
+    );
+    b.append(Operation::SendShutdown, &[channel_id_var, scriptpubkey]);
 
     let mut fx = Fixture::new();
-    fx.run(&program);
+    fx.run(&b.build());
 
     assert_eq!(fx.sent_len(), 1);
     let sd: Shutdown = fx.sent(0);
