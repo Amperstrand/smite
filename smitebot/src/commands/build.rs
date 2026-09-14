@@ -182,6 +182,9 @@ fn default_workload_image_tag(target: Target, scenario: &str, coverage: bool) ->
 fn run_docker_build(inputs: &BuildInputs) -> std::io::Result<ExitStatus> {
     let mut command = Command::new("docker");
     command.arg("build");
+    // Hosts with broken docker-bridge DNS (e.g. lab machines) need host
+    // networking for apt inside the build to resolve.
+    command.arg("--network=host");
     if inputs.no_cache {
         command.arg("--no-cache");
     }

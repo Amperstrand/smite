@@ -58,7 +58,12 @@ docker build -t smite-$TARGET-$SCENARIO -f workloads/$TARGET/Dockerfile --build-
 # Build the custom mutator
 cargo build --release -p smite-ir-mutator
 
-# Create seed corpus (an empty file works -- the mutator generates fresh programs)
+# Create seed corpus. NOTE: the input must be a valid postcard-serialized IR
+# program -- raw/empty seeds fail decode in-target and register as crashes
+# under Nyx, aborting afl-fuzz ("We need at least one valid input seed that
+# does not crash!"). Generate one:
+cargo build --release -p smite-ir --example gen_seed
+target/release/examples/gen_seed /tmp/smite-seeds/seed1
 mkdir -p /tmp/smite-seeds
 printf '\x00' > /tmp/smite-seeds/empty
 
