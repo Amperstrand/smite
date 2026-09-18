@@ -1,7 +1,7 @@
 //! LDK target implementation.
 //!
-//! Unlike LND, LDK is written in Rust so AFL instrumentation writes directly
-//! to shared memory. No coverage pipes are needed.
+//! LDK is written in Rust, so AFL instrumentation writes directly to shared
+//! memory.
 
 use std::fs;
 use std::io::{BufRead, BufReader};

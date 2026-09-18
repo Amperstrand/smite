@@ -66,7 +66,7 @@ impl<T: Target> Scenario for EncryptedBytesScenario<T> {
             log::debug!("[{:?}] Target responded with pong", start.elapsed());
         }
 
-        // Check if target is still alive (and trigger coverage sync for LND)
+        // Check if target is still alive
         if let Err(e) = self.target.check_alive() {
             log::debug!("[{:?}] check_alive: {e}", start.elapsed());
             return ScenarioResult::Fail(Violation::Crashed.to_string());

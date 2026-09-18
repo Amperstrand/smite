@@ -1,7 +1,7 @@
 //! CLN (Core Lightning) target implementation.
 //!
 //! CLN is written in C, so AFL instrumentation (via `afl-clang-fast`) writes
-//! directly to shared memory. No coverage pipes are needed.
+//! directly to shared memory.
 //!
 //! CLN uses a subdaemon architecture: `lightningd` spawns separate binaries
 //! (`lightning_connectd`, `lightning_gossipd`, etc.). Global subdaemons have

@@ -82,9 +82,8 @@ pub trait Target: Sized {
     /// Check if target is still alive. Returns `Err(Crashed)` if dead.
     ///
     /// Implementation varies by target:
-    /// - LND: Pipe-based coverage sync (Go can't write to AFL shm directly)
-    /// - CLN/LDK: Process liveness check (C/Rust AFL instrumentation writes directly)
-    /// - Eclair: Process liveness check (Java agent writes directly via JNI shmat)
+    /// - LND: Pipe handshake (a just-crashed LND still looks alive to `try_wait`)
+    /// - CLN/LDK/Eclair: Process liveness check
     ///
     /// # Errors
     ///
