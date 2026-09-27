@@ -3,6 +3,7 @@
 //! Wraps [`std::process::Child`] with graceful shutdown support
 //! and automatic cleanup on drop.
 
+use std::fs;
 use std::io;
 use std::os::unix::process::CommandExt;
 use std::process::{Child, Command, ExitStatus};
@@ -56,13 +57,22 @@ impl ManagedProcess {
 
     /// Checks if the process is still running (non-blocking).
     ///
-    /// Returns `true` if the process is running, `false` if it has exited
-    /// or if the status cannot be determined (e.g., already reaped).
+    /// Returns `false` as soon as the process starts exiting. [`has_exited`]
+    /// alone lags: a crashed multithreaded process only becomes reapable after
+    /// the kernel has closed its sockets, so peers see it die first. The lag
+    /// shows on multi-CPU hosts (local mode), not in the Nyx guest (Linux 4.15,
+    /// one vCPU).
+    ///
+    /// [`has_exited`]: Self::has_exited
     pub fn is_running(&mut self) -> bool {
-        // Ok(None) = still running
-        // Ok(Some(_)) = exited
-        // Err(_) = can't determine (e.g., ECHILD if already reaped) - treat as not running
-        matches!(self.child.try_wait(), Ok(None))
+        !self.has_exited() && !is_exiting(self.pid())
+    }
+
+    /// Checks if the process has exited and been reaped (non-blocking).
+    ///
+    /// Also returns `true` if the status cannot be determined (e.g., ECHILD).
+    pub fn has_exited(&mut self) -> bool {
+        !matches!(self.child.try_wait(), Ok(None))
     }
 
     /// Attempts graceful shutdown: SIGTERM, wait for timeout, then SIGKILL.
@@ -141,7 +151,9 @@ impl ManagedProcess {
 
 impl Drop for ManagedProcess {
     fn drop(&mut self) {
-        if self.is_running() {
+        // Not `is_running`: an exiting process still needs reaping, and its
+        // process group may still need a signal.
+        if !self.has_exited() {
             log::debug!(
                 "{}: dropping running process, attempting shutdown",
                 self.name
@@ -151,6 +163,30 @@ impl Drop for ManagedProcess {
             }
         }
     }
+}
+
+/// `PF_EXITING` from the kernel's `include/linux/sched.h`.
+const PF_EXITING: u64 = 0x4;
+
+/// Checks if the kernel has started tearing down process `pid`.
+///
+/// Reads the main thread's `PF_EXITING` flag from `/proc/<pid>/stat`. The
+/// kernel sets it before closing any of the process's files. Returns `false`
+/// if `/proc` can't be read; `scripts/setup-nyx.sh` mounts it in the Nyx guest.
+fn is_exiting(pid: u32) -> bool {
+    let Ok(stat) = fs::read_to_string(format!("/proc/{pid}/stat")) else {
+        return false;
+    };
+    // The command name may contain spaces and parens, so skip past its ')'.
+    let Some((_, fields)) = stat.rsplit_once(')') else {
+        return false;
+    };
+    // Fields after the name: state, ppid, pgrp, session, tty_nr, tpgid, flags.
+    fields
+        .split_whitespace()
+        .nth(6)
+        .and_then(|flags| flags.parse::<u64>().ok())
+        .is_some_and(|flags| flags & PF_EXITING != 0)
 }
 
 /// Sends SIGUSR1 to the process with the given `pid`.
@@ -232,6 +268,28 @@ mod tests {
             !process_exists(grandchild_pid),
             "grandchild process {grandchild_pid} should have been terminated"
         );
+    }
+
+    #[test]
+    fn is_exiting_detects_zombie() {
+        assert!(!is_exiting(std::process::id()));
+
+        // The ") " in the name checks that parsing skips the whole name.
+        let temp_dir = TempDir::new().unwrap();
+        let bin = temp_dir.path().join("a) b");
+        std::os::unix::fs::symlink("/bin/true", &bin).unwrap();
+
+        // Left unreaped, the exited child stays a zombie with PF_EXITING set.
+        let mut child = Command::new(&bin).spawn().unwrap();
+        let pid = child.id();
+        let deadline = Instant::now() + Duration::from_secs(1);
+        while !is_exiting(pid) && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert!(is_exiting(pid));
+
+        child.wait().unwrap();
+        assert!(!is_exiting(pid));
     }
 
     fn wait_for_pid_file(path: &Path) -> i32 {

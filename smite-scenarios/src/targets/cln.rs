@@ -299,14 +299,14 @@ impl Drop for ClnTarget {
             // where the CLI has returned but lightningd hasn't exited yet.
             log::debug!("lightningd: waiting for process to exit");
             let deadline = std::time::Instant::now() + Duration::from_secs(5);
-            while self.cln.is_running() && std::time::Instant::now() < deadline {
+            while !self.cln.has_exited() && std::time::Instant::now() < deadline {
                 std::thread::sleep(Duration::from_millis(10));
             }
         } else {
             log::debug!("lightningd: lightning-cli stop failed, falling back to SIGTERM");
         }
         // ManagedProcess::drop handles cleanup. If lightningd already exited,
-        // is_running() returns false and no signal is sent. If the timeout
+        // has_exited() returns true and no signal is sent. If the timeout
         // expired, ManagedProcess sends SIGTERM as a fallback and targets the
         // whole process group so any lingering subdaemons are cleaned up too.
     }
