@@ -25,8 +25,6 @@ const CRASH_LOG_PATH: &str = "/tmp/smite-crash.log";
 /// In Nyx mode, crashes are reported directly via hypercall and we never get to
 /// this point. In local mode, the crash handler writes crash data to a file.
 ///
-/// Used by targets that have an external crash handler (CLN, Eclair).
-///
 /// # Errors
 ///
 /// Returns [`TargetError::Crashed`] if the crash log file exists.
@@ -80,10 +78,6 @@ pub trait Target: Sized {
     fn bitcoin_cli(&self) -> &BitcoinCli;
 
     /// Check if target is still alive. Returns `Err(Crashed)` if dead.
-    ///
-    /// Implementation varies by target:
-    /// - LND: Pipe handshake (a just-crashed LND still looks alive to `try_wait`)
-    /// - CLN/LDK/Eclair: Process liveness check
     ///
     /// # Errors
     ///

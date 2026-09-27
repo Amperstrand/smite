@@ -698,7 +698,6 @@ version = "0.0.0"
 dependencies = [
  "bitcoin",
  "hex",
- "libc",
  "log",
  "postcard",
  "serde",

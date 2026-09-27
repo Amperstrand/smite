@@ -104,42 +104,25 @@ __attribute__((weak)) void __sanitizer_weak_hook_strcmp(void *caller_pc,
 import "C"
 
 import (
+	"fmt"
 	"os"
+	"runtime/debug"
 )
 
 // This file provides coverage tracking for Go programs built with -d=libfuzzer.
 // The C code above maps the coverage counters onto AFL's shared memory, so no
 // per-execution work is needed to report coverage.
-//
-// The Go code answers the scenario's liveness handshake over pipes:
-// - Scenario writes a byte to the trigger fd
-// - We echo it on the ack fd
-// - Scenario reads the ack; EOF means LND died
 
+// Must match PANIC_LOG_PATH in smite-nyx-sys/src/nyx-crash-handler.c.
+const panicLogPath = "/tmp/smite-panic.log"
+
+// Copies fatal error reports where the LD_PRELOADed crash handler reads them,
+// so crash reports include the Go traceback. LND's stderr is discarded.
 func init() {
-	// Only answer the handshake if we're in fuzzing mode
-	if os.Getenv("__AFL_SHM_ID") == "" {
+	f, err := os.Create(fmt.Sprintf("%s.%d", panicLogPath, os.Getpid()))
+	if err != nil {
 		return
 	}
-
-	// Any scenario that starts LND as a subprocess must set FDs as follows:
-	// 3: read end of trigger pipe
-	// 4: write end of ack pipe
-	triggerFile := os.NewFile(uintptr(3), "liveness_trigger")
-	ackFile := os.NewFile(uintptr(4), "liveness_ack")
-
-	go func() {
-		defer triggerFile.Close()
-		defer ackFile.Close()
-
-		buf := make([]byte, 1)
-		for {
-			_, err := triggerFile.Read(buf)
-			if err != nil {
-				return // Pipe closed, exit loop
-			}
-
-			ackFile.Write(buf)
-		}
-	}()
+	defer f.Close() // SetCrashOutput keeps its own duplicate.
+	debug.SetCrashOutput(f, debug.CrashOptions{})
 }
