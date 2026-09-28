@@ -1,9 +1,7 @@
 //! LND target implementation.
 
 use std::fs;
-use std::io::{PipeReader, PipeWriter, Read, Write};
 use std::net::SocketAddr;
-use std::os::unix::io::AsRawFd;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::Duration;
@@ -14,7 +12,7 @@ use smite::bitcoin::BitcoinCli;
 use smite::process::ManagedProcess;
 
 use super::bitcoind;
-use super::{Target, TargetError, TargetRpc};
+use super::{Target, TargetError, TargetRpc, check_crash_log};
 
 /// Configuration for the LND target.
 pub struct LndConfig {
@@ -57,30 +55,6 @@ impl LndConfig {
     }
 }
 
-/// Pipes for LND coverage synchronization.
-///
-/// Go can't write directly to AFL's shared memory, so we use pipes:
-/// 1. Scenario writes trigger byte
-/// 2. LND copies coverage to AFL shared memory
-/// 3. LND writes ack byte
-/// 4. If scenario's ack read fails (EOF), LND crashed
-struct CoveragePipes {
-    trigger_write: PipeWriter,
-    ack_read: PipeReader,
-}
-
-impl CoveragePipes {
-    /// Triggers LND to copy coverage counters to AFL shared memory.
-    fn sync(&mut self) -> std::io::Result<()> {
-        let mut buf = [0u8; 1];
-        // Write 1 byte to trigger coverage copy
-        self.trigger_write.write_all(&buf)?;
-        // Wait for coverage copy to finish (EOF = crash)
-        self.ack_read.read_exact(&mut buf)?;
-        Ok(())
-    }
-}
-
 /// RPC handle for interacting with LND node target.
 #[derive(Debug, Clone)]
 pub struct LndRpc;
@@ -99,7 +73,6 @@ pub struct LndTarget {
     lnd: ManagedProcess,
     #[allow(dead_code)] // bitcoind shuts down on drop
     bitcoind: ManagedProcess,
-    coverage_pipes: Option<CoveragePipes>,
     pubkey: secp256k1::PublicKey,
     addr: SocketAddr,
     bitcoin_cli: BitcoinCli,
@@ -108,12 +81,12 @@ pub struct LndTarget {
 }
 
 impl LndTarget {
-    /// Starts LND and waits for it to be ready. Returns the process, coverage
-    /// pipes (if in fuzzing mode), and LND's identity pubkey.
+    /// Starts LND and waits for it to be ready. Returns the process and LND's
+    /// identity pubkey.
     fn start_lnd(
         config: &LndConfig,
         data_dir: &Path,
-    ) -> Result<(ManagedProcess, Option<CoveragePipes>, secp256k1::PublicKey), TargetError> {
+    ) -> Result<(ManagedProcess, secp256k1::PublicKey), TargetError> {
         log::info!("Starting lnd...");
 
         let lnd_dir = data_dir.join("lnd");
@@ -147,81 +120,26 @@ impl LndTarget {
             .stdout(Stdio::null())
             .stderr(Stdio::null());
 
-        // Set up coverage pipes if in fuzzing mode. We keep all four pipe ends alive
-        // until after spawn so the FDs are valid when the child forks.
-        let pipe_ends = if std::env::var("__AFL_SHM_ID").is_ok() {
-            let (trigger_read, trigger_write) = std::io::pipe()?;
-            let (ack_read, ack_write) = std::io::pipe()?;
+        // LD_PRELOAD the crash handler to report crashes immediately (before
+        // process teardown closes TCP sockets). Go only raises a signal the
+        // handler sees at GOTRACEBACK=crash; by default it exits with status 2.
+        if let Ok(handler) = std::env::var("SMITE_CRASH_HANDLER") {
+            cmd.env("LD_PRELOAD", handler).env("GOTRACEBACK", "crash");
+        }
 
-            let trigger_fd = trigger_read.as_raw_fd();
-            let ack_fd = ack_write.as_raw_fd();
-
-            // SAFETY: This closure runs in the child process after fork, before exec.
-            // We only call async-signal-safe libc functions (fcntl, dup2, close) and
-            // create io::Error from last_os_error() which just stores an i32 errno.
-            unsafe {
-                use std::os::unix::process::CommandExt;
-
-                cmd.pre_exec(move || {
-                    let mut t = trigger_fd;
-                    let mut a = ack_fd;
-
-                    // Move FDs to safe range (>= 10) to avoid conflicts with targets 3 and 4.
-                    // For example, if ack_fd were 3, dup2(trigger_fd, 3) would close it.
-                    if t < 10 {
-                        let new_t = libc::fcntl(t, libc::F_DUPFD, 10);
-                        if new_t == -1 {
-                            return Err(std::io::Error::last_os_error());
-                        }
-                        libc::close(t);
-                        t = new_t;
-                    }
-                    if a < 10 {
-                        let new_a = libc::fcntl(a, libc::F_DUPFD, 10);
-                        if new_a == -1 {
-                            return Err(std::io::Error::last_os_error());
-                        }
-                        libc::close(a);
-                        a = new_a;
-                    }
-
-                    // Assign to fixed FD numbers that LND's sancov.go expects
-                    if libc::dup2(t, 3) == -1 {
-                        return Err(std::io::Error::last_os_error());
-                    }
-                    if libc::dup2(a, 4) == -1 {
-                        return Err(std::io::Error::last_os_error());
-                    }
-
-                    // Close the intermediate FDs (dup2 doesn't close the source)
-                    libc::close(t);
-                    libc::close(a);
-
-                    Ok(())
-                });
-            }
-
-            Some((trigger_read, trigger_write, ack_read, ack_write))
-        } else {
-            None
-        };
-
-        let lnd = ManagedProcess::spawn(&mut cmd, "lnd")?;
-
-        // Extract parent-side pipe ends; child-side ends are dropped (closed) here
-        let coverage_pipes = pipe_ends.map(|(_, trigger_write, ack_read, _)| CoveragePipes {
-            trigger_write,
-            ack_read,
-        });
+        let mut lnd = ManagedProcess::spawn(&mut cmd, "lnd")?;
 
         // Wait for LND to be ready and fully synced. We poll getinfo until
         // block_height matches the initial blocks we generated.
         log::info!("Waiting for lnd to be ready and synced...");
         for _ in 0..120 {
+            if !lnd.is_running() {
+                return Err(TargetError::StartFailed("lnd exited during startup".into()));
+            }
             if let Ok((pubkey, blockheight, synced_to_chain)) = Self::query_info(config, &lnd_dir) {
                 if blockheight >= bitcoind::INITIAL_BLOCKS && synced_to_chain {
                     log::info!("lnd synced (blockheight={blockheight})");
-                    return Ok((lnd, coverage_pipes, pubkey));
+                    return Ok((lnd, pubkey));
                 }
                 log::debug!(
                     "lnd not yet synced (blockheight={blockheight}, synced_to_chain={synced_to_chain})"
@@ -287,7 +205,7 @@ impl Target for LndTarget {
         let (data_path, temp_dir) = bitcoind::resolve_data_dir()?;
 
         let (bitcoind, bitcoin_cli) = bitcoind::start(&config.bitcoind_config(), &data_path)?;
-        let (lnd, coverage_pipes, pubkey) = Self::start_lnd(&config, &data_path)?;
+        let (lnd, pubkey) = Self::start_lnd(&config, &data_path)?;
         let addr = SocketAddr::from(([127, 0, 0, 1], config.lnd_p2p_port));
 
         log::info!("Both daemons are running, ready to fuzz");
@@ -295,7 +213,6 @@ impl Target for LndTarget {
         Ok(Self {
             lnd,
             bitcoind,
-            coverage_pipes,
             pubkey,
             addr,
             bitcoin_cli,
@@ -320,14 +237,9 @@ impl Target for LndTarget {
     }
 
     fn check_alive(&mut self) -> Result<(), TargetError> {
-        // If we have coverage pipes, sync triggers coverage copy AND detects crashes
-        if let Some(pipes) = &mut self.coverage_pipes {
-            pipes.sync().map_err(|_| TargetError::Crashed)?;
-        } else {
-            // No pipes (local mode) - just check process is running
-            if !self.lnd.is_running() {
-                return Err(TargetError::Crashed);
-            }
+        check_crash_log()?;
+        if !self.lnd.is_running() {
+            return Err(TargetError::Crashed);
         }
         Ok(())
     }

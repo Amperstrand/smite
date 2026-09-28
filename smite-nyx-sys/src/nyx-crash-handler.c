@@ -9,6 +9,9 @@
 /// Compile-time options:
 /// - -DCATCH_SIGNALS: Install our own signal handler for fatal signals, and
 ///   block any attempts to override our signal handler.
+/// - -DALLOW_HANDLER_OVERRIDE: With -DCATCH_SIGNALS, let the target replace our
+///   handlers. For runtimes like Go that need their own and forward fatal
+///   signals they don't handle to ours.
 /// - -DENABLE_NYX: Use nyx hypercalls to let nyx know that a crash has occured.
 ///   If not set, crash reports are written to /tmp/smite-crash.log.
 /// - -DASAN_LOG_PATH=<path>: Path to the ASan log file.
@@ -34,7 +37,8 @@
 #include "nyx.h"
 #endif
 
-// Must match PANIC_LOG_PATH in workloads/ldk/src/main.rs.
+// Must match PANIC_LOG_PATH in workloads/ldk/src/main.rs and
+// workloads/lnd/sancov.go.
 #define PANIC_LOG_PATH "/tmp/smite-panic.log"
 #define ASAN_LOG_PATH "/tmp/asan.log"
 #define MAX_CUSTOM_BACKTRACE_SIZE 50
@@ -72,7 +76,8 @@ void append_target_log(const char *path) {
     return;
   }
 
-  char buffer[0x100000];
+  // Static: Go calls our handler on its 32 KiB signal stack.
+  static char buffer[0x100000];
   size_t bytes_read = fread(buffer, 1, sizeof(buffer) - 1, file);
   fclose(file);
 
@@ -186,6 +191,7 @@ void __assert_perror_fail(int errnum, const char *file, unsigned int line,
 
 #ifdef CATCH_SIGNALS
 
+#ifndef ALLOW_HANDLER_OVERRIDE
 int sigaction(int signum, const struct sigaction *act,
               struct sigaction *oldact) {
   int (*_sigaction)(int signum, const struct sigaction *act,
@@ -204,6 +210,7 @@ int sigaction(int signum, const struct sigaction *act,
     return _sigaction(signum, act, oldact);
   }
 }
+#endif
 
 void fault_handler(int signo, siginfo_t *info, void *extra) {
   char signal_msg[0x1000];

@@ -57,9 +57,12 @@ RUN wget https://bitcoincore.org/bin/bitcoin-core-${BITCOIN_VERSION}/bitcoin-${B
 WORKDIR /lnd
 RUN cd cmd/lncli && go build
 
-# Copy sancov.go and build LND with coverage instrumentation
+# Copy sancov.go and build LND with coverage instrumentation. align.ld
+# page-aligns the coverage counters so sancov.go can map them onto AFL's map.
 COPY ./workloads/lnd/sancov.go /lnd/sancov.go
-RUN cd cmd/lnd && CGO_ENABLED=1 go build -v -tags=libfuzzer -gcflags=all=-d=libfuzzer
+COPY ./workloads/lnd/align.ld /lnd/align.ld
+RUN cd cmd/lnd && CGO_ENABLED=1 go build -v -tags=libfuzzer -gcflags=all=-d=libfuzzer \
+    -ldflags="-extldflags=-Wl,-T,/lnd/align.ld"
 
 # Copy smite workspace files and build all scenario binaries
 WORKDIR /smite
@@ -74,6 +77,18 @@ RUN set -eu; for f in smite-scenarios/src/bin/lnd_*.rs; do \
         TARGET_PATH=/lnd/cmd/lnd/lnd \
             cargo build -p smite-scenarios --bin "$(basename $f .rs)" --release --features nyx; \
     done
+
+# Build crash handler shared libraries, LD_PRELOADed into LND. Two variants:
+#   nyx-crash-handler.so  - reports crashes via Nyx hypercalls
+#   crash-handler.so      - calls _exit(1), for local reproduction
+# -DALLOW_HANDLER_OVERRIDE lets Go install its own signal handlers, which it
+# needs to turn nil dereferences into recoverable panics. Go forwards fatal
+# signals it doesn't handle to ours.
+RUN clang-${LLVM_V} -fPIC -DENABLE_NYX -DCATCH_SIGNALS -DALLOW_HANDLER_OVERRIDE \
+    -DNO_PT_NYX -D_GNU_SOURCE \
+    smite-nyx-sys/src/nyx-crash-handler.c -ldl -shared -o /nyx-crash-handler.so && \
+    clang-${LLVM_V} -fPIC -DCATCH_SIGNALS -DALLOW_HANDLER_OVERRIDE -D_GNU_SOURCE \
+    smite-nyx-sys/src/nyx-crash-handler.c -ldl -shared -o /crash-handler.so
 
 # Runtime image
 FROM debian:bookworm-slim
@@ -93,8 +108,13 @@ COPY --from=builder /lnd/cmd/lncli/lncli /usr/local/bin/lncli
 COPY --from=builder /usr/local/bin/bitcoind /usr/local/bin/bitcoind
 COPY --from=builder /usr/local/bin/bitcoin-cli /usr/local/bin/bitcoin-cli
 
-# Copy the lnd-scenario binary
+# Copy crash handlers and the lnd-scenario binary
+COPY --from=builder /nyx-crash-handler.so /crash-handler.so /
 COPY --from=builder /smite/target/release/lnd_${SCENARIO} /lnd-scenario
+
+# Default to the local crash handler; init.sh overrides with the Nyx version.
+# LndTarget forwards this as LD_PRELOAD on lnd only.
+ENV SMITE_CRASH_HANDLER=/crash-handler.so
 
 # Copy the init script
 COPY ./workloads/lnd/init.sh /init.sh
