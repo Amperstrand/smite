@@ -304,7 +304,7 @@ mod tests {
         assert_eq!(u8::read(&mut data).unwrap(), 0);
         assert_eq!(data, &[0xff]);
         assert_eq!(u8::read(&mut data).unwrap(), 255);
-        assert!(data.is_empty());
+        assert_eq!(data, b"");
     }
 
     #[test]
@@ -336,7 +336,7 @@ mod tests {
         assert_eq!(u16::read(&mut data).unwrap(), 0);
         assert_eq!(data, &[0x00, 0x01]);
         assert_eq!(u16::read(&mut data).unwrap(), 1);
-        assert!(data.is_empty());
+        assert_eq!(data, b"");
     }
 
     #[test]
@@ -377,7 +377,7 @@ mod tests {
         assert_eq!(u32::read(&mut data).unwrap(), 0);
         assert_eq!(data, &[0x00, 0x00, 0x00, 0x01]);
         assert_eq!(u32::read(&mut data).unwrap(), 1);
-        assert!(data.is_empty());
+        assert_eq!(data, b"");
     }
 
     #[test]
@@ -421,7 +421,7 @@ mod tests {
         assert_eq!(u64::read(&mut data).unwrap(), 0);
         assert_eq!(data.len(), 8);
         assert_eq!(u64::read(&mut data).unwrap(), 1);
-        assert!(data.is_empty());
+        assert_eq!(data, b"");
     }
 
     #[test]
@@ -466,7 +466,7 @@ mod tests {
         assert_eq!(i64::read(&mut data).unwrap(), 0);
         assert_eq!(data.len(), 8);
         assert_eq!(i64::read(&mut data).unwrap(), 1);
-        assert!(data.is_empty());
+        assert_eq!(data, b"");
 
         // Negative (-1 = 0xffffffffffffffff in two's complement)
         let mut data: &[u8] = &[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff];
@@ -574,7 +574,7 @@ mod tests {
         let mut cursor: &[u8] = &buf;
         let decoded = <[u8; 5]>::read(&mut cursor).unwrap();
         assert_eq!(decoded, original);
-        assert!(cursor.is_empty());
+        assert_eq!(cursor, b"");
     }
 
     #[test]
@@ -620,7 +620,7 @@ mod tests {
         let mut cursor: &[u8] = &buf;
         let decoded = PublicKey::read(&mut cursor).unwrap();
         assert_eq!(decoded, pk);
-        assert!(cursor.is_empty());
+        assert_eq!(cursor, b"");
     }
 
     #[test]
@@ -633,7 +633,7 @@ mod tests {
         let mut cursor: &[u8] = &buf;
         let decoded = ChannelId::read(&mut cursor).unwrap();
         assert_eq!(decoded, original);
-        assert!(cursor.is_empty());
+        assert_eq!(cursor, b"");
     }
 
     #[test]
@@ -666,7 +666,7 @@ mod tests {
         let mut cursor: &[u8] = &buf;
         let decoded = ShortChannelId::read(&mut cursor).unwrap();
         assert_eq!(decoded, scid);
-        assert!(cursor.is_empty());
+        assert_eq!(cursor, b"");
     }
 
     #[test]
@@ -694,7 +694,7 @@ mod tests {
         let mut data: &[u8] = &[0x00, 0x00];
         let result = Vec::<u8>::read(&mut data).unwrap();
         assert_eq!(result, Vec::<u8>::new());
-        assert!(data.is_empty());
+        assert_eq!(data, b"");
     }
 
     #[test]
@@ -702,7 +702,7 @@ mod tests {
         let mut data: &[u8] = &[0x00, 0x03, 0xaa, 0xbb, 0xcc];
         let result = Vec::<u8>::read(&mut data).unwrap();
         assert_eq!(result, vec![0xaa, 0xbb, 0xcc]);
-        assert!(data.is_empty());
+        assert_eq!(data, b"");
     }
 
     #[test]
@@ -746,7 +746,7 @@ mod tests {
         let mut cursor: &[u8] = &buf;
         let decoded = Vec::<u8>::read(&mut cursor).unwrap();
         assert_eq!(decoded, original);
-        assert!(cursor.is_empty());
+        assert_eq!(cursor, b"");
     }
 
     #[test]
@@ -784,7 +784,7 @@ mod tests {
             let bs = BigSize::read(&mut cursor).expect("valid bigsize");
             assert_eq!(bs.value(), *expected, "decoding {bytes:02x?}");
             assert_eq!(bs.len(), bytes.len());
-            assert!(cursor.is_empty());
+            assert_eq!(cursor, b"");
         }
     }
 
@@ -837,7 +837,7 @@ mod tests {
             let decoded = BigSize::read(&mut cursor).expect("valid bigsize");
             assert_eq!(value, decoded.value());
             assert_eq!(bs.len(), encoded.len());
-            assert!(cursor.is_empty());
+            assert_eq!(cursor, b"");
         }
     }
 
@@ -958,7 +958,7 @@ mod tests {
         let mut cursor: &[u8] = &buf;
         let decoded = Txid::read(&mut cursor).unwrap();
         assert_eq!(decoded, txid);
-        assert!(cursor.is_empty());
+        assert_eq!(cursor, b"");
     }
 
     #[test]
@@ -1007,7 +1007,7 @@ mod tests {
         let mut cursor: &[u8] = &buf;
         let decoded = Signature::read(&mut cursor).unwrap();
         assert_eq!(decoded, sig);
-        assert!(cursor.is_empty());
+        assert_eq!(cursor, b"");
     }
 
     #[test]
@@ -1042,7 +1042,7 @@ mod tests {
         let mut cursor: &[u8] = &buf;
         let decoded = sha256::Hash::read(&mut cursor).unwrap();
         assert_eq!(decoded, hash);
-        assert!(cursor.is_empty());
+        assert_eq!(cursor, b"");
     }
 
     #[test]

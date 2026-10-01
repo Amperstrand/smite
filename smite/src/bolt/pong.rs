@@ -86,7 +86,7 @@ mod tests {
     fn decode_empty() {
         let data = [0x00, 0x00];
         let pong = Pong::decode(&data).unwrap();
-        assert!(pong.ignored.is_empty());
+        assert_eq!(pong.ignored, b"");
     }
 
     #[test]

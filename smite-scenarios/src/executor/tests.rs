@@ -73,7 +73,7 @@ fn execute_build_channel_announcement() {
     assert_eq!(ca.node_id_2, pk(&node_sk_2_bytes));
     assert_eq!(ca.bitcoin_key_1, pk(&bitcoin_sk_1_bytes));
     assert_eq!(ca.bitcoin_key_2, pk(&bitcoin_sk_2_bytes));
-    assert!(ca.extra.is_empty());
+    assert_eq!(ca.extra, b"");
     assert!(ca.verify());
 }
 
@@ -112,7 +112,7 @@ fn execute_build_node_announcement() {
     assert_eq!(na.rgb_color, rgb_color);
     assert_eq!(na.alias, alias);
     assert_eq!(na.addresses, addresses_bytes);
-    assert!(na.extra.is_empty());
+    assert_eq!(na.extra, b"");
     assert!(na.verify());
 }
 
@@ -168,7 +168,7 @@ fn execute_build_channel_update() {
     assert_eq!(cu.fee_base_msat, 1_000);
     assert_eq!(cu.fee_proportional_millionths, 100);
     assert_eq!(cu.htlc_maximum_msat, 99_000_000);
-    assert!(cu.extra.is_empty());
+    assert_eq!(cu.extra, b"");
 
     let secp = Secp256k1::new();
     let expected_node_id =
@@ -638,7 +638,7 @@ fn execute_mine_blocks_invokes_cli() {
 
     // Verify that mine_blocks was called with the correct number
     assert_eq!(fx.bitcoin().mine_blocks_calls, vec![6]);
-    assert!(fx.bitcoin().mined_private_mempool.is_empty());
+    assert_eq!(fx.bitcoin().mined_private_mempool, Vec::<String>::new());
     assert_eq!(fx.rpc().chain_syncs, 1);
 }
 
@@ -713,7 +713,7 @@ fn execute_lookup_short_channel_id_unconfirmed_returns_sentinel() {
 
     // The mock was queried but returned None (zero confirmations), so the
     // executor took the sentinel path without panicking.
-    assert!(fx.bitcoin().mine_blocks_calls.is_empty());
+    assert_eq!(fx.bitcoin().mine_blocks_calls, Vec::<u8>::new());
     assert_eq!(fx.bitcoin().block_position_lookups.len(), 1);
 
     let ca: ChannelAnnouncement = fx.sent(0);
@@ -740,7 +740,7 @@ fn execute_broadcast_dedupes_rejected_tx_in_private_mempool() {
     );
 
     let rejected_hex = bitcoin::consensus::encode::serialize_hex(&fx.bitcoin().broadcast_calls[0]);
-    assert!(fx.private_mempool().is_empty());
+    assert_eq!(fx.private_mempool(), []);
     assert_eq!(fx.bitcoin().mined_private_mempool, vec![rejected_hex]);
 }
 
@@ -1116,7 +1116,7 @@ fn execute_send_shutdown_empty_scriptpubkey() {
     assert_eq!(fx.sent_len(), 1);
     let sd: Shutdown = fx.sent(0);
     assert_eq!(sd.channel_id, channel_id);
-    assert!(sd.scriptpubkey.is_empty());
+    assert_eq!(sd.scriptpubkey, b"");
 }
 
 #[test]
@@ -1172,7 +1172,7 @@ fn execute_recv_channel_ready_below_minimum_depth_is_noop() {
     // does not yet owe us a `channel_ready`, so `RecvChannelReady` must be a
     // no-op.
     fx.run(&recv_channel_ready_program(5));
-    assert!(fx.bitcoin().mined_private_mempool.is_empty());
+    assert_eq!(fx.bitcoin().mined_private_mempool, Vec::<String>::new());
 
     // The target's next per-commitment point is still unknown and the queued
     // `channel_ready` remains untouched.
@@ -1193,7 +1193,7 @@ fn execute_recv_channel_ready_at_minimum_depth_records_point() {
     // At the negotiated `minimum_depth` confirmations the target owes us a
     // `channel_ready`, which `RecvChannelReady` receives and records.
     fx.run(&recv_channel_ready_program(6));
-    assert!(fx.bitcoin().mined_private_mempool.is_empty());
+    assert_eq!(fx.bitcoin().mined_private_mempool, Vec::<String>::new());
 
     // The `channel_ready` was consumed and the target's next per-commitment
     // point is now recorded.

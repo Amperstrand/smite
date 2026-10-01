@@ -599,7 +599,7 @@ mod tests {
 
         let mut empty: Vec<u8> = vec![];
         shuffle_subrange(&mut empty, &mut rng);
-        assert!(empty.is_empty());
+        assert_eq!(empty, b"");
 
         let mut single = vec![0xFF];
         shuffle_subrange(&mut single, &mut rng);
@@ -664,7 +664,7 @@ mod tests {
         let mut rng = SmallRng::seed_from_u64(0);
         let mut empty: Vec<u8> = vec![];
         fill_repeated(&mut empty, &mut rng);
-        assert!(empty.is_empty());
+        assert_eq!(empty, b"");
     }
 
     #[test]
