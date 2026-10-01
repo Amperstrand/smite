@@ -67,7 +67,7 @@ mod tests {
     fn new_creates_empty_padding() {
         let ping = Ping::new(4);
         assert_eq!(ping.num_pong_bytes, 4);
-        assert!(ping.ignored.is_empty());
+        assert_eq!(ping.ignored, b"");
     }
 
     #[test]
@@ -99,7 +99,7 @@ mod tests {
         let data = [0x00, 0x04, 0x00, 0x00];
         let ping = Ping::decode(&data).unwrap();
         assert_eq!(ping.num_pong_bytes, 4);
-        assert!(ping.ignored.is_empty());
+        assert_eq!(ping.ignored, b"");
     }
 
     #[test]

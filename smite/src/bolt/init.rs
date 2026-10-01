@@ -152,8 +152,8 @@ mod tests {
     #[test]
     fn empty_init() {
         let init = Init::empty();
-        assert!(init.globalfeatures.is_empty());
-        assert!(init.features.is_empty());
+        assert_eq!(init.globalfeatures, b"");
+        assert_eq!(init.features, b"");
         assert!(init.tlvs.networks.is_none());
         assert!(init.tlvs.remote_addr.is_none());
     }
@@ -247,8 +247,8 @@ mod tests {
     fn decode_empty() {
         let data = [0x00, 0x00, 0x00, 0x00];
         let init = Init::decode(&data).unwrap();
-        assert!(init.globalfeatures.is_empty());
-        assert!(init.features.is_empty());
+        assert_eq!(init.globalfeatures, b"");
+        assert_eq!(init.features, b"");
         assert!(init.tlvs.networks.is_none());
         assert!(init.tlvs.remote_addr.is_none());
     }

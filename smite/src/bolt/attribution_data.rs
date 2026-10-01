@@ -223,6 +223,6 @@ mod tests {
         let mut cursor: &[u8] = &buf;
         let decoded = AttributionData::read(&mut cursor).unwrap();
         assert_eq!(decoded, original);
-        assert!(cursor.is_empty());
+        assert_eq!(cursor, b"");
     }
 }

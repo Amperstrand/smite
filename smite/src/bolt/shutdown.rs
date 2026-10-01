@@ -259,7 +259,7 @@ mod tests {
         let encoded = original.encode();
         let decoded = Shutdown::decode(&encoded).unwrap();
         assert_eq!(original, decoded);
-        assert!(decoded.scriptpubkey.is_empty());
+        assert_eq!(decoded.scriptpubkey, b"");
     }
 
     #[test]

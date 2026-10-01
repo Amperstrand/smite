@@ -1038,7 +1038,7 @@ sharedir = "{}"
     fn ir_mutator_envs_empty_for_non_ir_scenario() {
         let dir = tempfile::tempdir().unwrap();
         let config = sample_config(dir.path());
-        assert!(ir_mutator_envs(&config).is_empty());
+        assert_eq!(ir_mutator_envs(&config), []);
     }
 
     fn sample_config(dir: &Path) -> CampaignConfig {

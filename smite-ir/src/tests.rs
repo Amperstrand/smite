@@ -2791,7 +2791,7 @@ fn dead_code_returns_false_on_empty_program() {
         instructions: vec![],
     };
     assert!(!DeadCodeEliminator.minimize(&mut program));
-    assert!(program.instructions.is_empty());
+    assert_eq!(program.instructions, []);
 }
 
 /// Build a program with a dead load appended after the generated program.
@@ -3020,7 +3020,7 @@ fn cse_returns_false_on_empty_program() {
         instructions: vec![],
     };
     assert!(!CommonSubexpressionEliminator.minimize(&mut program));
-    assert!(program.instructions.is_empty());
+    assert_eq!(program.instructions, []);
 }
 
 #[test]

@@ -457,7 +457,7 @@ sharedir = "/tmp/smite-nyx"
         let config = CampaignConfig::load(&path).unwrap();
 
         assert!(config.afl_env.is_empty());
-        assert!(config.afl_flags.is_empty());
+        assert_eq!(config.afl_flags, Vec::<String>::new());
     }
 
     #[test]
