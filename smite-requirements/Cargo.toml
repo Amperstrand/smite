@@ -1,0 +1,13 @@
+[package]
+name = "smite-requirements"
+version = "0.1.0"
+edition.workspace = true
+description = "Deterministic BOLT requirement extraction and violation-seed scaffolding for spec-anchored fuzzing."
+license = "MIT"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]

@@ -1,0 +1,572 @@
+[
+  {
+    "id": "bolt02:accept_channel2:the-accepting-node:2:seed",
+    "requirement_id": "bolt02:accept_channel2:the-accepting-node:2",
+    "strategy": "invalid_field",
+    "message": "accept_channel2"
+  },
+  {
+    "id": "bolt02:accept_channel2:the-accepting-node:4:seed",
+    "requirement_id": "bolt02:accept_channel2:the-accepting-node:4",
+    "strategy": "invalid_field",
+    "message": "accept_channel2"
+  },
+  {
+    "id": "bolt02:accept_channel2:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:accept_channel2:the-receiving-node:1",
+    "strategy": "assert_response",
+    "message": "accept_channel2"
+  },
+  {
+    "id": "bolt02:accept_channel:the-sender:1:seed",
+    "requirement_id": "bolt02:accept_channel:the-sender:1",
+    "strategy": "invalid_field",
+    "message": "accept_channel"
+  },
+  {
+    "id": "bolt02:accept_channel:the-sender:3:seed",
+    "requirement_id": "bolt02:accept_channel:the-sender:3",
+    "strategy": "invalid_field",
+    "message": "accept_channel"
+  },
+  {
+    "id": "bolt02:accept_channel:the-sender:4:seed",
+    "requirement_id": "bolt02:accept_channel:the-sender:4",
+    "strategy": "invalid_field",
+    "message": "accept_channel"
+  },
+  {
+    "id": "bolt02:accept_channel:the-sender:5:seed",
+    "requirement_id": "bolt02:accept_channel:the-sender:5",
+    "strategy": "invalid_field",
+    "message": "accept_channel"
+  },
+  {
+    "id": "bolt02:channel_ready:the-receiver:2:seed",
+    "requirement_id": "bolt02:channel_ready:the-receiver:2",
+    "strategy": "send_despite_precondition",
+    "message": "channel_ready"
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:11:seed",
+    "requirement_id": "bolt02:channel_ready:the-sender:11",
+    "strategy": "send_despite_precondition",
+    "message": "channel_ready"
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:4:seed",
+    "requirement_id": "bolt02:channel_ready:the-sender:4",
+    "strategy": "invalid_field",
+    "message": "channel_ready"
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:5:seed",
+    "requirement_id": "bolt02:channel_ready:the-sender:5",
+    "strategy": "invalid_field",
+    "message": "channel_ready"
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:8:seed",
+    "requirement_id": "bolt02:channel_ready:the-sender:8",
+    "strategy": "invalid_field",
+    "message": "channel_ready"
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:9:seed",
+    "requirement_id": "bolt02:channel_ready:the-sender:9",
+    "strategy": "send_despite_precondition",
+    "message": "channel_ready"
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:commitment_signed:the-receiving-node:1",
+    "strategy": "assert_response",
+    "message": "commitment_signed"
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:commitment_signed:the-receiving-node:2",
+    "strategy": "assert_response",
+    "message": "commitment_signed"
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:3:seed",
+    "requirement_id": "bolt02:commitment_signed:the-receiving-node:3",
+    "strategy": "assert_response",
+    "message": "commitment_signed"
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:5:seed",
+    "requirement_id": "bolt02:commitment_signed:the-receiving-node:5",
+    "strategy": "assert_response",
+    "message": "commitment_signed"
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:6:seed",
+    "requirement_id": "bolt02:commitment_signed:the-receiving-node:6",
+    "strategy": "assert_response",
+    "message": "commitment_signed"
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sender-of-txinitrbf:4:seed",
+    "requirement_id": "bolt02:commitment_signed:the-sender-of-txinitrbf:4",
+    "strategy": "send_despite_precondition",
+    "message": "commitment_signed"
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sending-node:5:seed",
+    "requirement_id": "bolt02:commitment_signed:the-sending-node:5",
+    "strategy": "send_despite_precondition",
+    "message": "commitment_signed"
+  },
+  {
+    "id": "bolt02:funding_signed:the-recipient:2:seed",
+    "requirement_id": "bolt02:funding_signed:the-recipient:2",
+    "strategy": "send_despite_precondition",
+    "message": "funding_signed"
+  },
+  {
+    "id": "bolt02:open_channel2:if-nodes-have-negotiated-optiondualfund:1:seed",
+    "requirement_id": "bolt02:open_channel2:if-nodes-have-negotiated-optiondualfund:1",
+    "strategy": "send_despite_precondition",
+    "message": "open_channel2"
+  },
+  {
+    "id": "bolt02:open_channel2:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:open_channel2:the-receiving-node:2",
+    "strategy": "assert_response",
+    "message": "open_channel2"
+  },
+  {
+    "id": "bolt02:open_channel2:the-sending-node:1:seed",
+    "requirement_id": "bolt02:open_channel2:the-sending-node:1",
+    "strategy": "invalid_field",
+    "message": "open_channel2"
+  },
+  {
+    "id": "bolt02:open_channel2:the-sending-node:2:seed",
+    "requirement_id": "bolt02:open_channel2:the-sending-node:2",
+    "strategy": "invalid_field",
+    "message": "open_channel2"
+  },
+  {
+    "id": "bolt02:open_channel2:the-sending-node:3:seed",
+    "requirement_id": "bolt02:open_channel2:the-sending-node:3",
+    "strategy": "invalid_field",
+    "message": "open_channel2"
+  },
+  {
+    "id": "bolt02:open_channel2:the-sending-node:4:seed",
+    "requirement_id": "bolt02:open_channel2:the-sending-node:4",
+    "strategy": "invalid_field",
+    "message": "open_channel2"
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:13:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:13",
+    "strategy": "invalid_field",
+    "message": "open_channel"
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:14:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:14",
+    "strategy": "invalid_field",
+    "message": "open_channel"
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:17:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:17",
+    "strategy": "invalid_field",
+    "message": "open_channel"
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:18:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:18",
+    "strategy": "send_despite_precondition",
+    "message": "open_channel"
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:4:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:4",
+    "strategy": "invalid_field",
+    "message": "open_channel"
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:5:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:5",
+    "strategy": "invalid_field",
+    "message": "open_channel"
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:6:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:6",
+    "strategy": "invalid_field",
+    "message": "open_channel"
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:7:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:7",
+    "strategy": "invalid_field",
+    "message": "open_channel"
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:8:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:8",
+    "strategy": "invalid_field",
+    "message": "open_channel"
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:9:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:9",
+    "strategy": "invalid_field",
+    "message": "open_channel"
+  },
+  {
+    "id": "bolt02:splice_ack:the-sending-node:3:seed",
+    "requirement_id": "bolt02:splice_ack:the-sending-node:3",
+    "strategy": "invalid_field",
+    "message": "splice_ack"
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:splice_init:the-receiving-node:1",
+    "strategy": "assert_response",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:splice_init:the-receiving-node:2",
+    "strategy": "assert_response",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:3:seed",
+    "requirement_id": "bolt02:splice_init:the-receiving-node:3",
+    "strategy": "assert_response",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:4:seed",
+    "requirement_id": "bolt02:splice_init:the-receiving-node:4",
+    "strategy": "assert_response",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:5:seed",
+    "requirement_id": "bolt02:splice_init:the-receiving-node:5",
+    "strategy": "assert_response",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:6:seed",
+    "requirement_id": "bolt02:splice_init:the-receiving-node:6",
+    "strategy": "assert_response",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:10:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:10",
+    "strategy": "invalid_field",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:1:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:1",
+    "strategy": "send_despite_precondition",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:2:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:2",
+    "strategy": "send_despite_precondition",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:5:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:5",
+    "strategy": "send_despite_precondition",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:6:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:6",
+    "strategy": "send_despite_precondition",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:7:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:7",
+    "strategy": "invalid_field",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:8:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:8",
+    "strategy": "invalid_field",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:9:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:9",
+    "strategy": "invalid_field",
+    "message": "splice_init"
+  },
+  {
+    "id": "bolt02:splice_locked:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:splice_locked:the-receiving-node:1",
+    "strategy": "assert_response",
+    "message": "splice_locked"
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:2:seed",
+    "requirement_id": "bolt02:stfu:the-sender-of-stfu:2",
+    "strategy": "send_despite_precondition",
+    "message": "stfu"
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:4:seed",
+    "requirement_id": "bolt02:stfu:the-sender-of-stfu:4",
+    "strategy": "invalid_field",
+    "message": "stfu"
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:5:seed",
+    "requirement_id": "bolt02:stfu:the-sender-of-stfu:5",
+    "strategy": "invalid_field",
+    "message": "stfu"
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:6:seed",
+    "requirement_id": "bolt02:stfu:the-sender-of-stfu:6",
+    "strategy": "invalid_field",
+    "message": "stfu"
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:8:seed",
+    "requirement_id": "bolt02:stfu:the-sender-of-stfu:8",
+    "strategy": "send_despite_precondition",
+    "message": "stfu"
+  },
+  {
+    "id": "bolt02:tx_abort:a-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_abort:a-receiving-node:1",
+    "strategy": "send_despite_precondition",
+    "message": "tx_abort"
+  },
+  {
+    "id": "bolt02:tx_abort:a-receiving-node:3:seed",
+    "requirement_id": "bolt02:tx_abort:a-receiving-node:3",
+    "strategy": "assert_response",
+    "message": "tx_abort"
+  },
+  {
+    "id": "bolt02:tx_ack_rbf:the-sender:1:seed",
+    "requirement_id": "bolt02:tx_ack_rbf:the-sender:1",
+    "strategy": "invalid_field",
+    "message": "tx_ack_rbf"
+  },
+  {
+    "id": "bolt02:tx_ack_rbf:the-sender:2:seed",
+    "requirement_id": "bolt02:tx_ack_rbf:the-sender:2",
+    "strategy": "invalid_field",
+    "message": "tx_ack_rbf"
+  },
+  {
+    "id": "bolt02:tx_add_input:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_add_input:the-receiving-node:1",
+    "strategy": "assert_response",
+    "message": "tx_add_input"
+  },
+  {
+    "id": "bolt02:tx_add_input:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:tx_add_input:the-receiving-node:2",
+    "strategy": "assert_response",
+    "message": "tx_add_input"
+  },
+  {
+    "id": "bolt02:tx_add_input:the-receiving-node:3:seed",
+    "requirement_id": "bolt02:tx_add_input:the-receiving-node:3",
+    "strategy": "assert_response",
+    "message": "tx_add_input"
+  },
+  {
+    "id": "bolt02:tx_add_input:the-receiving-node:4:seed",
+    "requirement_id": "bolt02:tx_add_input:the-receiving-node:4",
+    "strategy": "assert_response",
+    "message": "tx_add_input"
+  },
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:3:seed",
+    "requirement_id": "bolt02:tx_add_input:the-sending-node:3",
+    "strategy": "invalid_field",
+    "message": "tx_add_input"
+  },
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:8:seed",
+    "requirement_id": "bolt02:tx_add_input:the-sending-node:8",
+    "strategy": "send_despite_precondition",
+    "message": "tx_add_input"
+  },
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:9:seed",
+    "requirement_id": "bolt02:tx_add_input:the-sending-node:9",
+    "strategy": "invalid_field",
+    "message": "tx_add_input"
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_add_output:the-receiving-node:1",
+    "strategy": "assert_response",
+    "message": "tx_add_output"
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:tx_add_output:the-receiving-node:2",
+    "strategy": "assert_response",
+    "message": "tx_add_output"
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:4:seed",
+    "requirement_id": "bolt02:tx_add_output:the-receiving-node:4",
+    "strategy": "assert_response",
+    "message": "tx_add_output"
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:5:seed",
+    "requirement_id": "bolt02:tx_add_output:the-receiving-node:5",
+    "strategy": "assert_response",
+    "message": "tx_add_output"
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:6:seed",
+    "requirement_id": "bolt02:tx_add_output:the-receiving-node:6",
+    "strategy": "assert_response",
+    "message": "tx_add_output"
+  },
+  {
+    "id": "bolt02:tx_add_output:the-sending-node:7:seed",
+    "requirement_id": "bolt02:tx_add_output:the-sending-node:7",
+    "strategy": "invalid_field",
+    "message": "tx_add_output"
+  },
+  {
+    "id": "bolt02:tx_complete:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_complete:the-receiving-node:1",
+    "strategy": "assert_response",
+    "message": "tx_complete"
+  },
+  {
+    "id": "bolt02:tx_complete:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:tx_complete:the-receiving-node:2",
+    "strategy": "assert_response",
+    "message": "tx_complete"
+  },
+  {
+    "id": "bolt02:tx_complete:the-receiving-node:3:seed",
+    "requirement_id": "bolt02:tx_complete:the-receiving-node:3",
+    "strategy": "assert_response",
+    "message": "tx_complete"
+  },
+  {
+    "id": "bolt02:tx_complete:the-receiving-node:4:seed",
+    "requirement_id": "bolt02:tx_complete:the-receiving-node:4",
+    "strategy": "assert_response",
+    "message": "tx_complete"
+  },
+  {
+    "id": "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:1",
+    "strategy": "assert_response",
+    "message": "tx_complete"
+  },
+  {
+    "id": "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:2:seed",
+    "requirement_id": "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:2",
+    "strategy": "assert_response",
+    "message": "tx_complete"
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-receiving-node:1",
+    "strategy": "assert_response",
+    "message": "tx_init_rbf"
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-receiving-node:2",
+    "strategy": "assert_response",
+    "message": "tx_init_rbf"
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sender:1:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sender:1",
+    "strategy": "invalid_field",
+    "message": "tx_init_rbf"
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sender:2:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sender:2",
+    "strategy": "invalid_field",
+    "message": "tx_init_rbf"
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sender:3:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sender:3",
+    "strategy": "invalid_field",
+    "message": "tx_init_rbf"
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:1:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sending-node:1",
+    "strategy": "send_despite_precondition",
+    "message": "tx_init_rbf"
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:2:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sending-node:2",
+    "strategy": "send_despite_precondition",
+    "message": "tx_init_rbf"
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:4:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sending-node:4",
+    "strategy": "invalid_field",
+    "message": "tx_init_rbf"
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:5:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sending-node:5",
+    "strategy": "send_despite_precondition",
+    "message": "tx_init_rbf"
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:6:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sending-node:6",
+    "strategy": "send_despite_precondition",
+    "message": "tx_init_rbf"
+  },
+  {
+    "id": "bolt02:tx_signatures:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_signatures:the-receiving-node:1",
+    "strategy": "assert_response",
+    "message": "tx_signatures"
+  },
+  {
+    "id": "bolt02:tx_signatures:the-receiving-node:3:seed",
+    "requirement_id": "bolt02:tx_signatures:the-receiving-node:3",
+    "strategy": "assert_response",
+    "message": "tx_signatures"
+  },
+  {
+    "id": "bolt02:tx_signatures:the-receiving-node:4:seed",
+    "requirement_id": "bolt02:tx_signatures:the-receiving-node:4",
+    "strategy": "assert_response",
+    "message": "tx_signatures"
+  },
+  {
+    "id": "bolt02:tx_signatures:the-sending-node:1:seed",
+    "requirement_id": "bolt02:tx_signatures:the-sending-node:1",
+    "strategy": "invalid_field",
+    "message": "tx_signatures"
+  }
+]
