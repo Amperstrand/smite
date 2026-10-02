@@ -61,6 +61,10 @@ pub enum Variable {
     /// `shutdown` has been sent, so the counterparty's `shutdown` may now be
     /// received.
     SentShutdown,
+    /// `stfu` has been sent (quiescence initiated or accepted).
+    SentStfu,
+    /// `splice_init` has been sent.
+    SentSpliceInit,
 }
 
 impl Variable {
@@ -89,6 +93,8 @@ impl Variable {
             Self::SentOpenChannel => VariableType::SentOpenChannel,
             Self::SentFundingCreated => VariableType::SentFundingCreated,
             Self::SentShutdown => VariableType::SentShutdown,
+            Self::SentStfu => VariableType::SentStfu,
+            Self::SentSpliceInit => VariableType::SentSpliceInit,
         }
     }
 }
@@ -118,13 +124,15 @@ pub enum VariableType {
     SentOpenChannel,
     SentFundingCreated,
     SentShutdown,
+    SentStfu,
+    SentSpliceInit,
 }
 
 impl VariableType {
     #[must_use]
     pub fn is_affine(&self) -> bool {
         match self {
-            Self::SentOpenChannel | Self::SentFundingCreated | Self::SentShutdown => true,
+            Self::SentOpenChannel | Self::SentFundingCreated | Self::SentShutdown | Self::SentStfu | Self::SentSpliceInit => true,
 
             Self::Bytes
             | Self::ChainHash

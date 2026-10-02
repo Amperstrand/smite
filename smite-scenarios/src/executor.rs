@@ -11,7 +11,7 @@ use smite::bolt::{
     AcceptChannel, AnnouncementSignatures, ChannelAnnouncement, ChannelId, ChannelReady,
     ChannelReadyTlvs, ChannelUpdate, Features, FromMessage, FundingCreated, FundingSigned, Message,
     MessageType, NodeAnnouncement, OpenChannel, OpenChannelTlvs, Pong, ShortChannelId, Shutdown,
-    TemporaryChannelId,
+    SpliceInit, SpliceInitTlvs, Stfu, TemporaryChannelId,
 };
 use smite::channel_tx::{
     ChannelConfig, ChannelPartyConfig, ChannelState, FundingTransaction, HolderIdentity, Side,
@@ -492,6 +492,49 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     );
                     self.conn.send_message(&encoded)?;
                     Some(Variable::SentShutdown)
+                }
+
+                Operation::SendStfu => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let initiator = resolve_u8(&variables, instr.inputs[1]);
+                    let msg = Stfu {
+                        channel_id,
+                        initiator,
+                    };
+                    let encoded = Message::Stfu(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendStfu: {} bytes (initiator={})",
+                        start.elapsed(),
+                        encoded.len(),
+                        initiator
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentStfu)
+                }
+
+                Operation::SendSpliceInit => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let amount = resolve_amount(&variables, instr.inputs[1]);
+                    let feerate = resolve_feerate(&variables, instr.inputs[2]);
+                    let locktime = resolve_timestamp(&variables, instr.inputs[3]);
+                    let pubkey = resolve_pubkey(&variables, instr.inputs[4]);
+                    let msg = SpliceInit {
+                        channel_id,
+                        funding_contribution_satoshis: amount as i64,
+                        funding_feerate_perkw: feerate,
+                        locktime,
+                        funding_pubkey: pubkey,
+                        tlvs: SpliceInitTlvs::default(),
+                    };
+                    let encoded = Message::SpliceInit(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendSpliceInit: {} bytes (amount={})",
+                        start.elapsed(),
+                        encoded.len(),
+                        amount
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentSpliceInit)
                 }
 
                 Operation::RecvAcceptChannel => {

@@ -214,6 +214,23 @@ pub enum Operation {
     ///   0: `channel_id`   (`ChannelId`)
     ///   1: `scriptpubkey` (`Bytes`)
     SendShutdown,
+    /// Build and send an `stfu` message (BOLT 2, type 2).
+    /// Produces a `SentStfu` variable.
+    ///
+    /// Inputs (2):
+    ///   0: `channel_id`  (`ChannelId`)
+    ///   1: `initiator`   (`U8`) — 1 when initiating, 0 when replying
+    SendStfu,
+    /// Build and send a `splice_init` message (BOLT 2, type 80).
+    /// Produces a `SentSpliceInit` variable.
+    ///
+    /// Inputs (5):
+    ///   0: `channel_id`                    (`ChannelId`)
+    ///   1: `funding_contribution_satoshis` (`Amount`, interpreted as i64)
+    ///   2: `funding_feerate_perkw`         (`FeeratePerKw`)
+    ///   3: `locktime`                      (`BlockHeight`)
+    ///   4: `funding_pubkey`                (`Point`)
+    SendSpliceInit,
     /// Receive and parse an `accept_channel` response.
     /// Produces an `AcceptChannel` compound variable.
     RecvAcceptChannel,
@@ -553,6 +570,8 @@ impl fmt::Display for Operation {
                 write!(f, "SendChannelReady{{include_alias={include_alias}}}")
             }
             Self::SendShutdown => write!(f, "SendShutdown"),
+            Self::SendStfu => write!(f, "SendStfu"),
+            Self::SendSpliceInit => write!(f, "SendSpliceInit"),
             Self::RecvAcceptChannel => write!(f, "RecvAcceptChannel"),
             Self::RecvFundingSigned => write!(f, "RecvFundingSigned"),
             Self::RecvChannelReady => write!(f, "RecvChannelReady()"),
@@ -600,6 +619,8 @@ impl Operation {
             Self::SendOpenChannel => Some(VariableType::SentOpenChannel),
             Self::SendFundingCreated => Some(VariableType::SentFundingCreated),
             Self::SendShutdown => Some(VariableType::SentShutdown),
+            Self::SendStfu => Some(VariableType::SentStfu),
+            Self::SendSpliceInit => Some(VariableType::SentSpliceInit),
             Self::RecvAcceptChannel => Some(VariableType::AcceptChannel),
         }
     }
@@ -716,6 +737,17 @@ impl Operation {
                 VariableType::ChannelId, // channel_id
                 VariableType::Bytes,     // scriptpubkey
             ],
+            Self::SendStfu => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U8,        // initiator
+            ],
+            Self::SendSpliceInit => vec![
+                VariableType::ChannelId,    // channel_id
+                VariableType::Amount,       // funding_contribution_satoshis (as i64)
+                VariableType::FeeratePerKw, // funding_feerate_perkw
+                VariableType::BlockHeight,  // locktime
+                VariableType::Point,        // funding_pubkey
+            ],
             Self::RecvAcceptChannel => vec![VariableType::SentOpenChannel],
             Self::RecvFundingSigned => vec![VariableType::SentFundingCreated],
             Self::BroadcastTransaction | Self::LookupShortChannelId => {
@@ -761,6 +793,8 @@ impl Operation {
             | Self::SendFundingCreated
             | Self::SendChannelReady { .. }
             | Self::SendShutdown
+            | Self::SendStfu
+            | Self::SendSpliceInit
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
             | Self::MineBlocks(_)
@@ -809,6 +843,8 @@ impl Operation {
             | Self::SendFundingCreated
             | Self::SendChannelReady { .. }
             | Self::SendShutdown
+            | Self::SendStfu
+            | Self::SendSpliceInit
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
@@ -853,7 +889,9 @@ impl Operation {
             | Self::SendMessage
             | Self::SendOpenChannel
             | Self::SendChannelReady { .. }
-            | Self::SendShutdown => true,
+            | Self::SendShutdown
+            | Self::SendStfu
+            | Self::SendSpliceInit => true,
             // `CreateFundingTransaction` selects coins from the wallet, whose
             // contents change as transactions are created and broadcast.
             // `SendFundingCreated` builds its message from the recorded
@@ -916,6 +954,8 @@ impl Operation {
             | Self::SendOpenChannel
             | Self::SendFundingCreated
             | Self::SendShutdown
+            | Self::SendStfu
+            | Self::SendSpliceInit
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
