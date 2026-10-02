@@ -1,0 +1,2587 @@
+[
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:3:seed:sketch",
+    "seed_id": "bolt02:tx_add_input:the-sending-node:3:seed",
+    "requirement_id": "bolt02:tx_add_input:the-sending-node:3",
+    "goal": "Exercise BOLT requirement: MUST MUST set `sequence` to be less than or equal to 4294967293 (`0xFFFFFFFD`)",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "tx_add_input_message",
+        "note": "set field wrong: sequence"
+      },
+      {
+        "action": "send",
+        "target": "tx_add_input",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_add_input:the-receiving-node:1:seed:sketch",
+    "seed_id": "bolt02:tx_add_input:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_add_input:the-receiving-node:1",
+    "goal": "Exercise BOLT requirement: MUST MUST add all received inputs to the transaction",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_add_input",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST add all received inputs to the transaction"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_add_input:the-receiving-node:2:seed:sketch",
+    "seed_id": "bolt02:tx_add_input:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:tx_add_input:the-receiving-node:2",
+    "goal": "Exercise BOLT requirement: MUST MUST fail the negotiation if:",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_add_input",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST fail the negotiation if:"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:1:seed:sketch",
+    "seed_id": "bolt02:tx_add_output:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_add_output:the-receiving-node:1",
+    "goal": "Exercise BOLT requirement: MUST MUST add all received outputs to the transaction",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_add_output",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST add all received outputs to the transaction"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:2:seed:sketch",
+    "seed_id": "bolt02:tx_add_output:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:tx_add_output:the-receiving-node:2",
+    "goal": "Exercise BOLT requirement: MUST MUST accept P2WSH, P2WPKH, P2TR `script`s",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_add_output",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST accept P2WSH, P2WPKH, P2TR `script`s"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:4:seed:sketch",
+    "seed_id": "bolt02:tx_add_output:the-receiving-node:4:seed",
+    "requirement_id": "bolt02:tx_add_output:the-receiving-node:4",
+    "goal": "Exercise BOLT requirement: MUST MUST fail the negotiation if:",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_add_output",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST fail the negotiation if:"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:5:seed:sketch",
+    "seed_id": "bolt02:tx_add_output:the-receiving-node:5:seed",
+    "requirement_id": "bolt02:tx_add_output:the-receiving-node:5",
+    "goal": "Exercise BOLT requirement: MUST MUST remove the indicated input or output from the transaction",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_add_output",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST remove the indicated input or output from the transaction"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:6:seed:sketch",
+    "seed_id": "bolt02:tx_add_output:the-receiving-node:6:seed",
+    "requirement_id": "bolt02:tx_add_output:the-receiving-node:6",
+    "goal": "Exercise BOLT requirement: MUST MUST fail the negotiation if:",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_add_output",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST fail the negotiation if:"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_complete:the-receiving-node:1:seed:sketch",
+    "seed_id": "bolt02:tx_complete:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_complete:the-receiving-node:1",
+    "goal": "Exercise BOLT requirement: MUST MUST use the negotiated inputs and outputs to construct a transaction",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_complete",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST use the negotiated inputs and outputs to construct a transaction"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_complete:the-receiving-node:2:seed:sketch",
+    "seed_id": "bolt02:tx_complete:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:tx_complete:the-receiving-node:2",
+    "goal": "Exercise BOLT requirement: MUST MUST fail the negotiation if:",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_complete",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST fail the negotiation if:"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_signatures:the-receiving-node:1:seed:sketch",
+    "seed_id": "bolt02:tx_signatures:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_signatures:the-receiving-node:1",
+    "goal": "Exercise BOLT requirement: MUST MUST fail the negotiation if:",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_signatures",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST fail the negotiation if:"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_signatures:the-receiving-node:3:seed:sketch",
+    "seed_id": "bolt02:tx_signatures:the-receiving-node:3:seed",
+    "requirement_id": "bolt02:tx_signatures:the-receiving-node:3",
+    "goal": "Exercise BOLT requirement: MUST MUST reply with their `tx_signatures` if not already transmitted",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_signatures",
+        "note": "trigger: not already transmitted"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST reply with their `tx_signatures` if not already transmitted"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sender:1:seed:sketch",
+    "seed_id": "bolt02:tx_init_rbf:the-sender:1:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sender:1",
+    "goal": "Exercise BOLT requirement: MUST MUST set `feerate` greater than or equal to the maximum of:",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "tx_init_rbf_message",
+        "note": "set field wrong: feerate"
+      },
+      {
+        "action": "send",
+        "target": "tx_init_rbf",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sender:2:seed:sketch",
+    "seed_id": "bolt02:tx_init_rbf:the-sender:2:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sender:2",
+    "goal": "Exercise BOLT requirement: MUST MUST set `funding_output_contribution`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "tx_init_rbf_message",
+        "note": "set field wrong: funding_output_contribution"
+      },
+      {
+        "action": "send",
+        "target": "tx_init_rbf",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sender:3:seed:sketch",
+    "seed_id": "bolt02:tx_init_rbf:the-sender:3:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sender:3",
+    "goal": "Exercise BOLT requirement: MUST MUST set `require_confirmed_inputs`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "tx_init_rbf_message",
+        "note": "set field wrong: require_confirmed_inputs"
+      },
+      {
+        "action": "send",
+        "target": "tx_init_rbf",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_ack_rbf:the-sender:1:seed:sketch",
+    "seed_id": "bolt02:tx_ack_rbf:the-sender:1:seed",
+    "requirement_id": "bolt02:tx_ack_rbf:the-sender:1",
+    "goal": "Exercise BOLT requirement: MUST MUST set `funding_output_contribution`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "tx_ack_rbf_message",
+        "note": "set field wrong: funding_output_contribution"
+      },
+      {
+        "action": "send",
+        "target": "tx_ack_rbf",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_ack_rbf:the-sender:2:seed:sketch",
+    "seed_id": "bolt02:tx_ack_rbf:the-sender:2:seed",
+    "requirement_id": "bolt02:tx_ack_rbf:the-sender:2",
+    "goal": "Exercise BOLT requirement: MUST MUST set `require_confirmed_inputs`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "tx_ack_rbf_message",
+        "note": "set field wrong: require_confirmed_inputs"
+      },
+      {
+        "action": "send",
+        "target": "tx_ack_rbf",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_abort:a-receiving-node:1:seed:sketch",
+    "seed_id": "bolt02:tx_abort:a-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_abort:a-receiving-node:1",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT forget the channel until any inputs to the negotiated tx",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_precondition",
+        "note": "precondition: if they have already sent `tx_signatures` to the peer:"
+      },
+      {
+        "action": "build",
+        "target": "tx_abort_message",
+        "note": "violates: MUST NOT forget the channel until any inputs to the negotiated tx"
+      },
+      {
+        "action": "send",
+        "target": "tx_abort",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_abort:a-receiving-node:3:seed:sketch",
+    "seed_id": "bolt02:tx_abort:a-receiving-node:3:seed",
+    "requirement_id": "bolt02:tx_abort:a-receiving-node:3",
+    "goal": "Exercise BOLT requirement: MUST MUST echo back `tx_abort`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_abort",
+        "note": "trigger: if they have not sent `tx_abort`:"
+      },
+      {
+        "action": "expect",
+        "target": "tx_abort",
+        "note": "per BOLT: MUST echo back `tx_abort`"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:4:seed:sketch",
+    "seed_id": "bolt02:open_channel:the-sending-node:4:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:4",
+    "goal": "Exercise BOLT requirement: MUST MUST set `funding_satoshis` to less than 2^24 satoshi.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "open_channel_message",
+        "note": "set field wrong: funding_satoshis"
+      },
+      {
+        "action": "send",
+        "target": "open_channel",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:5:seed:sketch",
+    "seed_id": "bolt02:open_channel:the-sending-node:5:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:5",
+    "goal": "Exercise BOLT requirement: MUST MUST set `push_msat` to equal or less than 1000 * `funding_satoshis`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "open_channel_message",
+        "note": "set field wrong: push_msat"
+      },
+      {
+        "action": "send",
+        "target": "open_channel",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:6:seed:sketch",
+    "seed_id": "bolt02:open_channel:the-sending-node:6:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:6",
+    "goal": "Exercise BOLT requirement: MUST MUST set `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, and `delayed_payment_basepoint` to valid secp256k1 pubkeys in compressed format.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "open_channel_message",
+        "note": "set field wrong: funding_pubkey"
+      },
+      {
+        "action": "send",
+        "target": "open_channel",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:7:seed:sketch",
+    "seed_id": "bolt02:open_channel:the-sending-node:7:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:7",
+    "goal": "Exercise BOLT requirement: MUST MUST set `first_per_commitment_point` to the per-commitment point to be used for the initial commitment transaction, derived as specified in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "open_channel_message",
+        "note": "set field wrong: first_per_commitment_point"
+      },
+      {
+        "action": "send",
+        "target": "open_channel",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:8:seed:sketch",
+    "seed_id": "bolt02:open_channel:the-sending-node:8:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:8",
+    "goal": "Exercise BOLT requirement: MUST MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "open_channel_message",
+        "note": "set field wrong: channel_reserve_satoshis"
+      },
+      {
+        "action": "send",
+        "target": "open_channel",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:9:seed:sketch",
+    "seed_id": "bolt02:open_channel:the-sending-node:9:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:9",
+    "goal": "Exercise BOLT requirement: MUST MUST set undefined bits in `channel_flags` to 0.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "open_channel_message",
+        "note": "set field wrong: channel_flags"
+      },
+      {
+        "action": "send",
+        "target": "open_channel",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:13:seed:sketch",
+    "seed_id": "bolt02:open_channel:the-sending-node:13:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:13",
+    "goal": "Exercise BOLT requirement: MUST MUST set `channel_type`:",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "open_channel_message",
+        "note": "set field wrong: channel_type"
+      },
+      {
+        "action": "send",
+        "target": "open_channel",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:14:seed:sketch",
+    "seed_id": "bolt02:open_channel:the-sending-node:14:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:14",
+    "goal": "Exercise BOLT requirement: MUST MUST set it to a defined type representing the type it wants.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "open_channel_message",
+        "note": "set field wrong: unknown_field"
+      },
+      {
+        "action": "send",
+        "target": "open_channel",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:17:seed:sketch",
+    "seed_id": "bolt02:open_channel:the-sending-node:17:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:17",
+    "goal": "Exercise BOLT requirement: MUST MUST set `feerate_per_kw` to `0`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "open_channel_message",
+        "note": "set field wrong: feerate_per_kw"
+      },
+      {
+        "action": "send",
+        "target": "open_channel",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:18:seed:sketch",
+    "seed_id": "bolt02:open_channel:the-sending-node:18:seed",
+    "requirement_id": "bolt02:open_channel:the-sending-node:18",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send `channel_type` with the `option_scid_alias` bit set.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_precondition",
+        "note": "precondition: if it includes `open_channel_tlvs`:; if `announce_channel` is `true` (not `0`):"
+      },
+      {
+        "action": "build",
+        "target": "open_channel_message",
+        "note": "violates: MUST NOT send `channel_type` with the `option_scid_alias` bit set."
+      },
+      {
+        "action": "send",
+        "target": "open_channel",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:accept_channel:the-sender:1:seed:sketch",
+    "seed_id": "bolt02:accept_channel:the-sender:1:seed",
+    "requirement_id": "bolt02:accept_channel:the-sender:1",
+    "goal": "Exercise BOLT requirement: MUST MUST set `minimum_depth` to zero.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "accept_channel_message",
+        "note": "set field wrong: minimum_depth"
+      },
+      {
+        "action": "send",
+        "target": "accept_channel",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:accept_channel:the-sender:3:seed:sketch",
+    "seed_id": "bolt02:accept_channel:the-sender:3:seed",
+    "requirement_id": "bolt02:accept_channel:the-sender:3",
+    "goal": "Exercise BOLT requirement: MUST MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel` message.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "accept_channel_message",
+        "note": "set field wrong: channel_reserve_satoshis"
+      },
+      {
+        "action": "send",
+        "target": "accept_channel",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:accept_channel:the-sender:4:seed:sketch",
+    "seed_id": "bolt02:accept_channel:the-sender:4:seed",
+    "requirement_id": "bolt02:accept_channel:the-sender:4",
+    "goal": "Exercise BOLT requirement: MUST MUST set `dust_limit_satoshis` less than or equal to `channel_reserve_satoshis` from the `open_channel` message.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "accept_channel_message",
+        "note": "set field wrong: dust_limit_satoshis"
+      },
+      {
+        "action": "send",
+        "target": "accept_channel",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:accept_channel:the-sender:5:seed:sketch",
+    "seed_id": "bolt02:accept_channel:the-sender:5:seed",
+    "requirement_id": "bolt02:accept_channel:the-sender:5",
+    "goal": "Exercise BOLT requirement: MUST MUST set `channel_type` to the `channel_type` from `open_channel`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "accept_channel_message",
+        "note": "set field wrong: channel_type"
+      },
+      {
+        "action": "send",
+        "target": "accept_channel",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:funding_signed:the-recipient:2:seed:sketch",
+    "seed_id": "bolt02:funding_signed:the-recipient:2:seed",
+    "requirement_id": "bolt02:funding_signed:the-recipient:2",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT broadcast the funding transaction before receipt of a valid `funding_signed`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_precondition",
+        "note": "precondition: if `signature` is incorrect OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:"
+      },
+      {
+        "action": "build",
+        "target": "funding_signed_message",
+        "note": "violates: MUST NOT broadcast the funding transaction before receipt of a valid `funding_signed`."
+      },
+      {
+        "action": "send",
+        "target": "funding_signed",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:4:seed:sketch",
+    "seed_id": "bolt02:channel_ready:the-sender:4:seed",
+    "requirement_id": "bolt02:channel_ready:the-sender:4",
+    "goal": "Exercise BOLT requirement: MUST MUST set `second_per_commitment_point` to the per-commitment point to be used",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "channel_ready_message",
+        "note": "set field wrong: second_per_commitment_point"
+      },
+      {
+        "action": "send",
+        "target": "channel_ready",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:5:seed:sketch",
+    "seed_id": "bolt02:channel_ready:the-sender:5:seed",
+    "requirement_id": "bolt02:channel_ready:the-sender:5",
+    "goal": "Exercise BOLT requirement: MUST MUST set `short_channel_id` `alias`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "channel_ready_message",
+        "note": "set field wrong: short_channel_id"
+      },
+      {
+        "action": "send",
+        "target": "channel_ready",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:8:seed:sketch",
+    "seed_id": "bolt02:channel_ready:the-sender:8:seed",
+    "requirement_id": "bolt02:channel_ready:the-sender:8",
+    "goal": "Exercise BOLT requirement: MUST MUST set `alias` to a value not related to the real `short_channel_id`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "channel_ready_message",
+        "note": "set field wrong: alias"
+      },
+      {
+        "action": "send",
+        "target": "channel_ready",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:9:seed:sketch",
+    "seed_id": "bolt02:channel_ready:the-sender:9:seed",
+    "requirement_id": "bolt02:channel_ready:the-sender:9",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send the same `alias` for multiple peers or use an alias which",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_precondition",
+        "note": "precondition: if it sets `alias`:; otherwise:"
+      },
+      {
+        "action": "build",
+        "target": "channel_ready_message",
+        "note": "violates: MUST NOT send the same `alias` for multiple peers or use an alias which"
+      },
+      {
+        "action": "send",
+        "target": "channel_ready",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:11:seed:sketch",
+    "seed_id": "bolt02:channel_ready:the-sender:11:seed",
+    "requirement_id": "bolt02:channel_ready:the-sender:11",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT allow incoming HTLCs to this channel using the real `short_channel_id`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "add_htlc",
+        "note": "precondition: if it sets `alias`:; if `channel_type` has `option_scid_alias` set:"
+      },
+      {
+        "action": "build",
+        "target": "channel_ready_message",
+        "note": "violates: MUST NOT allow incoming HTLCs to this channel using the real `short_channel_id`"
+      },
+      {
+        "action": "send",
+        "target": "channel_ready",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:channel_ready:the-receiver:2:seed:sketch",
+    "seed_id": "bolt02:channel_ready:the-receiver:2:seed",
+    "requirement_id": "bolt02:channel_ready:the-receiver:2",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT use the real `short_channel_id` in BOLT 11 `r` fields.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_precondition",
+        "note": "precondition: if `channel_type` has `option_scid_alias` set:"
+      },
+      {
+        "action": "build",
+        "target": "channel_ready_message",
+        "note": "violates: MUST NOT use the real `short_channel_id` in BOLT 11 `r` fields."
+      },
+      {
+        "action": "send",
+        "target": "channel_ready",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel2:if-nodes-have-negotiated-optiondualfund:1:seed:sketch",
+    "seed_id": "bolt02:open_channel2:if-nodes-have-negotiated-optiondualfund:1:seed",
+    "requirement_id": "bolt02:open_channel2:if-nodes-have-negotiated-optiondualfund:1",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send `open_channel`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_precondition",
+        "note": "precondition: the opening node:"
+      },
+      {
+        "action": "build",
+        "target": "open_channel2_message",
+        "note": "violates: MUST NOT send `open_channel`"
+      },
+      {
+        "action": "send",
+        "target": "open_channel2",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel2:the-sending-node:1:seed:sketch",
+    "seed_id": "bolt02:open_channel2:the-sending-node:1:seed",
+    "requirement_id": "bolt02:open_channel2:the-sending-node:1",
+    "goal": "Exercise BOLT requirement: MUST MUST set `channel_type`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "open_channel2_message",
+        "note": "set field wrong: channel_type"
+      },
+      {
+        "action": "send",
+        "target": "open_channel2",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel2:the-sending-node:2:seed:sketch",
+    "seed_id": "bolt02:open_channel2:the-sending-node:2:seed",
+    "requirement_id": "bolt02:open_channel2:the-sending-node:2",
+    "goal": "Exercise BOLT requirement: MUST MUST set `funding_feerate_perkw` to the feerate for this transaction",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "open_channel2_message",
+        "note": "set field wrong: funding_feerate_perkw"
+      },
+      {
+        "action": "send",
+        "target": "open_channel2",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel2:the-sending-node:3:seed:sketch",
+    "seed_id": "bolt02:open_channel2:the-sending-node:3:seed",
+    "requirement_id": "bolt02:open_channel2:the-sending-node:3",
+    "goal": "Exercise BOLT requirement: MUST MUST set `commitment_feerate_perkw` to `0`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "open_channel2_message",
+        "note": "set field wrong: commitment_feerate_perkw"
+      },
+      {
+        "action": "send",
+        "target": "open_channel2",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel2:the-sending-node:4:seed:sketch",
+    "seed_id": "bolt02:open_channel2:the-sending-node:4:seed",
+    "requirement_id": "bolt02:open_channel2:the-sending-node:4",
+    "goal": "Exercise BOLT requirement: MUST MUST set `require_confirmed_inputs`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "open_channel2_message",
+        "note": "set field wrong: require_confirmed_inputs"
+      },
+      {
+        "action": "send",
+        "target": "open_channel2",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:open_channel2:the-receiving-node:2:seed:sketch",
+    "seed_id": "bolt02:open_channel2:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:open_channel2:the-receiving-node:2",
+    "goal": "Exercise BOLT requirement: MUST MUST fail the negotiation if:",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "open_channel2",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST fail the negotiation if:"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:accept_channel2:the-accepting-node:2:seed:sketch",
+    "seed_id": "bolt02:accept_channel2:the-accepting-node:2:seed",
+    "requirement_id": "bolt02:accept_channel2:the-accepting-node:2",
+    "goal": "Exercise BOLT requirement: MUST MUST set `channel_type` to the `channel_type` from `open_channel2`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "accept_channel2_message",
+        "note": "set field wrong: channel_type"
+      },
+      {
+        "action": "send",
+        "target": "accept_channel2",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:accept_channel2:the-accepting-node:4:seed:sketch",
+    "seed_id": "bolt02:accept_channel2:the-accepting-node:4:seed",
+    "requirement_id": "bolt02:accept_channel2:the-accepting-node:4",
+    "goal": "Exercise BOLT requirement: MUST MUST set `require_confirmed_inputs`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "accept_channel2_message",
+        "note": "set field wrong: require_confirmed_inputs"
+      },
+      {
+        "action": "send",
+        "target": "accept_channel2",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:accept_channel2:the-receiving-node:1:seed:sketch",
+    "seed_id": "bolt02:accept_channel2:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:accept_channel2:the-receiving-node:1",
+    "goal": "Exercise BOLT requirement: MUST MUST fail the negotiation if:",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "accept_channel2",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST fail the negotiation if:"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:1:seed:sketch",
+    "seed_id": "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:1",
+    "goal": "Exercise BOLT requirement: MUST MUST fail the negotiation if:",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_complete",
+        "note": "trigger: if is the *accepter*:"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST fail the negotiation if:"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:2:seed:sketch",
+    "seed_id": "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:2:seed",
+    "requirement_id": "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:2",
+    "goal": "Exercise BOLT requirement: MUST MUST fail the negotiation if:",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_complete",
+        "note": "trigger: if this is an RBF attempt:"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST fail the negotiation if:"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:1:seed:sketch",
+    "seed_id": "bolt02:commitment_signed:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:commitment_signed:the-receiving-node:1",
+    "goal": "Exercise BOLT requirement: MUST MUST fail the negotiation",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "commitment_signed",
+        "note": "trigger: if the message has one or more HTLCs:"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST fail the negotiation"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:2:seed:sketch",
+    "seed_id": "bolt02:commitment_signed:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:commitment_signed:the-receiving-node:2",
+    "goal": "Exercise BOLT requirement: MUST MUST send `commitment_signed`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "commitment_signed",
+        "note": "trigger: if it has not already transmitted its `commitment_signed`:"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST send `commitment_signed`"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:3:seed:sketch",
+    "seed_id": "bolt02:commitment_signed:the-receiving-node:3:seed",
+    "requirement_id": "bolt02:commitment_signed:the-receiving-node:3",
+    "goal": "Exercise BOLT requirement: MUST MUST send `tx_signatures` if it should sign first, as specified",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "commitment_signed",
+        "note": "trigger: Otherwise:"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST send `tx_signatures` if it should sign first, as specified"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sending-node:5:seed:sketch",
+    "seed_id": "bolt02:commitment_signed:the-sending-node:5:seed",
+    "requirement_id": "bolt02:commitment_signed:the-sending-node:5",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send a `tx_signatures` message",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_precondition",
+        "note": "precondition: if it has NOT received a valid `commitment_signed` message:"
+      },
+      {
+        "action": "build",
+        "target": "commitment_signed_message",
+        "note": "violates: MUST NOT send a `tx_signatures` message"
+      },
+      {
+        "action": "send",
+        "target": "commitment_signed",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sender-of-txinitrbf:4:seed:sketch",
+    "seed_id": "bolt02:commitment_signed:the-sender-of-txinitrbf:4:seed",
+    "requirement_id": "bolt02:commitment_signed:the-sender-of-txinitrbf:4",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT have sent or received a `channel_ready` message.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_precondition",
+        "note": "precondition: If the sender is the accepter, it becomes the initiator of the `interactive-tx` session and thus:"
+      },
+      {
+        "action": "build",
+        "target": "commitment_signed_message",
+        "note": "violates: MUST NOT have sent or received a `channel_ready` message."
+      },
+      {
+        "action": "send",
+        "target": "commitment_signed",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:2:seed:sketch",
+    "seed_id": "bolt02:stfu:the-sender-of-stfu:2:seed",
+    "requirement_id": "bolt02:stfu:the-sender-of-stfu:2",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send `stfu` if any of the sender's htlc additions, htlc removals",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_quiescence",
+        "note": "precondition: any of the sender's htlc additions, htlc removals"
+      },
+      {
+        "action": "build",
+        "target": "stfu_message",
+        "note": "violates: MUST NOT send `stfu` if any of the sender's htlc additions, htlc removals"
+      },
+      {
+        "action": "send",
+        "target": "stfu",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:4:seed:sketch",
+    "seed_id": "bolt02:stfu:the-sender-of-stfu:4:seed",
+    "requirement_id": "bolt02:stfu:the-sender-of-stfu:4",
+    "goal": "Exercise BOLT requirement: MUST MUST set `initiator` to 0",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "stfu_message",
+        "note": "set field wrong: initiator"
+      },
+      {
+        "action": "send",
+        "target": "stfu",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:5:seed:sketch",
+    "seed_id": "bolt02:stfu:the-sender-of-stfu:5:seed",
+    "requirement_id": "bolt02:stfu:the-sender-of-stfu:5",
+    "goal": "Exercise BOLT requirement: MUST MUST set `initiator` to 1",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "stfu_message",
+        "note": "set field wrong: initiator"
+      },
+      {
+        "action": "send",
+        "target": "stfu",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:6:seed:sketch",
+    "seed_id": "bolt02:stfu:the-sender-of-stfu:6:seed",
+    "requirement_id": "bolt02:stfu:the-sender-of-stfu:6",
+    "goal": "Exercise BOLT requirement: MUST MUST set `channel_id` to the id of the channel to quiesce.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "stfu_message",
+        "note": "set field wrong: channel_id"
+      },
+      {
+        "action": "send",
+        "target": "stfu",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:8:seed:sketch",
+    "seed_id": "bolt02:stfu:the-sender-of-stfu:8:seed",
+    "requirement_id": "bolt02:stfu:the-sender-of-stfu:8",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send an update message after `stfu`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_quiescence",
+        "note": "precondition: otherwise:"
+      },
+      {
+        "action": "build",
+        "target": "stfu_message",
+        "note": "violates: MUST NOT send an update message after `stfu`."
+      },
+      {
+        "action": "send",
+        "target": "stfu",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:1:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-sending-node:1:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:1",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send `splice_init` if the channel is not quiescent.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_quiescence",
+        "note": "precondition: the channel is not quiescent"
+      },
+      {
+        "action": "build",
+        "target": "splice_init_message",
+        "note": "violates: MUST NOT send `splice_init` if the channel is not quiescent."
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:2:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-sending-node:2:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:2",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send `splice_init` if it is not the quiescence initiator.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "start_splice",
+        "note": "precondition: it is not the quiescence initiator"
+      },
+      {
+        "action": "build",
+        "target": "splice_init_message",
+        "note": "violates: MUST NOT send `splice_init` if it is not the quiescence initiator."
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:5:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-sending-node:5:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:5",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send `splice_init` if another splice has been negotiated but",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "start_splice",
+        "note": "precondition: another splice has been negotiated but"
+      },
+      {
+        "action": "build",
+        "target": "splice_init_message",
+        "note": "violates: MUST NOT send `splice_init` if another splice has been negotiated but"
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:6:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-sending-node:6:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:6",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send `splice_init` if it has previously sent `shutdown`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "start_splice",
+        "note": "precondition: it has previously sent `shutdown`"
+      },
+      {
+        "action": "build",
+        "target": "splice_init_message",
+        "note": "violates: MUST NOT send `splice_init` if it has previously sent `shutdown`."
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:7:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-sending-node:7:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:7",
+    "goal": "Exercise BOLT requirement: MUST MUST set `funding_feerate_perkw` to the feerate for the splice transaction.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "splice_init_message",
+        "note": "set field wrong: funding_feerate_perkw"
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:8:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-sending-node:8:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:8",
+    "goal": "Exercise BOLT requirement: MUST MUST set `funding_contribution_satoshis` to a negative value matching",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "splice_init_message",
+        "note": "set field wrong: funding_contribution_satoshis"
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:9:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-sending-node:9:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:9",
+    "goal": "Exercise BOLT requirement: MUST MUST set `funding_contribution_satoshis` to a positive value matching",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "splice_init_message",
+        "note": "set field wrong: funding_contribution_satoshis"
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:10:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-sending-node:10:seed",
+    "requirement_id": "bolt02:splice_init:the-sending-node:10",
+    "goal": "Exercise BOLT requirement: MUST MUST set `require_confirmed_inputs`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "splice_init_message",
+        "note": "set field wrong: require_confirmed_inputs"
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:1:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:splice_init:the-receiving-node:1",
+    "goal": "Exercise BOLT requirement: MUST MUST send a `warning` and close the connection or send an `error`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "trigger: If the channel is not quiescent:"
+      },
+      {
+        "action": "expect",
+        "target": "warning",
+        "note": "per BOLT: MUST send a `warning` and close the connection or send an `error`"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:2:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:splice_init:the-receiving-node:2",
+    "goal": "Exercise BOLT requirement: MUST MUST send a `warning` and close the connection or send an `error`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "trigger: If the sending node is not the quiescence initiator:"
+      },
+      {
+        "action": "expect",
+        "target": "warning",
+        "note": "per BOLT: MUST send a `warning` and close the connection or send an `error`"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:3:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-receiving-node:3:seed",
+    "requirement_id": "bolt02:splice_init:the-receiving-node:3",
+    "goal": "Exercise BOLT requirement: MUST MUST send a `warning` and close the connection or send an `error`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "trigger: If another splice is already being negotiated:"
+      },
+      {
+        "action": "expect",
+        "target": "warning",
+        "note": "per BOLT: MUST send a `warning` and close the connection or send an `error`"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:4:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-receiving-node:4:seed",
+    "requirement_id": "bolt02:splice_init:the-receiving-node:4",
+    "goal": "Exercise BOLT requirement: MUST MUST send a `warning` and close the connection or send an `error`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "trigger: If another splice has been negotiated but isn't locked yet:"
+      },
+      {
+        "action": "expect",
+        "target": "warning",
+        "note": "per BOLT: MUST send a `warning` and close the connection or send an `error`"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:5:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-receiving-node:5:seed",
+    "requirement_id": "bolt02:splice_init:the-receiving-node:5",
+    "goal": "Exercise BOLT requirement: MUST MUST send a `warning` and close the connection or send an `error`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "trigger: If it has received `shutdown`:"
+      },
+      {
+        "action": "expect",
+        "target": "warning",
+        "note": "per BOLT: MUST send a `warning` and close the connection or send an `error`"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:6:seed:sketch",
+    "seed_id": "bolt02:splice_init:the-receiving-node:6:seed",
+    "requirement_id": "bolt02:splice_init:the-receiving-node:6",
+    "goal": "Exercise BOLT requirement: MUST MUST respond with `tx_abort`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "splice_init",
+        "note": "trigger: If the `funding_feerate_perkw` is unacceptable:"
+      },
+      {
+        "action": "expect",
+        "target": "tx_abort",
+        "note": "per BOLT: MUST respond with `tx_abort`."
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_ack:the-sending-node:3:seed:sketch",
+    "seed_id": "bolt02:splice_ack:the-sending-node:3:seed",
+    "requirement_id": "bolt02:splice_ack:the-sending-node:3",
+    "goal": "Exercise BOLT requirement: MUST MUST set `require_confirmed_inputs`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "splice_ack_message",
+        "note": "set field wrong: require_confirmed_inputs"
+      },
+      {
+        "action": "send",
+        "target": "splice_ack",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:8:seed:sketch",
+    "seed_id": "bolt02:tx_add_input:the-sending-node:8:seed",
+    "requirement_id": "bolt02:tx_add_input:the-sending-node:8",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT include `prevtx` for that shared input.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_precondition",
+        "note": "precondition: If it is the splice initiator:"
+      },
+      {
+        "action": "build",
+        "target": "tx_add_input_message",
+        "note": "violates: MUST NOT include `prevtx` for that shared input."
+      },
+      {
+        "action": "send",
+        "target": "tx_add_input",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:9:seed:sketch",
+    "seed_id": "bolt02:tx_add_input:the-sending-node:9:seed",
+    "requirement_id": "bolt02:tx_add_input:the-sending-node:9",
+    "goal": "Exercise BOLT requirement: MUST MUST set `prevtx_vout` to the previous funding output index.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "tx_add_input_message",
+        "note": "set field wrong: prevtx_vout"
+      },
+      {
+        "action": "send",
+        "target": "tx_add_input",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_add_input:the-receiving-node:3:seed:sketch",
+    "seed_id": "bolt02:tx_add_input:the-receiving-node:3:seed",
+    "requirement_id": "bolt02:tx_add_input:the-receiving-node:3",
+    "goal": "Exercise BOLT requirement: MUST MUST fail the negotiation by sending `tx_abort`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_add_input",
+        "note": "trigger: If `shared_input_txid` is set:; If it doesn't match the `txid` of the previous funding transaction:"
+      },
+      {
+        "action": "expect",
+        "target": "tx_abort",
+        "note": "per BOLT: MUST fail the negotiation by sending `tx_abort`."
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_add_input:the-receiving-node:4:seed:sketch",
+    "seed_id": "bolt02:tx_add_input:the-receiving-node:4:seed",
+    "requirement_id": "bolt02:tx_add_input:the-receiving-node:4",
+    "goal": "Exercise BOLT requirement: MUST MUST fail the negotiation by sending `tx_abort`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_add_input",
+        "note": "trigger: If `shared_input_txid` is set:; If `prevtx_vout` doesn't match the previous funding output index:"
+      },
+      {
+        "action": "expect",
+        "target": "tx_abort",
+        "note": "per BOLT: MUST fail the negotiation by sending `tx_abort`."
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_add_output:the-sending-node:7:seed:sketch",
+    "seed_id": "bolt02:tx_add_output:the-sending-node:7:seed",
+    "requirement_id": "bolt02:tx_add_output:the-sending-node:7",
+    "goal": "Exercise BOLT requirement: MUST MUST set the amount of that `tx_add_output` to the previous",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "tx_add_output_message",
+        "note": "set field wrong: tx_add_output"
+      },
+      {
+        "action": "send",
+        "target": "tx_add_output",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_complete:the-receiving-node:3:seed:sketch",
+    "seed_id": "bolt02:tx_complete:the-receiving-node:3:seed",
+    "requirement_id": "bolt02:tx_complete:the-receiving-node:3",
+    "goal": "Exercise BOLT requirement: MUST MUST compute the channel balance for each side by adding their respective",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_complete",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST compute the channel balance for each side by adding their respective"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_complete:the-receiving-node:4:seed:sketch",
+    "seed_id": "bolt02:tx_complete:the-receiving-node:4:seed",
+    "requirement_id": "bolt02:tx_complete:the-receiving-node:4",
+    "goal": "Exercise BOLT requirement: MUST MUST fail the negotiation by sending `tx_abort` if:",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_complete",
+        "note": "trigger: precondition (inline)"
+      },
+      {
+        "action": "expect",
+        "target": "tx_abort",
+        "note": "per BOLT: MUST fail the negotiation by sending `tx_abort` if:"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:5:seed:sketch",
+    "seed_id": "bolt02:commitment_signed:the-receiving-node:5:seed",
+    "requirement_id": "bolt02:commitment_signed:the-receiving-node:5",
+    "goal": "Exercise BOLT requirement: MUST MUST send `commitment_signed`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "commitment_signed",
+        "note": "trigger: If it has not already transmitted its `commitment_signed`:"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST send `commitment_signed`."
+      }
+    ]
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:6:seed:sketch",
+    "seed_id": "bolt02:commitment_signed:the-receiving-node:6:seed",
+    "requirement_id": "bolt02:commitment_signed:the-receiving-node:6",
+    "goal": "Exercise BOLT requirement: MUST MUST send `tx_signatures`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "commitment_signed",
+        "note": "trigger: If it should sign first, as specified in the [`tx_signatures` requirements](#the-tx_signatures-message):"
+      },
+      {
+        "action": "expect",
+        "target": "protocol_response",
+        "note": "per BOLT: MUST send `tx_signatures`."
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_signatures:the-sending-node:1:seed:sketch",
+    "seed_id": "bolt02:tx_signatures:the-sending-node:1:seed",
+    "requirement_id": "bolt02:tx_signatures:the-sending-node:1",
+    "goal": "Exercise BOLT requirement: MUST MUST set `shared_input_signature` to a valid ECDSA signature for the",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "tx_signatures_message",
+        "note": "set field wrong: shared_input_signature"
+      },
+      {
+        "action": "send",
+        "target": "tx_signatures",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_signatures:the-receiving-node:4:seed:sketch",
+    "seed_id": "bolt02:tx_signatures:the-receiving-node:4:seed",
+    "requirement_id": "bolt02:tx_signatures:the-receiving-node:4",
+    "goal": "Exercise BOLT requirement: MUST MUST send an `error` and fail the channel.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_signatures",
+        "note": "trigger: If `shared_input_signature` is not set:"
+      },
+      {
+        "action": "expect",
+        "target": "error",
+        "note": "per BOLT: MUST send an `error` and fail the channel."
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:1:seed:sketch",
+    "seed_id": "bolt02:tx_init_rbf:the-sending-node:1:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sending-node:1",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send `tx_init_rbf` if the channel is not quiescent.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_quiescence",
+        "note": "precondition: the channel is not quiescent"
+      },
+      {
+        "action": "build",
+        "target": "tx_init_rbf_message",
+        "note": "violates: MUST NOT send `tx_init_rbf` if the channel is not quiescent."
+      },
+      {
+        "action": "send",
+        "target": "tx_init_rbf",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:2:seed:sketch",
+    "seed_id": "bolt02:tx_init_rbf:the-sending-node:2:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sending-node:2",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send `tx_init_rbf` if it is not the quiescence initiator.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_precondition",
+        "note": "precondition: it is not the quiescence initiator"
+      },
+      {
+        "action": "build",
+        "target": "tx_init_rbf_message",
+        "note": "violates: MUST NOT send `tx_init_rbf` if it is not the quiescence initiator."
+      },
+      {
+        "action": "send",
+        "target": "tx_init_rbf",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:4:seed:sketch",
+    "seed_id": "bolt02:tx_init_rbf:the-sending-node:4:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sending-node:4",
+    "goal": "Exercise BOLT requirement: MUST MUST set a high enough `feerate` to ensure quick confirmation.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "build",
+        "target": "tx_init_rbf_message",
+        "note": "set field wrong: feerate"
+      },
+      {
+        "action": "send",
+        "target": "tx_init_rbf",
+        "note": "send with the invalid field"
+      },
+      {
+        "action": "expect",
+        "target": "error_or_warning",
+        "note": "implementation SHOULD reject the invalid value"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:5:seed:sketch",
+    "seed_id": "bolt02:tx_init_rbf:the-sending-node:5:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sending-node:5",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send `tx_init_rbf` if it has previously sent `splice_locked`.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "start_splice",
+        "note": "precondition: If there are more than 10 pending RBF attempts:"
+      },
+      {
+        "action": "build",
+        "target": "tx_init_rbf_message",
+        "note": "violates: MUST NOT send `tx_init_rbf` if it has previously sent `splice_locked`."
+      },
+      {
+        "action": "send",
+        "target": "tx_init_rbf",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:6:seed:sketch",
+    "seed_id": "bolt02:tx_init_rbf:the-sending-node:6:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-sending-node:6",
+    "goal": "Exercise BOLT requirement: MUST NOT MUST NOT send `tx_init_rbf` if `option_zeroconf` has been negotiated.",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "act",
+        "target": "establish_precondition",
+        "note": "precondition: If there are more than 10 pending RBF attempts:"
+      },
+      {
+        "action": "build",
+        "target": "tx_init_rbf_message",
+        "note": "violates: MUST NOT send `tx_init_rbf` if `option_zeroconf` has been negotiated."
+      },
+      {
+        "action": "send",
+        "target": "tx_init_rbf",
+        "note": "send despite the precondition above"
+      },
+      {
+        "action": "expect",
+        "target": "warning_or_error",
+        "note": "implementation MUST respond with warning/error, not crash"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-receiving-node:1:seed:sketch",
+    "seed_id": "bolt02:tx_init_rbf:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-receiving-node:1",
+    "goal": "Exercise BOLT requirement: MUST MUST send a `warning` and close the connection or send an `error`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_init_rbf",
+        "note": "trigger: If the channel is not quiescent:"
+      },
+      {
+        "action": "expect",
+        "target": "warning",
+        "note": "per BOLT: MUST send a `warning` and close the connection or send an `error`"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-receiving-node:2:seed:sketch",
+    "seed_id": "bolt02:tx_init_rbf:the-receiving-node:2:seed",
+    "requirement_id": "bolt02:tx_init_rbf:the-receiving-node:2",
+    "goal": "Exercise BOLT requirement: MUST MUST send a `warning` and close the connection or send an `error`",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "tx_init_rbf",
+        "note": "trigger: If the sending node is not the quiescence initiator:"
+      },
+      {
+        "action": "expect",
+        "target": "warning",
+        "note": "per BOLT: MUST send a `warning` and close the connection or send an `error`"
+      }
+    ]
+  },
+  {
+    "id": "bolt02:splice_locked:the-receiving-node:1:seed:sketch",
+    "seed_id": "bolt02:splice_locked:the-receiving-node:1:seed",
+    "requirement_id": "bolt02:splice_locked:the-receiving-node:1",
+    "goal": "Exercise BOLT requirement: MUST MUST send a `warning` and close the connection, or send an `error` and",
+    "steps": [
+      {
+        "action": "build",
+        "target": "channel",
+        "note": "open a funded, confirmed channel"
+      },
+      {
+        "action": "send",
+        "target": "splice_locked",
+        "note": "trigger: If `splice_txid` doesn't match any of its pending splice transactions:"
+      },
+      {
+        "action": "expect",
+        "target": "warning",
+        "note": "per BOLT: MUST send a `warning` and close the connection, or send an `error` and"
+      }
+    ]
+  }
+]

@@ -7,10 +7,11 @@
 //! - `seeds <bolt-md> [--findings <findings.json>]` — derive seed candidates,
 //!   gated by finding disclosure states
 
+mod bridge;
 mod model;
 mod parser;
 
-use std::collections::HashSet;
+
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -86,11 +87,24 @@ fn run() -> Result<(), String> {
                 }
             }
             seeds.sort_by(|a, b| a.id.cmp(&b.id));
-            let unique: HashSet<&str> = HashSet::new();
-            let _ = unique;
             print_json(&serde_json::to_string_pretty(&seeds).map_err(|e| e.to_string())?);
             eprintln!(
                 "seeds: {} candidates from {} requirements ({sealed} finding(s) sealed, correctly skipped)",
+                seeds.len(),
+                reqs.len()
+            );
+            Ok(())
+        }
+        Some("sketches") => {
+            let md = args.get(2).ok_or("usage: sketches <bolt-md>")?;
+            let text = read(md)?;
+            let reqs = parser::parse(&file_stem(md), &text).map_err(|e| e.to_string())?;
+            let seeds = parser::seeds(&reqs);
+            let sketches = bridge::sketches(&seeds, &reqs);
+            print_json(&serde_json::to_string_pretty(&sketches).map_err(|e| e.to_string())?);
+            eprintln!(
+                "sketches: {} from {} seeds / {} requirements",
+                sketches.len(),
                 seeds.len(),
                 reqs.len()
             );
