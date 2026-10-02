@@ -700,6 +700,7 @@ dependencies = [
 name = "smite-requirements"
 version = "0.1.0"
 dependencies = [
+ "postcard",
  "serde",
  "serde_json",
  "smite-ir",
