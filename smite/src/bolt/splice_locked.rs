@@ -3,7 +3,7 @@
 use bitcoin::hashes::sha256;
 
 use super::BoltError;
-use super::types::{CHANNEL_ID_SIZE, ChannelId};
+use super::types::ChannelId;
 use super::wire::WireFormat;
 
 /// BOLT 2 `splice_locked` message (type 77).
@@ -48,7 +48,7 @@ impl SpliceLocked {
 
 #[cfg(test)]
 mod tests {
-    use super::super::SHA256_HASH_SIZE;
+    use super::super::{CHANNEL_ID_SIZE, SHA256_HASH_SIZE};
     use super::*;
     use bitcoin::hashes::Hash;
 

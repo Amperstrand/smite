@@ -4,7 +4,7 @@ use bitcoin::secp256k1::PublicKey;
 
 use super::BoltError;
 use super::tlv::TlvStream;
-use super::types::{CHANNEL_ID_SIZE, PUBLIC_KEY_SIZE, ChannelId};
+use super::types::ChannelId;
 use super::wire::WireFormat;
 
 /// TLV type for the `require_confirmed_inputs` flag.
@@ -91,6 +91,7 @@ impl SpliceAck {
 
 #[cfg(test)]
 mod tests {
+    use super::super::{CHANNEL_ID_SIZE, PUBLIC_KEY_SIZE};
     use super::*;
     use bitcoin::secp256k1::{Secp256k1, SecretKey};
 

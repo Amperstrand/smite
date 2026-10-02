@@ -27,6 +27,9 @@ mod ping;
 mod pong;
 mod revoke_and_ack;
 mod shutdown;
+mod splice_ack;
+mod splice_init;
+mod splice_locked;
 mod stfu;
 mod tlv;
 mod tx_abort;
@@ -72,6 +75,9 @@ pub use ping::Ping;
 pub use pong::Pong;
 pub use revoke_and_ack::RevokeAndAck;
 pub use shutdown::{Shutdown, is_acceptable_shutdown_script, is_standard_shutdown_script};
+pub use splice_ack::{SpliceAck, SpliceAckTlvs};
+pub use splice_init::{SpliceInit, SpliceInitTlvs};
+pub use splice_locked::SpliceLocked;
 pub use stfu::Stfu;
 pub use tlv::{TlvRecord, TlvStream};
 pub use tx_abort::TxAbort;
@@ -203,6 +209,9 @@ impl MessageType {
     /// `tx_ack_rbf` message (BOLT 2).
     pub const TX_ACK_RBF: MessageType = MessageType(73);
     /// `tx_abort` message (BOLT 2).
+    pub const SPLICE_LOCKED: MessageType = MessageType(77);
+    pub const SPLICE_INIT: MessageType = MessageType(80);
+    pub const SPLICE_ACK: MessageType = MessageType(81);
     pub const TX_ABORT: MessageType = MessageType(74);
     /// `update_add_htlc` message (BOLT 2).
     pub const UPDATE_ADD_HTLC: MessageType = MessageType(128);
@@ -270,6 +279,9 @@ impl MessageType {
             Self::TX_SIGNATURES => "tx_signatures",
             Self::TX_INIT_RBF => "tx_init_rbf",
             Self::TX_ACK_RBF => "tx_ack_rbf",
+            Self::SPLICE_LOCKED => "splice_locked",
+            Self::SPLICE_INIT => "splice_init",
+            Self::SPLICE_ACK => "splice_ack",
             Self::TX_ABORT => "tx_abort",
             Self::UPDATE_ADD_HTLC => "update_add_htlc",
             Self::UPDATE_FULFILL_HTLC => "update_fulfill_htlc",
@@ -347,6 +359,9 @@ pub enum Message {
     /// `tx_ack_rbf` message (type 73).
     TxAckRbf(TxAckRbf),
     /// `tx_abort` message (type 74).
+    SpliceLocked(SpliceLocked),
+    SpliceInit(SpliceInit),
+    SpliceAck(SpliceAck),
     TxAbort(TxAbort),
     /// `update_add_htlc` message (type 128).
     UpdateAddHtlc(UpdateAddHtlc),
@@ -419,6 +434,9 @@ impl Message {
             Self::TxSignatures(_) => MessageType::TX_SIGNATURES,
             Self::TxInitRbf(_) => MessageType::TX_INIT_RBF,
             Self::TxAckRbf(_) => MessageType::TX_ACK_RBF,
+            Self::SpliceLocked(_) => MessageType::SPLICE_LOCKED,
+            Self::SpliceInit(_) => MessageType::SPLICE_INIT,
+            Self::SpliceAck(_) => MessageType::SPLICE_ACK,
             Self::TxAbort(_) => MessageType::TX_ABORT,
             Self::UpdateAddHtlc(_) => MessageType::UPDATE_ADD_HTLC,
             Self::UpdateFulfillHtlc(_) => MessageType::UPDATE_FULFILL_HTLC,
@@ -466,6 +484,9 @@ impl Message {
             Self::TxSignatures(m) => out.extend(m.encode()),
             Self::TxInitRbf(m) => out.extend(m.encode()),
             Self::TxAckRbf(m) => out.extend(m.encode()),
+            Self::SpliceLocked(m) => out.extend(m.encode()),
+            Self::SpliceInit(m) => out.extend(m.encode()),
+            Self::SpliceAck(m) => out.extend(m.encode()),
             Self::TxAbort(m) => out.extend(m.encode()),
             Self::UpdateAddHtlc(m) => out.extend(m.encode()),
             Self::UpdateFulfillHtlc(m) => out.extend(m.encode()),
@@ -528,6 +549,9 @@ impl Message {
             MessageType::TX_SIGNATURES => Ok(Self::TxSignatures(TxSignatures::decode(cursor)?)),
             MessageType::TX_INIT_RBF => Ok(Self::TxInitRbf(TxInitRbf::decode(cursor)?)),
             MessageType::TX_ACK_RBF => Ok(Self::TxAckRbf(TxAckRbf::decode(cursor)?)),
+            MessageType::SPLICE_LOCKED => Ok(Self::SpliceLocked(SpliceLocked::decode(cursor)?)),
+            MessageType::SPLICE_INIT => Ok(Self::SpliceInit(SpliceInit::decode(cursor)?)),
+            MessageType::SPLICE_ACK => Ok(Self::SpliceAck(SpliceAck::decode(cursor)?)),
             MessageType::TX_ABORT => Ok(Self::TxAbort(TxAbort::decode(cursor)?)),
             MessageType::UPDATE_ADD_HTLC => Ok(Self::UpdateAddHtlc(UpdateAddHtlc::decode(cursor)?)),
             MessageType::UPDATE_FULFILL_HTLC => {
@@ -628,6 +652,9 @@ impl_from_message! {
     TxSignatures => TX_SIGNATURES,
     TxInitRbf => TX_INIT_RBF,
     TxAckRbf => TX_ACK_RBF,
+    SpliceLocked => SPLICE_LOCKED,
+    SpliceInit => SPLICE_INIT,
+    SpliceAck => SPLICE_ACK,
     TxAbort => TX_ABORT,
     UpdateAddHtlc => UPDATE_ADD_HTLC,
     UpdateFulfillHtlc => UPDATE_FULFILL_HTLC,
