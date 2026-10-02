@@ -11,5 +11,7 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 postcard = { workspace = true, features = ["alloc"] }
 smite-ir = { path = "../smite-ir" }
+smite = { path = "../smite" }
+bitcoin = { workspace = true }
 
 [dev-dependencies]
