@@ -8,6 +8,7 @@
 //!   gated by finding disclosure states
 
 mod bridge;
+mod converter;
 mod model;
 mod parser;
 
@@ -93,6 +94,32 @@ fn run() -> Result<(), String> {
                 seeds.len(),
                 reqs.len()
             );
+            Ok(())
+        }
+        Some("programs") => {
+            let md = args.get(2).ok_or("usage: programs <bolt-md>")?;
+            let text = read(md)?;
+            let reqs = parser::parse(&file_stem(md), &text).map_err(|e| e.to_string())?;
+            let seeds = parser::seeds(&reqs);
+            let sketches = bridge::sketches(&seeds, &reqs);
+            let (convertible, total) = converter::convertible_count(&sketches);
+            let mut built = 0usize;
+            for sketch in &sketches {
+                if let Some(program) = converter::sketch_to_program(sketch) {
+                    built += 1;
+                    println!(
+                        "# {} -> {} instructions",
+                        sketch.id,
+                        program.instructions.len()
+                    );
+                }
+            }
+            println!(
+                "programs: {built} built, {convertible} convertible of {total} sketches"
+            );
+            if built < convertible {
+                eprintln!("warning: {} convertible sketches failed to build", convertible - built);
+            }
             Ok(())
         }
         Some("sketches") => {

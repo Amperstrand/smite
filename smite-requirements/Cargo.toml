@@ -9,5 +9,6 @@ license = "MIT"
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+smite-ir = { path = "../smite-ir" }
 
 [dev-dependencies]
