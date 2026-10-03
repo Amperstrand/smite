@@ -65,6 +65,10 @@ pub enum Variable {
     SentStfu,
     /// `splice_init` has been sent.
     SentSpliceInit,
+    /// `splice_ack` has been sent.
+    SentSpliceAck,
+    /// `splice_locked` has been sent.
+    SentSpliceLocked,
 }
 
 impl Variable {
@@ -95,6 +99,8 @@ impl Variable {
             Self::SentShutdown => VariableType::SentShutdown,
             Self::SentStfu => VariableType::SentStfu,
             Self::SentSpliceInit => VariableType::SentSpliceInit,
+            Self::SentSpliceAck => VariableType::SentSpliceAck,
+            Self::SentSpliceLocked => VariableType::SentSpliceLocked,
         }
     }
 }
@@ -126,13 +132,15 @@ pub enum VariableType {
     SentShutdown,
     SentStfu,
     SentSpliceInit,
+    SentSpliceAck,
+    SentSpliceLocked,
 }
 
 impl VariableType {
     #[must_use]
     pub fn is_affine(&self) -> bool {
         match self {
-            Self::SentOpenChannel | Self::SentFundingCreated | Self::SentShutdown | Self::SentStfu | Self::SentSpliceInit => true,
+            Self::SentOpenChannel | Self::SentFundingCreated | Self::SentShutdown | Self::SentStfu | Self::SentSpliceInit | Self::SentSpliceAck | Self::SentSpliceLocked => true,
 
             Self::Bytes
             | Self::ChainHash

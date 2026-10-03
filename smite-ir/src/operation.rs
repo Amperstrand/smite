@@ -231,6 +231,21 @@ pub enum Operation {
     ///   3: `locktime`                      (`BlockHeight`)
     ///   4: `funding_pubkey`                (`Point`)
     SendSpliceInit,
+    /// Build and send a `splice_ack` message (BOLT 2, type 81).
+    /// Produces a `SentSpliceAck` variable.
+    ///
+    /// Inputs (3):
+    ///   0: `channel_id`                    (`ChannelId`)
+    ///   1: `funding_contribution_satoshis` (`Amount`, interpreted as i64)
+    ///   2: `funding_pubkey`                (`Point`)
+    SendSpliceAck,
+    /// Build and send a `splice_locked` message (BOLT 2, type 77).
+    /// Produces a `SentSpliceLocked` variable.
+    ///
+    /// Inputs (2):
+    ///   0: `channel_id`  (`ChannelId`)
+    ///   1: `splice_txid` (`Bytes`, 32 bytes)
+    SendSpliceLocked,
     /// Receive and parse an `accept_channel` response.
     /// Produces an `AcceptChannel` compound variable.
     RecvAcceptChannel,
@@ -572,6 +587,8 @@ impl fmt::Display for Operation {
             Self::SendShutdown => write!(f, "SendShutdown"),
             Self::SendStfu => write!(f, "SendStfu"),
             Self::SendSpliceInit => write!(f, "SendSpliceInit"),
+            Self::SendSpliceAck => write!(f, "SendSpliceAck"),
+            Self::SendSpliceLocked => write!(f, "SendSpliceLocked"),
             Self::RecvAcceptChannel => write!(f, "RecvAcceptChannel"),
             Self::RecvFundingSigned => write!(f, "RecvFundingSigned"),
             Self::RecvChannelReady => write!(f, "RecvChannelReady()"),
@@ -621,6 +638,8 @@ impl Operation {
             Self::SendShutdown => Some(VariableType::SentShutdown),
             Self::SendStfu => Some(VariableType::SentStfu),
             Self::SendSpliceInit => Some(VariableType::SentSpliceInit),
+            Self::SendSpliceAck => Some(VariableType::SentSpliceAck),
+            Self::SendSpliceLocked => Some(VariableType::SentSpliceLocked),
             Self::RecvAcceptChannel => Some(VariableType::AcceptChannel),
         }
     }
@@ -748,6 +767,15 @@ impl Operation {
                 VariableType::BlockHeight,  // locktime
                 VariableType::Point,        // funding_pubkey
             ],
+            Self::SendSpliceAck => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Amount,    // funding_contribution_satoshis (as i64)
+                VariableType::Point,     // funding_pubkey
+            ],
+            Self::SendSpliceLocked => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Bytes,     // splice_txid (32 bytes)
+            ],
             Self::RecvAcceptChannel => vec![VariableType::SentOpenChannel],
             Self::RecvFundingSigned => vec![VariableType::SentFundingCreated],
             Self::BroadcastTransaction | Self::LookupShortChannelId => {
@@ -795,6 +823,8 @@ impl Operation {
             | Self::SendShutdown
             | Self::SendStfu
             | Self::SendSpliceInit
+            | Self::SendSpliceAck
+            | Self::SendSpliceLocked
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
             | Self::MineBlocks(_)
@@ -845,6 +875,8 @@ impl Operation {
             | Self::SendShutdown
             | Self::SendStfu
             | Self::SendSpliceInit
+            | Self::SendSpliceAck
+            | Self::SendSpliceLocked
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
@@ -891,7 +923,9 @@ impl Operation {
             | Self::SendChannelReady { .. }
             | Self::SendShutdown
             | Self::SendStfu
-            | Self::SendSpliceInit => true,
+            | Self::SendSpliceInit
+            | Self::SendSpliceAck
+            | Self::SendSpliceLocked => true,
             // `CreateFundingTransaction` selects coins from the wallet, whose
             // contents change as transactions are created and broadcast.
             // `SendFundingCreated` builds its message from the recorded
@@ -956,6 +990,8 @@ impl Operation {
             | Self::SendShutdown
             | Self::SendStfu
             | Self::SendSpliceInit
+            | Self::SendSpliceAck
+            | Self::SendSpliceLocked
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
