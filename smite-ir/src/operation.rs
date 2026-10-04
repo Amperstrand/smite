@@ -41,6 +41,9 @@ pub enum Operation {
     LoadU16(u16),
     /// Load a u8 protocol parameter (e.g., `channel_flags`).
     LoadU8(u8),
+    /// Load a u32 protocol parameter (e.g., `prevtx_vout`, `sequence`,
+    /// `serial_id`).
+    LoadU32(u32),
     /// Load raw bytes.
     LoadBytes(Vec<u8>),
     /// Load feature bits.
@@ -246,6 +249,40 @@ pub enum Operation {
     ///   0: `channel_id`  (`ChannelId`)
     ///   1: `splice_txid` (`Bytes`, 32 bytes)
     SendSpliceLocked,
+    /// Build and send a `tx_add_input` message (BOLT 2, type 66).
+    /// Produces a `SentTxAddInput` variable.
+    ///
+    /// The `shared_input_txid` TLV is omitted (default TLVs).
+    ///
+    /// Inputs (5, matching wire order):
+    ///   0: `channel_id`  (`ChannelId`)
+    ///   1: `serial_id`   (`U32`, widened to u64)
+    ///   2: `prevtx`      (`Bytes`, consensus-encoded previous transaction)
+    ///   3: `prevtx_vout` (`U32`)
+    ///   4: `sequence`    (`U32`)
+    SendTxAddInput,
+    /// Build and send a `tx_add_output` message (BOLT 2, type 67).
+    /// Produces a `SentTxAddOutput` variable.
+    ///
+    /// Inputs (4, matching wire order):
+    ///   0: `channel_id` (`ChannelId`)
+    ///   1: `serial_id`  (`U32`, widened to u64)
+    ///   2: `sats`       (`Amount`)
+    ///   3: `script`     (`Bytes`, scriptPubKey)
+    SendTxAddOutput,
+    /// Build and send a `tx_complete` message (BOLT 2, type 70).
+    /// Produces a `SentTxComplete` variable.
+    ///
+    /// Inputs (1):
+    ///   0: `channel_id` (`ChannelId`)
+    SendTxComplete,
+    /// Build and send a `tx_abort` message (BOLT 2, type 74).
+    /// Produces a `SentTxAbort` variable.
+    ///
+    /// Inputs (2):
+    ///   0: `channel_id` (`ChannelId`)
+    ///   1: `data`       (`Bytes`, optional abort reason)
+    SendTxAbort,
     /// Receive and parse a `splice_ack` response after sending `splice_init`.
     /// Produces a `SpliceAck` variable.
     /// Input: `SentSpliceInit` (affine).
@@ -564,6 +601,7 @@ impl fmt::Display for Operation {
             Self::LoadForwardingFee(v) => write!(f, "LoadForwardingFee({v})"),
             Self::LoadU16(v) => write!(f, "LoadU16({v})"),
             Self::LoadU8(v) => write!(f, "LoadU8({v})"),
+            Self::LoadU32(v) => write!(f, "LoadU32({v})"),
             Self::LoadBytes(b) => write!(f, "LoadBytes({})", format_hex(b)),
             Self::LoadFeatures(b) => write!(f, "LoadFeatures({})", format_hex(b)),
             Self::LoadPrivateKey(b) => write!(f, "LoadPrivateKey({})", format_hex(b)),
@@ -597,6 +635,10 @@ impl fmt::Display for Operation {
             Self::SendSpliceInit => write!(f, "SendSpliceInit"),
             Self::SendSpliceAck => write!(f, "SendSpliceAck"),
             Self::SendSpliceLocked => write!(f, "SendSpliceLocked"),
+            Self::SendTxAddInput => write!(f, "SendTxAddInput"),
+            Self::SendTxAddOutput => write!(f, "SendTxAddOutput"),
+            Self::SendTxComplete => write!(f, "SendTxComplete"),
+            Self::SendTxAbort => write!(f, "SendTxAbort"),
             Self::RecvSpliceAck => write!(f, "RecvSpliceAck"),
             Self::RecvSpliceLocked => write!(f, "RecvSpliceLocked"),
             Self::RecvAcceptChannel => write!(f, "RecvAcceptChannel"),
@@ -625,6 +667,7 @@ impl Operation {
             Self::LoadForwardingFee(_) => Some(VariableType::ForwardingFee),
             Self::LoadU16(_) => Some(VariableType::U16),
             Self::LoadU8(_) => Some(VariableType::U8),
+            Self::LoadU32(_) => Some(VariableType::U32),
             Self::LoadBytes(_) | Self::LoadShutdownScript(_) => Some(VariableType::Bytes),
             Self::LoadFeatures(_) | Self::LoadChannelType(_) => Some(VariableType::Features),
             Self::LoadPrivateKey(_) => Some(VariableType::PrivateKey),
@@ -650,6 +693,10 @@ impl Operation {
             Self::SendSpliceInit => Some(VariableType::SentSpliceInit),
             Self::SendSpliceAck => Some(VariableType::SentSpliceAck),
             Self::SendSpliceLocked => Some(VariableType::SentSpliceLocked),
+            Self::SendTxAddInput => Some(VariableType::SentTxAddInput),
+            Self::SendTxAddOutput => Some(VariableType::SentTxAddOutput),
+            Self::SendTxComplete => Some(VariableType::SentTxComplete),
+            Self::SendTxAbort => Some(VariableType::SentTxAbort),
             Self::RecvSpliceAck => Some(VariableType::SpliceAck),
             Self::RecvSpliceLocked => Some(VariableType::SpliceLocked),
             Self::RecvAcceptChannel => Some(VariableType::AcceptChannel),
@@ -669,6 +716,7 @@ impl Operation {
             | Self::LoadForwardingFee(_)
             | Self::LoadU16(_)
             | Self::LoadU8(_)
+            | Self::LoadU32(_)
             | Self::LoadBytes(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
@@ -788,6 +836,24 @@ impl Operation {
                 VariableType::ChannelId, // channel_id
                 VariableType::Bytes,     // splice_txid (32 bytes)
             ],
+            Self::SendTxAddInput => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U32,       // serial_id (widened to u64)
+                VariableType::Bytes,     // prevtx
+                VariableType::U32,       // prevtx_vout
+                VariableType::U32,       // sequence
+            ],
+            Self::SendTxAddOutput => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U32,       // serial_id (widened to u64)
+                VariableType::Amount,    // sats
+                VariableType::Bytes,     // script (scriptPubKey)
+            ],
+            Self::SendTxComplete => vec![VariableType::ChannelId],
+            Self::SendTxAbort => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Bytes,     // data (abort reason)
+            ],
             Self::RecvAcceptChannel => vec![VariableType::SentOpenChannel],
             Self::RecvFundingSigned => vec![VariableType::SentFundingCreated],
             Self::RecvSpliceAck => vec![VariableType::SentSpliceInit],
@@ -814,6 +880,7 @@ impl Operation {
             | Self::LoadForwardingFee(_)
             | Self::LoadU16(_)
             | Self::LoadU8(_)
+            | Self::LoadU32(_)
             | Self::LoadBytes(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
@@ -839,6 +906,10 @@ impl Operation {
             | Self::SendSpliceInit
             | Self::SendSpliceAck
             | Self::SendSpliceLocked
+            | Self::SendTxAddInput
+            | Self::SendTxAddOutput
+            | Self::SendTxComplete
+            | Self::SendTxAbort
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
             | Self::RecvSpliceAck
@@ -867,6 +938,7 @@ impl Operation {
             | Self::LoadForwardingFee(_)
             | Self::LoadU16(_)
             | Self::LoadU8(_)
+            | Self::LoadU32(_)
             | Self::LoadBytes(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
@@ -893,6 +965,10 @@ impl Operation {
             | Self::SendSpliceInit
             | Self::SendSpliceAck
             | Self::SendSpliceLocked
+            | Self::SendTxAddInput
+            | Self::SendTxAddOutput
+            | Self::SendTxComplete
+            | Self::SendTxAbort
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
@@ -921,6 +997,7 @@ impl Operation {
             | Self::LoadForwardingFee(_)
             | Self::LoadU16(_)
             | Self::LoadU8(_)
+            | Self::LoadU32(_)
             | Self::LoadBytes(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
@@ -943,7 +1020,11 @@ impl Operation {
             | Self::SendStfu
             | Self::SendSpliceInit
             | Self::SendSpliceAck
-            | Self::SendSpliceLocked => true,
+            | Self::SendSpliceLocked
+            | Self::SendTxAddInput
+            | Self::SendTxAddOutput
+            | Self::SendTxComplete
+            | Self::SendTxAbort => true,
             // `CreateFundingTransaction` selects coins from the wallet, whose
             // contents change as transactions are created and broadcast.
             // `SendFundingCreated` builds its message from the recorded
@@ -985,6 +1066,7 @@ impl Operation {
             | Self::LoadForwardingFee(_)
             | Self::LoadU16(_)
             | Self::LoadU8(_)
+            | Self::LoadU32(_)
             | Self::LoadBytes(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
@@ -1012,6 +1094,10 @@ impl Operation {
             | Self::SendSpliceInit
             | Self::SendSpliceAck
             | Self::SendSpliceLocked
+            | Self::SendTxAddInput
+            | Self::SendTxAddOutput
+            | Self::SendTxComplete
+            | Self::SendTxAbort
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady

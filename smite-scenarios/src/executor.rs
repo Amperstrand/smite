@@ -14,6 +14,7 @@ use smite::bolt::{
     ChannelReadyTlvs, ChannelUpdate, Features, FromMessage, FundingCreated, FundingSigned, Message,
     MessageType, NodeAnnouncement, OpenChannel, OpenChannelTlvs, Pong, ShortChannelId, Shutdown,
     SpliceAck, SpliceAckTlvs, SpliceInit, SpliceInitTlvs, SpliceLocked, Stfu, TemporaryChannelId,
+    TxAbort, TxAddInput, TxAddInputTlvs, TxAddOutput, TxComplete,
 };
 use smite::channel_tx::{
     ChannelConfig, ChannelPartyConfig, ChannelState, FundingTransaction, HolderIdentity, Side,
@@ -353,6 +354,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                 Operation::LoadForwardingFee(v) => Some(Variable::ForwardingFee(*v)),
                 Operation::LoadU16(v) => Some(Variable::U16(*v)),
                 Operation::LoadU8(v) => Some(Variable::U8(*v)),
+                Operation::LoadU32(v) => Some(Variable::U32(*v)),
                 Operation::LoadBytes(b) => Some(Variable::Bytes(b.clone())),
                 Operation::LoadFeatures(b) => Some(Variable::Features(b.clone())),
                 Operation::LoadPrivateKey(k) => Some(Variable::PrivateKey(*k)),
@@ -580,6 +582,81 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     Some(Variable::SentSpliceLocked)
                 }
 
+                Operation::SendTxAddInput => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let serial_id = u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let prevtx = resolve_bytes(&variables, instr.inputs[2]).to_vec();
+                    let prevtx_vout = resolve_u32(&variables, instr.inputs[3]);
+                    let sequence = resolve_u32(&variables, instr.inputs[4]);
+                    let msg = TxAddInput {
+                        channel_id,
+                        serial_id,
+                        prevtx,
+                        prevtx_vout,
+                        sequence,
+                        tlvs: TxAddInputTlvs::default(),
+                    };
+                    let encoded = Message::TxAddInput(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxAddInput: {} bytes (serial_id={})",
+                        start.elapsed(),
+                        encoded.len(),
+                        serial_id
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxAddInput)
+                }
+
+                Operation::SendTxAddOutput => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let serial_id = u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let sats = resolve_amount(&variables, instr.inputs[2]);
+                    let script = resolve_bytes(&variables, instr.inputs[3]).to_vec();
+                    let msg = TxAddOutput {
+                        channel_id,
+                        serial_id,
+                        sats,
+                        script,
+                    };
+                    let encoded = Message::TxAddOutput(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxAddOutput: {} bytes (serial_id={}, sats={})",
+                        start.elapsed(),
+                        encoded.len(),
+                        serial_id,
+                        sats
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxAddOutput)
+                }
+
+                Operation::SendTxComplete => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let msg = TxComplete { channel_id };
+                    let encoded = Message::TxComplete(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxComplete: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxComplete)
+                }
+
+                Operation::SendTxAbort => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let data = resolve_bytes(&variables, instr.inputs[1]).to_vec();
+                    let msg = TxAbort { channel_id, data };
+                    let encoded = Message::TxAbort(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxAbort: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxAbort)
+                }
+
                 Operation::RecvAcceptChannel => {
                     consume_affine(
                         &mut variables,
@@ -770,6 +847,7 @@ define_resolver!(resolve_forwarding_fee, ForwardingFee, u32);
 define_resolver!(resolve_timestamp, Timestamp, u32);
 define_resolver!(resolve_u16, U16, u16);
 define_resolver!(resolve_u8, U8, u8);
+define_resolver!(resolve_u32, U32, u32);
 define_resolver!(resolve_bytes, Bytes, &[u8]);
 define_resolver!(resolve_features, Features, &[u8]);
 define_resolver!(resolve_chain_hash, ChainHash, [u8; 32]);

@@ -191,6 +191,7 @@ impl ProgramBuilder {
             }
             VariableType::U16 => self.append(Operation::LoadU16(rng.random()), &[]),
             VariableType::U8 => self.append(Operation::LoadU8(rng.random()), &[]),
+            VariableType::U32 => self.append(Operation::LoadU32(rng.random()), &[]),
             VariableType::Bytes => {
                 let len = rng.random_range(0..=256);
                 let mut bytes = vec![0u8; len];
@@ -234,7 +235,15 @@ impl ProgramBuilder {
             VariableType::SentFundingCreated => {
                 panic!("cannot generate fresh SentFundingCreated: affine type")
             }
-            VariableType::SentShutdown | VariableType::SentStfu | VariableType::SentSpliceInit | VariableType::SentSpliceAck | VariableType::SentSpliceLocked => {
+            VariableType::SentShutdown
+            | VariableType::SentStfu
+            | VariableType::SentSpliceInit
+            | VariableType::SentSpliceAck
+            | VariableType::SentSpliceLocked
+            | VariableType::SentTxAddInput
+            | VariableType::SentTxAddOutput
+            | VariableType::SentTxComplete
+            | VariableType::SentTxAbort => {
                 panic!("cannot generate fresh affine type")
             }
         }

@@ -44,6 +44,9 @@ pub enum Variable {
     U16(u16),
     /// Generic u8 protocol parameter (`channel_flags`, `initiator`, etc.).
     U8(u8),
+    /// Generic u32 protocol parameter (`prevtx_vout`, `sequence`,
+    /// `serial_id`, etc.).
+    U32(u32),
     /// Feature bits.
     Features(Vec<u8>),
     /// Encoded BOLT message with type prefix, ready to send.
@@ -75,6 +78,14 @@ pub enum Variable {
     SentSpliceAck,
     /// `splice_locked` has been sent.
     SentSpliceLocked,
+    /// `tx_add_input` has been sent.
+    SentTxAddInput,
+    /// `tx_add_output` has been sent.
+    SentTxAddOutput,
+    /// `tx_complete` has been sent.
+    SentTxComplete,
+    /// `tx_abort` has been sent.
+    SentTxAbort,
 }
 
 impl Variable {
@@ -95,6 +106,7 @@ impl Variable {
             Self::ForwardingFee(_) => VariableType::ForwardingFee,
             Self::U16(_) => VariableType::U16,
             Self::U8(_) => VariableType::U8,
+            Self::U32(_) => VariableType::U32,
             Self::Features(_) => VariableType::Features,
             Self::Message(_) => VariableType::Message,
             Self::OpenChannelMessage(_) => VariableType::OpenChannelMessage,
@@ -109,6 +121,10 @@ impl Variable {
             Self::SentSpliceInit => VariableType::SentSpliceInit,
             Self::SentSpliceAck => VariableType::SentSpliceAck,
             Self::SentSpliceLocked => VariableType::SentSpliceLocked,
+            Self::SentTxAddInput => VariableType::SentTxAddInput,
+            Self::SentTxAddOutput => VariableType::SentTxAddOutput,
+            Self::SentTxComplete => VariableType::SentTxComplete,
+            Self::SentTxAbort => VariableType::SentTxAbort,
         }
     }
 }
@@ -130,6 +146,7 @@ pub enum VariableType {
     ForwardingFee,
     U16,
     U8,
+    U32,
     Features,
     Message,
     OpenChannelMessage,
@@ -144,13 +161,27 @@ pub enum VariableType {
     SentSpliceInit,
     SentSpliceAck,
     SentSpliceLocked,
+    SentTxAddInput,
+    SentTxAddOutput,
+    SentTxComplete,
+    SentTxAbort,
 }
 
 impl VariableType {
     #[must_use]
     pub fn is_affine(&self) -> bool {
         match self {
-            Self::SentOpenChannel | Self::SentFundingCreated | Self::SentShutdown | Self::SentStfu | Self::SentSpliceInit | Self::SentSpliceAck | Self::SentSpliceLocked => true,
+            Self::SentOpenChannel
+            | Self::SentFundingCreated
+            | Self::SentShutdown
+            | Self::SentStfu
+            | Self::SentSpliceInit
+            | Self::SentSpliceAck
+            | Self::SentSpliceLocked
+            | Self::SentTxAddInput
+            | Self::SentTxAddOutput
+            | Self::SentTxComplete
+            | Self::SentTxAbort => true,
 
             Self::Bytes
             | Self::ChainHash
@@ -166,6 +197,7 @@ impl VariableType {
             | Self::ForwardingFee
             | Self::U16
             | Self::U8
+            | Self::U32
             | Self::Features
             | Self::Message
             | Self::OpenChannelMessage

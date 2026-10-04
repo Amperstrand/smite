@@ -604,6 +604,70 @@ fn display_send_shutdown_program() {
 }
 
 #[test]
+fn display_tx_family_program() {
+    let instructions = vec![
+        Instruction {
+            operation: Operation::LoadChannelId([0xcd; 32]),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadU32(42),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadBytes(vec![0xde, 0xad]),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadU32(0xFFFF_FFFD),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadAmount(1000),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::SendTxAddInput,
+            inputs: vec![0, 1, 2, 3, 3],
+        },
+        Instruction {
+            operation: Operation::SendTxAddOutput,
+            inputs: vec![0, 1, 4, 2],
+        },
+        Instruction {
+            operation: Operation::SendTxComplete,
+            inputs: vec![0],
+        },
+        Instruction {
+            operation: Operation::SendTxAbort,
+            inputs: vec![0, 2],
+        },
+    ];
+
+    let program = Program { instructions };
+    assert_well_formed(&program);
+    let text = program.to_string();
+    let lines: Vec<&str> = text.lines().collect();
+
+    let cid_hex = "cd".repeat(32);
+    let expected: Vec<String> = vec![
+        format!("v0 = LoadChannelId(0x{cid_hex})"),
+        "v1 = LoadU32(42)".into(),
+        "v2 = LoadBytes(0xdead)".into(),
+        "v3 = LoadU32(4294967293)".into(),
+        "v4 = LoadAmount(1000)".into(),
+        "v5 = SendTxAddInput(v0, v1, v2, v3, v3)".into(),
+        "v6 = SendTxAddOutput(v0, v1, v4, v2)".into(),
+        "v7 = SendTxComplete(v0)".into(),
+        "v8 = SendTxAbort(v0, v2)".into(),
+    ];
+    assert_eq!(lines.len(), expected.len(), "line count mismatch");
+    for (i, (got, want)) in lines.iter().zip(expected.iter()).enumerate() {
+        assert_eq!(got, want, "line {i} mismatch");
+    }
+}
+
+#[test]
 fn postcard_roundtrip() {
     let program = Program {
         instructions: vec![

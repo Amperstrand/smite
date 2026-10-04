@@ -45,7 +45,8 @@ fn mutate_operation(op: &mut Operation, rng: &mut impl Rng) -> bool {
         Operation::LoadFeeratePerKw(v)
         | Operation::LoadBlockHeight(v)
         | Operation::LoadTimestamp(v)
-        | Operation::LoadForwardingFee(v) => {
+        | Operation::LoadForwardingFee(v)
+        | Operation::LoadU32(v) => {
             *v = tweak_u32(*v, rng);
             true
         }
@@ -123,6 +124,10 @@ fn mutate_operation(op: &mut Operation, rng: &mut impl Rng) -> bool {
         | Operation::SendSpliceInit
         | Operation::SendSpliceAck
         | Operation::SendSpliceLocked
+        | Operation::SendTxAddInput
+        | Operation::SendTxAddOutput
+        | Operation::SendTxComplete
+        | Operation::SendTxAbort
         | Operation::RecvAcceptChannel
         | Operation::RecvFundingSigned
         | Operation::RecvSpliceAck
