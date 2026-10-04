@@ -39,6 +39,17 @@ pub fn sketch_to_operations(sketch: &ProgramSketch) -> Option<Vec<(Operation, Ve
                 (Operation::SendSpliceInit, vec![0, 1, 2, 3, 4]),
             ])
         }
+        "splice_ack" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadAmount(0), vec![]),
+            (Operation::LoadTargetPubkeyFromContext, vec![]),
+            (Operation::SendSpliceAck, vec![0, 1, 2]),
+        ]),
+        "splice_locked" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadBytes(vec![0xab; 32]), vec![]),
+            (Operation::SendSpliceLocked, vec![0, 1]),
+        ]),
         _ => None,
     }
 }
