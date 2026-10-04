@@ -22,8 +22,7 @@ use thiserror::Error;
 use crate::model::{Modality, Requirement, Seed, SeedStrategy};
 
 #[derive(Debug, Error)]
-pub enum ParseError {
-}
+pub enum ParseError {}
 
 /// Parses BOLT markdown text into requirements.
 ///
@@ -125,11 +124,15 @@ fn message_heading(line: &str) -> Option<String> {
     let t = line.trim();
     let stripped = t.trim_start_matches('#').trim();
     let hash_count = t.len() - t.trim_start_matches('#').len();
-    if hash_count < 3 || hash_count > 4 {
+    if !(3..=4).contains(&hash_count) {
         return None;
     }
     if stripped.starts_with("The `") && stripped.ends_with(" Message") {
-        return stripped.split('`').nth(1).filter(|s| !s.is_empty()).map(str::to_owned);
+        return stripped
+            .split('`')
+            .nth(1)
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned);
     }
     if stripped.starts_with('`') && stripped.ends_with('`') && stripped.len() > 2 {
         return Some(stripped[1..stripped.len() - 1].to_owned());
@@ -140,7 +143,7 @@ fn message_heading(line: &str) -> Option<String> {
 fn bullet_indent(line: &str) -> Option<usize> {
     let indent = line.len() - line.trim_start().len();
     let t = line.trim_start();
-    if t.starts_with("- ") && indent % 2 == 0 {
+    if t.starts_with("- ") && indent.is_multiple_of(2) {
         Some(indent / 2)
     } else {
         None
@@ -155,11 +158,7 @@ fn normalize(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-fn next_id(
-    counters: &mut Vec<(String, String, usize)>,
-    message: &str,
-    role: &str,
-) -> String {
+fn next_id(counters: &mut Vec<(String, String, usize)>, message: &str, role: &str) -> String {
     let role_slug = role
         .to_lowercase()
         .replace([' ', '/'], "-")
@@ -219,7 +218,10 @@ The receiving node:
     fn captures_condition_stack() {
         let reqs = parse("fixture.md", FIXTURE).unwrap();
         let negative = &reqs[2];
-        assert_eq!(negative.conditions, vec!["If it is splicing funds out of the channel:"]);
+        assert_eq!(
+            negative.conditions,
+            vec!["If it is splicing funds out of the channel:"]
+        );
         let warn = &reqs[3];
         assert_eq!(warn.role, "The receiving node");
         assert_eq!(warn.conditions, vec!["If the channel is not quiescent:"]);
@@ -239,9 +241,21 @@ The receiving node:
         let reqs = parse("fixture.md", FIXTURE).unwrap();
         let seeds = seeds(&reqs);
         assert_eq!(seeds.len(), 4);
-        assert!(seeds.iter().any(|s| s.strategy == SeedStrategy::SendDespitePrecondition));
-        assert!(seeds.iter().any(|s| s.strategy == SeedStrategy::AssertResponse));
-        assert!(seeds.iter().any(|s| s.strategy == SeedStrategy::InvalidField));
+        assert!(
+            seeds
+                .iter()
+                .any(|s| s.strategy == SeedStrategy::SendDespitePrecondition)
+        );
+        assert!(
+            seeds
+                .iter()
+                .any(|s| s.strategy == SeedStrategy::AssertResponse)
+        );
+        assert!(
+            seeds
+                .iter()
+                .any(|s| s.strategy == SeedStrategy::InvalidField)
+        );
     }
 
     #[test]
@@ -249,15 +263,18 @@ The receiving node:
         let reqs = parse("fixture.md", FIXTURE).unwrap();
         let source_lines: Vec<&str> = FIXTURE.lines().collect();
         for r in &reqs {
-            let line = source_lines[r.line - 1].trim().trim_start_matches("- ").trim();
+            let line = source_lines[r.line - 1]
+                .trim()
+                .trim_start_matches("- ")
+                .trim();
             assert_eq!(normalize(line), r.text, "drift at {}", r.id);
         }
     }
 
-    fn usize_from_iter<'a>(mut it: impl Iterator<Item = &'a &'a str>) -> usize {
+    fn usize_from_iter<'a>(it: impl Iterator<Item = &'a &'a str>) -> usize {
         let mut seen = std::collections::HashSet::new();
         let mut n = 0;
-        while let Some(s) = it.next() {
+        for s in it {
             if seen.insert(*s) {
                 n += 1;
             }

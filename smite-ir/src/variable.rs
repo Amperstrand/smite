@@ -4,9 +4,7 @@
 //! The serialized program stores data only in [`Operation`] literals.
 
 use bitcoin::secp256k1::PublicKey;
-use smite::bolt::{
-    AcceptChannel, ChannelId, OpenChannel, ShortChannelId, SpliceAck, SpliceLocked,
-};
+use smite::bolt::{AcceptChannel, ChannelId, OpenChannel, ShortChannelId, SpliceAck, SpliceLocked};
 use smite::channel_tx::FundingTransaction;
 
 const CHAIN_HASH_SIZE: usize = 32;

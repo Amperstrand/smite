@@ -706,6 +706,9 @@ impl Operation {
     /// Returns the expected variable types for each input position.
     #[must_use]
     #[allow(clippy::too_many_lines)]
+    // One arm per operation keeps each arm's wire-order field comments
+    // attached to its operation, so identical arm bodies are intentional.
+    #[allow(clippy::match_same_arms)]
     pub fn input_types(&self) -> Vec<VariableType> {
         match self {
             Self::LoadAmount(_)

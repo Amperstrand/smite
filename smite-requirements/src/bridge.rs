@@ -205,10 +205,10 @@ fn expected_response(req: &Requirement) -> String {
 
 fn field_name(req: &Requirement) -> String {
     let text = req.text.to_lowercase();
-    if let Some(start) = text.find('`') {
-        if let Some(end) = text[start + 1..].find('`') {
-            return text[start + 1..start + 1 + end].to_owned();
-        }
+    if let Some(start) = text.find('`')
+        && let Some(end) = text[start + 1..].find('`')
+    {
+        return text[start + 1..start + 1 + end].to_owned();
     }
     if text.contains("feerate") {
         "funding_feerate_perkw".into()

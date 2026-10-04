@@ -12,7 +12,6 @@ mod converter;
 mod model;
 mod parser;
 
-
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -39,8 +38,12 @@ fn run() -> Result<(), String> {
             Ok(())
         }
         Some("verify") => {
-            let md = args.get(2).ok_or("usage: verify <bolt-md> <requirements.json>")?;
-            let json = args.get(3).ok_or("usage: verify <bolt-md> <requirements.json>")?;
+            let md = args
+                .get(2)
+                .ok_or("usage: verify <bolt-md> <requirements.json>")?;
+            let json = args
+                .get(3)
+                .ok_or("usage: verify <bolt-md> <requirements.json>")?;
             let text = read(md)?;
             let reqs: Vec<model::Requirement> =
                 serde_json::from_str(&read(json)?).map_err(|e| e.to_string())?;
@@ -66,7 +69,9 @@ fn run() -> Result<(), String> {
             }
         }
         Some("seeds") => {
-            let md = args.get(2).ok_or("usage: seeds <bolt-md> [--findings <json>]")?;
+            let md = args
+                .get(2)
+                .ok_or("usage: seeds <bolt-md> [--findings <json>]")?;
             let text = read(md)?;
             let reqs = parser::parse(&file_stem(md), &text).map_err(|e| e.to_string())?;
             let mut seeds = parser::seeds(&reqs);
@@ -113,11 +118,7 @@ fn run() -> Result<(), String> {
                 };
                 let bytes = postcard::to_allocvec(&program)
                     .map_err(|e| format!("serialize {}: {e}", sketch.id))?;
-                let name = format!(
-                    "{}/{}.seed",
-                    dir,
-                    sketch.id.replace(':', "-").replace('/', "-")
-                );
+                let name = format!("{}/{}.seed", dir, sketch.id.replace([':', '/'], "-"));
                 std::fs::write(&name, &bytes).map_err(|e| format!("write {name}: {e}"))?;
                 written += 1;
                 match postcard::from_bytes::<smite_ir::Program>(&bytes) {
@@ -126,9 +127,7 @@ fn run() -> Result<(), String> {
                     Err(e) => eprintln!("ROUNDTRIP FAIL: {} — {e}", sketch.id),
                 }
             }
-            println!(
-                "emit: {written} seed files, {roundtrip_ok} postcard roundtrips verified"
-            );
+            println!("emit: {written} seed files, {roundtrip_ok} postcard roundtrips verified");
             if roundtrip_ok < written {
                 return Err(format!(
                     "{} seed(s) failed roundtrip verification",
@@ -155,11 +154,12 @@ fn run() -> Result<(), String> {
                     );
                 }
             }
-            println!(
-                "programs: {built} built, {convertible} convertible of {total} sketches"
-            );
+            println!("programs: {built} built, {convertible} convertible of {total} sketches");
             if built < convertible {
-                eprintln!("warning: {} convertible sketches failed to build", convertible - built);
+                eprintln!(
+                    "warning: {} convertible sketches failed to build",
+                    convertible - built
+                );
             }
             Ok(())
         }
@@ -180,7 +180,9 @@ fn run() -> Result<(), String> {
         }
         _ => Err(format!(
             "usage: {} <extract|verify|seeds> ...\n  extract <bolt-md>\n  verify <bolt-md> <requirements.json>\n  seeds <bolt-md> [--findings <findings.json>]",
-            args.first().map(String::as_str).unwrap_or("smite-requirements")
+            args.first()
+                .map(String::as_str)
+                .unwrap_or("smite-requirements")
         )),
     }
 }

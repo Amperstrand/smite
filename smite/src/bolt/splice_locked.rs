@@ -60,10 +60,7 @@ mod tests {
         };
         let encoded = msg.encode();
         assert_eq!(encoded.len(), CHANNEL_ID_SIZE + SHA256_HASH_SIZE);
-        assert_eq!(
-            encoded[CHANNEL_ID_SIZE..],
-            sha256::Hash::hash(&[0x51])[..]
-        );
+        assert_eq!(encoded[CHANNEL_ID_SIZE..], sha256::Hash::hash(&[0x51])[..]);
     }
 
     #[test]

@@ -7,7 +7,7 @@
 use std::fs;
 use std::path::Path;
 
-use smite::bolt::{FromMessage, Message, MessageType};
+use smite::bolt::{Message, MessageType};
 use smite_ir::Program;
 
 fn main() {
@@ -61,27 +61,25 @@ fn main() {
 
         // Validate: every input reference is within bounds
         let max_var = program.instructions.len();
-        let inputs_valid = program.instructions.iter().all(|instr| {
-            instr.inputs.iter().all(|&idx| idx < max_var)
-        });
+        let inputs_valid = program
+            .instructions
+            .iter()
+            .all(|instr| instr.inputs.iter().all(|&idx| idx < max_var));
 
         // Validate: program has at least one operation
         let non_empty = !program.instructions.is_empty();
 
         // Validate: program ends with a Send operation (has a side effect)
-        let has_send = program
-            .instructions
-            .iter()
-            .any(|instr| {
-                matches!(
-                    instr.operation,
-                    smite_ir::operation::Operation::SendStfu
-                        | smite_ir::operation::Operation::SendSpliceInit
-                        | smite_ir::operation::Operation::SendSpliceAck
-                        | smite_ir::operation::Operation::SendSpliceLocked
-                        | smite_ir::operation::Operation::SendMessage
-                )
-            });
+        let has_send = program.instructions.iter().any(|instr| {
+            matches!(
+                instr.operation,
+                smite_ir::operation::Operation::SendStfu
+                    | smite_ir::operation::Operation::SendSpliceInit
+                    | smite_ir::operation::Operation::SendSpliceAck
+                    | smite_ir::operation::Operation::SendSpliceLocked
+                    | smite_ir::operation::Operation::SendMessage
+            )
+        });
 
         if inputs_valid && non_empty && has_send {
             println!(
@@ -148,7 +146,10 @@ fn main() {
     match decoded {
         Message::SpliceInit(si) => {
             assert_eq!(si.funding_contribution_satoshis, 250_000);
-            println!("  splice_init roundtrip: OK (amount={})", si.funding_contribution_satoshis);
+            println!(
+                "  splice_init roundtrip: OK (amount={})",
+                si.funding_contribution_satoshis
+            );
         }
         other => panic!("expected SpliceInit, got {:?}", other.msg_type()),
     }
