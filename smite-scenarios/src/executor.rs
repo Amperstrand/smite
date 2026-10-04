@@ -356,6 +356,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                 Operation::LoadU8(v) => Some(Variable::U8(*v)),
                 Operation::LoadU32(v) => Some(Variable::U32(*v)),
                 Operation::LoadBytes(b) => Some(Variable::Bytes(b.clone())),
+                Operation::LoadMessage(b) => Some(Variable::Message(b.clone())),
                 Operation::LoadFeatures(b) => Some(Variable::Features(b.clone())),
                 Operation::LoadPrivateKey(k) => Some(Variable::PrivateKey(*k)),
                 Operation::LoadChannelId(id) => Some(Variable::ChannelId(ChannelId::new(*id))),

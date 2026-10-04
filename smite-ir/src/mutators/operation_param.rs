@@ -58,7 +58,9 @@ fn mutate_operation(op: &mut Operation, rng: &mut impl Rng) -> bool {
             *v = tweak_u8(*v, rng);
             true
         }
-        Operation::LoadBytes(bytes) | Operation::LoadFeatures(bytes) => {
+        Operation::LoadBytes(bytes)
+        | Operation::LoadFeatures(bytes)
+        | Operation::LoadMessage(bytes) => {
             mutate_bytes(bytes, rng);
             true
         }

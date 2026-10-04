@@ -46,6 +46,9 @@ pub enum Operation {
     LoadU32(u32),
     /// Load raw bytes.
     LoadBytes(Vec<u8>),
+    /// Load an encoded BOLT message (with type prefix), ready for
+    /// [`Operation::SendMessage`].
+    LoadMessage(Vec<u8>),
     /// Load feature bits.
     LoadFeatures(Vec<u8>),
     /// Load a secp256k1 private key.
@@ -603,6 +606,7 @@ impl fmt::Display for Operation {
             Self::LoadU8(v) => write!(f, "LoadU8({v})"),
             Self::LoadU32(v) => write!(f, "LoadU32({v})"),
             Self::LoadBytes(b) => write!(f, "LoadBytes({})", format_hex(b)),
+            Self::LoadMessage(b) => write!(f, "LoadMessage({})", format_hex(b)),
             Self::LoadFeatures(b) => write!(f, "LoadFeatures({})", format_hex(b)),
             Self::LoadPrivateKey(b) => write!(f, "LoadPrivateKey({})", format_hex(b)),
             Self::LoadChannelId(b) => write!(f, "LoadChannelId({})", format_hex(b)),
@@ -677,7 +681,8 @@ impl Operation {
             Self::ExtractAcceptChannel(field) => Some(field.output_type()),
             Self::CreateFundingTransaction => Some(VariableType::FundingTransaction),
             Self::BuildOpenChannel => Some(VariableType::OpenChannelMessage),
-            Self::BuildChannelAnnouncement
+            Self::LoadMessage(_)
+            | Self::BuildChannelAnnouncement
             | Self::BuildNodeAnnouncement { .. }
             | Self::BuildChannelUpdate
             | Self::BuildAnnouncementSignatures => Some(VariableType::Message),
@@ -721,6 +726,7 @@ impl Operation {
             | Self::LoadU8(_)
             | Self::LoadU32(_)
             | Self::LoadBytes(_)
+            | Self::LoadMessage(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
             | Self::LoadChannelId(_)
@@ -885,6 +891,7 @@ impl Operation {
             | Self::LoadU8(_)
             | Self::LoadU32(_)
             | Self::LoadBytes(_)
+            | Self::LoadMessage(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
             | Self::LoadChannelId(_)
@@ -943,6 +950,7 @@ impl Operation {
             | Self::LoadU8(_)
             | Self::LoadU32(_)
             | Self::LoadBytes(_)
+            | Self::LoadMessage(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
             | Self::LoadChannelId(_)
@@ -1002,6 +1010,7 @@ impl Operation {
             | Self::LoadU8(_)
             | Self::LoadU32(_)
             | Self::LoadBytes(_)
+            | Self::LoadMessage(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
             | Self::LoadChannelId(_)
@@ -1071,6 +1080,7 @@ impl Operation {
             | Self::LoadU8(_)
             | Self::LoadU32(_)
             | Self::LoadBytes(_)
+            | Self::LoadMessage(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
             | Self::LoadChannelId(_)
