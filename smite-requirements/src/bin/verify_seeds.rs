@@ -77,6 +77,8 @@ fn main() {
                     instr.operation,
                     smite_ir::operation::Operation::SendStfu
                         | smite_ir::operation::Operation::SendSpliceInit
+                        | smite_ir::operation::Operation::SendSpliceAck
+                        | smite_ir::operation::Operation::SendSpliceLocked
                         | smite_ir::operation::Operation::SendMessage
                 )
             });
