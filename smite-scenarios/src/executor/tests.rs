@@ -1119,6 +1119,86 @@ fn execute_send_shutdown_empty_scriptpubkey() {
     assert_eq!(sd.scriptpubkey, b"");
 }
 
+// Regression: the executor previously resolved the locktime input with the
+// Timestamp resolver while `input_types` declares BlockHeight, panicking on
+// every well-typed `splice_init` program.
+#[test]
+fn execute_send_splice_init() {
+    let channel_id = ChannelId::new([0x5c; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let amount = b.append(Operation::LoadAmount(250_000), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(18), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    b.append(
+        Operation::SendSpliceInit,
+        &[channel_id_var, amount, feerate, locktime, pubkey],
+    );
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    assert_eq!(fx.sent_len(), 1);
+    let si: SpliceInit = fx.sent(0);
+    assert_eq!(si.channel_id, channel_id);
+    assert_eq!(si.funding_contribution_satoshis, 250_000);
+    assert_eq!(si.funding_feerate_perkw, 253);
+    assert_eq!(si.locktime, 18);
+    assert_eq!(si.funding_pubkey, sample_context().target_pubkey);
+    assert_eq!(si.tlvs, SpliceInitTlvs::default());
+}
+
+#[test]
+fn execute_send_tx_family() {
+    let channel_id = ChannelId::new([0x66; 32]);
+    let prevtx = vec![0xde, 0xad, 0xbe, 0xef];
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let serial_id = b.append(Operation::LoadU32(42), &[]);
+    let prevtx_var = b.append(Operation::LoadBytes(prevtx.clone()), &[]);
+    let sequence = b.append(Operation::LoadU32(0xFFFF_FFFD), &[]);
+    let sats = b.append(Operation::LoadAmount(1000), &[]);
+    b.append(
+        Operation::SendTxAddInput,
+        &[channel_id_var, serial_id, prevtx_var, sequence, sequence],
+    );
+    b.append(
+        Operation::SendTxAddOutput,
+        &[channel_id_var, serial_id, sats, prevtx_var],
+    );
+    b.append(Operation::SendTxComplete, &[channel_id_var]);
+    b.append(Operation::SendTxAbort, &[channel_id_var, prevtx_var]);
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    assert_eq!(fx.sent_len(), 4);
+
+    let tai: TxAddInput = fx.sent(0);
+    assert_eq!(tai.channel_id, channel_id);
+    assert_eq!(tai.serial_id, 42);
+    assert_eq!(tai.prevtx, prevtx);
+    assert_eq!(tai.prevtx_vout, 0xFFFF_FFFD);
+    assert_eq!(tai.sequence, 0xFFFF_FFFD);
+    assert_eq!(tai.tlvs, TxAddInputTlvs::default());
+
+    let tao: TxAddOutput = fx.sent(1);
+    assert_eq!(tao.channel_id, channel_id);
+    assert_eq!(tao.serial_id, 42);
+    assert_eq!(tao.sats, 1000);
+    assert_eq!(tao.script, prevtx);
+
+    let tc: TxComplete = fx.sent(2);
+    assert_eq!(tc.channel_id, channel_id);
+
+    let ta: TxAbort = fx.sent(3);
+    assert_eq!(ta.channel_id, channel_id);
+    assert_eq!(ta.data, prevtx);
+}
+
 #[test]
 fn execute_recv_channel_ready_invalid_funding_outpoint_is_noop() {
     // Corrupt the negotiated acceptor funding pubkey so the broadcast funding

@@ -3,8 +3,8 @@
 //! Executes an IR program against a target node over an established connection,
 //! producing side effects (sending/receiving messages).
 
-use bitcoin::hashes::sha256;
 use bitcoin::hashes::Hash as _;
+use bitcoin::hashes::sha256;
 use bitcoin::secp256k1::ecdsa::Signature;
 use bitcoin::secp256k1::{PublicKey, Secp256k1, SecretKey};
 use bitcoin::{OutPoint, ScriptBuf, Txid};
@@ -520,11 +520,13 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
                     let amount = resolve_amount(&variables, instr.inputs[1]);
                     let feerate = resolve_feerate(&variables, instr.inputs[2]);
-                    let locktime = resolve_timestamp(&variables, instr.inputs[3]);
+                    let locktime = resolve_block_height(&variables, instr.inputs[3]);
                     let pubkey = resolve_pubkey(&variables, instr.inputs[4]);
                     let msg = SpliceInit {
                         channel_id,
-                        funding_contribution_satoshis: amount as i64,
+                        // Wrapping reinterpretation is intentional: amounts
+                        // >= 2^63 become negative splice-out contributions.
+                        funding_contribution_satoshis: amount.cast_signed(),
                         funding_feerate_perkw: feerate,
                         locktime,
                         funding_pubkey: pubkey,
@@ -547,7 +549,9 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     let pubkey = resolve_pubkey(&variables, instr.inputs[2]);
                     let msg = SpliceAck {
                         channel_id,
-                        funding_contribution_satoshis: amount as i64,
+                        // Same intentional wrapping reinterpretation as
+                        // `splice_init`.
+                        funding_contribution_satoshis: amount.cast_signed(),
                         funding_pubkey: pubkey,
                         tlvs: SpliceAckTlvs::default(),
                     };
@@ -845,6 +849,7 @@ define_resolver!(resolve_amount, Amount, u64);
 define_resolver!(resolve_feerate, FeeratePerKw, u32);
 define_resolver!(resolve_forwarding_fee, ForwardingFee, u32);
 define_resolver!(resolve_timestamp, Timestamp, u32);
+define_resolver!(resolve_block_height, BlockHeight, u32);
 define_resolver!(resolve_u16, U16, u16);
 define_resolver!(resolve_u8, U8, u8);
 define_resolver!(resolve_u32, U32, u32);
