@@ -246,6 +246,14 @@ pub enum Operation {
     ///   0: `channel_id`  (`ChannelId`)
     ///   1: `splice_txid` (`Bytes`, 32 bytes)
     SendSpliceLocked,
+    /// Receive and parse a `splice_ack` response after sending `splice_init`.
+    /// Produces a `SpliceAck` variable.
+    /// Input: `SentSpliceInit` (affine).
+    RecvSpliceAck,
+    /// Receive and parse a `splice_locked` message after the ack exchange.
+    /// Produces a `SpliceLocked` variable.
+    /// Input: `SentSpliceAck` (affine).
+    RecvSpliceLocked,
     /// Receive and parse an `accept_channel` response.
     /// Produces an `AcceptChannel` compound variable.
     RecvAcceptChannel,
@@ -589,6 +597,8 @@ impl fmt::Display for Operation {
             Self::SendSpliceInit => write!(f, "SendSpliceInit"),
             Self::SendSpliceAck => write!(f, "SendSpliceAck"),
             Self::SendSpliceLocked => write!(f, "SendSpliceLocked"),
+            Self::RecvSpliceAck => write!(f, "RecvSpliceAck"),
+            Self::RecvSpliceLocked => write!(f, "RecvSpliceLocked"),
             Self::RecvAcceptChannel => write!(f, "RecvAcceptChannel"),
             Self::RecvFundingSigned => write!(f, "RecvFundingSigned"),
             Self::RecvChannelReady => write!(f, "RecvChannelReady()"),
@@ -640,6 +650,8 @@ impl Operation {
             Self::SendSpliceInit => Some(VariableType::SentSpliceInit),
             Self::SendSpliceAck => Some(VariableType::SentSpliceAck),
             Self::SendSpliceLocked => Some(VariableType::SentSpliceLocked),
+            Self::RecvSpliceAck => Some(VariableType::SpliceAck),
+            Self::RecvSpliceLocked => Some(VariableType::SpliceLocked),
             Self::RecvAcceptChannel => Some(VariableType::AcceptChannel),
         }
     }
@@ -778,6 +790,8 @@ impl Operation {
             ],
             Self::RecvAcceptChannel => vec![VariableType::SentOpenChannel],
             Self::RecvFundingSigned => vec![VariableType::SentFundingCreated],
+            Self::RecvSpliceAck => vec![VariableType::SentSpliceInit],
+            Self::RecvSpliceLocked => vec![VariableType::SentSpliceAck],
             Self::BroadcastTransaction | Self::LookupShortChannelId => {
                 vec![VariableType::FundingTransaction]
             }
@@ -827,6 +841,8 @@ impl Operation {
             | Self::SendSpliceLocked
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
+            | Self::RecvSpliceAck
+            | Self::RecvSpliceLocked
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => vec![],
@@ -880,6 +896,8 @@ impl Operation {
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
+            | Self::RecvSpliceAck
+            | Self::RecvSpliceLocked
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction => true,
         }
@@ -938,6 +956,8 @@ impl Operation {
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
+            | Self::RecvSpliceAck
+            | Self::RecvSpliceLocked
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => false,
@@ -995,6 +1015,8 @@ impl Operation {
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
+            | Self::RecvSpliceAck
+            | Self::RecvSpliceLocked
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => false,
         }

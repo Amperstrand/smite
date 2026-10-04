@@ -222,6 +222,9 @@ impl ProgramBuilder {
             VariableType::AcceptChannel => {
                 panic!("cannot generate fresh AcceptChannel: requires protocol interaction")
             }
+            VariableType::SpliceAck | VariableType::SpliceLocked => {
+                panic!("cannot generate fresh splice response: requires protocol interaction")
+            }
             VariableType::FundingTransaction => {
                 panic!("cannot generate fresh FundingTransaction: requires composed inputs")
             }

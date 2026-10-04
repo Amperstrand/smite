@@ -598,6 +598,30 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     Some(Variable::AcceptChannel(ac))
                 }
 
+                Operation::RecvSpliceAck => {
+                    consume_affine(
+                        &mut variables,
+                        instr.inputs[0],
+                        instr.operation.input_types()[0],
+                    );
+                    log::debug!("[{:?}] RecvSpliceAck: waiting", start.elapsed());
+                    let sa: SpliceAck = recv_bolt(&mut self.conn, RECV_IDLE_TIMEOUT)?;
+                    log::debug!("[{:?}] RecvSpliceAck: received", start.elapsed());
+                    Some(Variable::SpliceAck(sa))
+                }
+
+                Operation::RecvSpliceLocked => {
+                    consume_affine(
+                        &mut variables,
+                        instr.inputs[0],
+                        instr.operation.input_types()[0],
+                    );
+                    log::debug!("[{:?}] RecvSpliceLocked: waiting", start.elapsed());
+                    let sl: SpliceLocked = recv_bolt(&mut self.conn, RECV_IDLE_TIMEOUT)?;
+                    log::debug!("[{:?}] RecvSpliceLocked: received", start.elapsed());
+                    Some(Variable::SpliceLocked(sl))
+                }
+
                 Operation::RecvFundingSigned => {
                     consume_affine(
                         &mut variables,
