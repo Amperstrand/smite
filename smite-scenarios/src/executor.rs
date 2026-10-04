@@ -3,6 +3,8 @@
 //! Executes an IR program against a target node over an established connection,
 //! producing side effects (sending/receiving messages).
 
+use bitcoin::hashes::sha256;
+use bitcoin::hashes::Hash as _;
 use bitcoin::secp256k1::ecdsa::Signature;
 use bitcoin::secp256k1::{PublicKey, Secp256k1, SecretKey};
 use bitcoin::{OutPoint, ScriptBuf, Txid};
@@ -11,7 +13,7 @@ use smite::bolt::{
     AcceptChannel, AnnouncementSignatures, ChannelAnnouncement, ChannelId, ChannelReady,
     ChannelReadyTlvs, ChannelUpdate, Features, FromMessage, FundingCreated, FundingSigned, Message,
     MessageType, NodeAnnouncement, OpenChannel, OpenChannelTlvs, Pong, ShortChannelId, Shutdown,
-    SpliceInit, SpliceInitTlvs, Stfu, TemporaryChannelId,
+    SpliceAck, SpliceAckTlvs, SpliceInit, SpliceInitTlvs, SpliceLocked, Stfu, TemporaryChannelId,
 };
 use smite::channel_tx::{
     ChannelConfig, ChannelPartyConfig, ChannelState, FundingTransaction, HolderIdentity, Side,
@@ -535,6 +537,47 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     );
                     self.conn.send_message(&encoded)?;
                     Some(Variable::SentSpliceInit)
+                }
+
+                Operation::SendSpliceAck => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let amount = resolve_amount(&variables, instr.inputs[1]);
+                    let pubkey = resolve_pubkey(&variables, instr.inputs[2]);
+                    let msg = SpliceAck {
+                        channel_id,
+                        funding_contribution_satoshis: amount as i64,
+                        funding_pubkey: pubkey,
+                        tlvs: SpliceAckTlvs::default(),
+                    };
+                    let encoded = Message::SpliceAck(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendSpliceAck: {} bytes (amount={})",
+                        start.elapsed(),
+                        encoded.len(),
+                        amount
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentSpliceAck)
+                }
+
+                Operation::SendSpliceLocked => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let txid_bytes = resolve_bytes(&variables, instr.inputs[1]);
+                    let mut txid_arr = [0u8; 32];
+                    txid_arr.copy_from_slice(&txid_bytes[..32]);
+                    let splice_txid = sha256::Hash::from_byte_array(txid_arr);
+                    let msg = SpliceLocked {
+                        channel_id,
+                        splice_txid,
+                    };
+                    let encoded = Message::SpliceLocked(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendSpliceLocked: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentSpliceLocked)
                 }
 
                 Operation::RecvAcceptChannel => {

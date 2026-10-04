@@ -231,7 +231,7 @@ impl ProgramBuilder {
             VariableType::SentFundingCreated => {
                 panic!("cannot generate fresh SentFundingCreated: affine type")
             }
-            VariableType::SentShutdown | VariableType::SentStfu | VariableType::SentSpliceInit => {
+            VariableType::SentShutdown | VariableType::SentStfu | VariableType::SentSpliceInit | VariableType::SentSpliceAck | VariableType::SentSpliceLocked => {
                 panic!("cannot generate fresh affine type")
             }
         }
