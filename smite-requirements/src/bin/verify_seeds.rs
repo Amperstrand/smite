@@ -81,6 +81,10 @@ fn main() {
                     | smite_ir::operation::Operation::SendTxAddOutput
                     | smite_ir::operation::Operation::SendTxComplete
                     | smite_ir::operation::Operation::SendTxAbort
+                    | smite_ir::operation::Operation::SendTxInitRbf
+                    | smite_ir::operation::Operation::SendTxAckRbf
+                    | smite_ir::operation::Operation::SendTxSignatures
+                    | smite_ir::operation::Operation::SendFundingSigned
                     | smite_ir::operation::Operation::SendOpenChannel
                     | smite_ir::operation::Operation::SendChannelReady { .. }
                     | smite_ir::operation::Operation::SendMessage

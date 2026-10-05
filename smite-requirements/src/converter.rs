@@ -7,7 +7,11 @@
 //! then explores around.
 
 use bitcoin::secp256k1::ecdsa::Signature;
-use smite::bolt::{ChannelId, CommitmentSigned, CommitmentSignedTlvs, Message};
+use smite::bolt::{
+    AcceptChannel, AcceptChannel2, AcceptChannel2Tlvs, AcceptChannelTlvs, ChannelId,
+    CommitmentSigned, CommitmentSignedTlvs, Message, OpenChannel2, OpenChannel2Tlvs,
+    TemporaryChannelId,
+};
 use smite_ir::operation::Operation;
 use smite_ir::program::Program;
 
@@ -96,6 +100,27 @@ pub fn sketch_to_operations(sketch: &ProgramSketch) -> Option<Vec<(Operation, Ve
             ),
             (Operation::SendTxAbort, vec![0, 1]),
         ]),
+        "tx_init_rbf" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadBlockHeight(0), vec![]),
+            (Operation::LoadFeeratePerKw(253), vec![]),
+            (Operation::SendTxInitRbf, vec![0, 1, 2]),
+        ]),
+        "tx_ack_rbf" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::SendTxAckRbf, vec![0]),
+        ]),
+        "tx_signatures" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadBytes(vec![0xab; 32]), vec![]),
+            (Operation::LoadBytes(vec![0x00; 64]), vec![]),
+            (Operation::SendTxSignatures, vec![0, 1, 2]),
+        ]),
+        "funding_signed" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadBytes(vec![0x00; 64]), vec![]),
+            (Operation::SendFundingSigned, vec![0, 1]),
+        ]),
         "open_channel" => Some(vec![
             (Operation::LoadChainHashFromContext, vec![]),
             (Operation::LoadChannelId([0x42; 32]), vec![]),
@@ -145,6 +170,87 @@ pub fn sketch_to_operations(sketch: &ProgramSketch) -> Option<Vec<(Operation, Ve
                 (Operation::SendMessage, vec![0]),
             ])
         }
+        "open_channel2" => {
+            let pubkey = static_pubkey();
+            let oc2 = OpenChannel2 {
+                chain_hash: [0x42; 32],
+                temporary_channel_id: TemporaryChannelId::new([0x42; 32]),
+                funding_feerate_perkw: 253,
+                commitment_feerate_perkw: 253,
+                funding_satoshis: 100_000,
+                dust_limit_satoshis: 546,
+                max_htlc_value_in_flight_msat: 100_000_000,
+                htlc_minimum_msat: 1_000,
+                to_self_delay: 144,
+                max_accepted_htlcs: 483,
+                locktime: 0,
+                funding_pubkey: pubkey,
+                revocation_basepoint: pubkey,
+                payment_basepoint: pubkey,
+                delayed_payment_basepoint: pubkey,
+                htlc_basepoint: pubkey,
+                first_per_commitment_point: pubkey,
+                second_per_commitment_point: pubkey,
+                channel_flags: 1,
+                tlvs: OpenChannel2Tlvs::default(),
+            };
+            let encoded = Message::OpenChannel2(oc2).encode();
+            Some(vec![
+                (Operation::LoadMessage(encoded), vec![]),
+                (Operation::SendMessage, vec![0]),
+            ])
+        }
+        "accept_channel" => {
+            let pubkey = static_pubkey();
+            let ac = AcceptChannel {
+                temporary_channel_id: TemporaryChannelId::new([0x42; 32]),
+                dust_limit_satoshis: 546,
+                max_htlc_value_in_flight_msat: 100_000_000,
+                channel_reserve_satoshis: 10_000,
+                htlc_minimum_msat: 1_000,
+                minimum_depth: 6,
+                to_self_delay: 144,
+                max_accepted_htlcs: 483,
+                funding_pubkey: pubkey,
+                revocation_basepoint: pubkey,
+                payment_basepoint: pubkey,
+                delayed_payment_basepoint: pubkey,
+                htlc_basepoint: pubkey,
+                first_per_commitment_point: pubkey,
+                tlvs: AcceptChannelTlvs::default(),
+            };
+            let encoded = Message::AcceptChannel(ac).encode();
+            Some(vec![
+                (Operation::LoadMessage(encoded), vec![]),
+                (Operation::SendMessage, vec![0]),
+            ])
+        }
+        "accept_channel2" => {
+            let pubkey = static_pubkey();
+            let ac2 = AcceptChannel2 {
+                temporary_channel_id: TemporaryChannelId::new([0x42; 32]),
+                funding_satoshis: 100_000,
+                dust_limit_satoshis: 546,
+                max_htlc_value_in_flight_msat: 100_000_000,
+                htlc_minimum_msat: 1_000,
+                minimum_depth: 6,
+                to_self_delay: 144,
+                max_accepted_htlcs: 483,
+                funding_pubkey: pubkey,
+                revocation_basepoint: pubkey,
+                payment_basepoint: pubkey,
+                delayed_payment_basepoint: pubkey,
+                htlc_basepoint: pubkey,
+                first_per_commitment_point: pubkey,
+                second_per_commitment_point: pubkey,
+                tlvs: AcceptChannel2Tlvs::default(),
+            };
+            let encoded = Message::AcceptChannel2(ac2).encode();
+            Some(vec![
+                (Operation::LoadMessage(encoded), vec![]),
+                (Operation::SendMessage, vec![0]),
+            ])
+        }
         _ => None,
     }
 }
@@ -158,6 +264,16 @@ pub fn sketch_to_program(sketch: &ProgramSketch) -> Option<Program> {
         builder.append(op, &inputs);
     }
     Some(builder.build())
+}
+
+/// The pubkey every statically-built message carries in its basepoint
+/// fields. Matches the `verify_seeds` helper so emitted seeds and its
+/// encoding checks stay consistent.
+fn static_pubkey() -> bitcoin::secp256k1::PublicKey {
+    use bitcoin::secp256k1::{Secp256k1, SecretKey};
+    let secp = Secp256k1::new();
+    let sk = SecretKey::from_slice(&[0x02; 32]).expect("valid private key");
+    bitcoin::secp256k1::PublicKey::from_secret_key(&secp, &sk)
 }
 
 /// Summary of what the converter can handle.
