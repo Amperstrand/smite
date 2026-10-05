@@ -588,26 +588,39 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     Some(Variable::SentSpliceLocked)
                 }
 
-                Operation::SendTxAddInput => {
+                Operation::SendTxAddInput {
+                    include_shared_input_txid,
+                } => {
                     let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
                     let serial_id = u64::from(resolve_u32(&variables, instr.inputs[1]));
                     let prevtx = resolve_bytes(&variables, instr.inputs[2]).to_vec();
                     let prevtx_vout = resolve_u32(&variables, instr.inputs[3]);
                     let sequence = resolve_u32(&variables, instr.inputs[4]);
+                    // Zero-padded copy: the param mutator may shrink the
+                    // input below 32 bytes, and a malformed txid is a
+                    // fuzzing outcome, not an invariant violation.
+                    let mut txid_arr = [0u8; 32];
+                    let txid_bytes = resolve_bytes(&variables, instr.inputs[5]);
+                    let n = txid_bytes.len().min(32);
+                    txid_arr[..n].copy_from_slice(&txid_bytes[..n]);
                     let msg = TxAddInput {
                         channel_id,
                         serial_id,
                         prevtx,
                         prevtx_vout,
                         sequence,
-                        tlvs: TxAddInputTlvs::default(),
+                        tlvs: TxAddInputTlvs {
+                            shared_input_txid: (*include_shared_input_txid)
+                                .then(|| Txid::from_byte_array(txid_arr)),
+                        },
                     };
                     let encoded = Message::TxAddInput(msg).encode();
                     log::debug!(
-                        "[{:?}] SendTxAddInput: {} bytes (serial_id={})",
+                        "[{:?}] SendTxAddInput: {} bytes (serial_id={}, shared_input_txid={})",
                         start.elapsed(),
                         encoded.len(),
-                        serial_id
+                        serial_id,
+                        include_shared_input_txid
                     );
                     self.conn.send_message(&encoded)?;
                     Some(Variable::SentTxAddInput)

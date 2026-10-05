@@ -72,13 +72,32 @@ pub fn sketch_to_operations(sketch: &ProgramSketch) -> Option<Vec<(Operation, Ve
             } else {
                 0xFFFF_FFFD
             };
+            // the-sending-node:7/8 (splice shared input): the shared input
+            // is marked by the shared_input_txid TLV and MUST NOT carry a
+            // prevtx. :7 gets the valid shape (TLV, no prevtx); :8 the
+            // violation (TLV + prevtx present).
+            let shared = sketch.goal.contains("shared input")
+                || sketch.goal.contains("current channel input");
+            let (include_shared_input_txid, prevtx) = if shared && sketch.goal.contains("NOT") {
+                (true, vec![0xde, 0xad, 0xbe, 0xef])
+            } else if shared {
+                (true, Vec::new())
+            } else {
+                (false, vec![0xde, 0xad, 0xbe, 0xef])
+            };
             Some(vec![
                 (Operation::LoadChannelId([0x42; 32]), vec![]),
                 (Operation::LoadU32(42), vec![]),
-                (Operation::LoadBytes(vec![0xde, 0xad, 0xbe, 0xef]), vec![]),
+                (Operation::LoadBytes(prevtx), vec![]),
                 (Operation::LoadU32(0), vec![]),
                 (Operation::LoadU32(sequence), vec![]),
-                (Operation::SendTxAddInput, vec![0, 1, 2, 3, 4]),
+                (Operation::LoadBytes(vec![0xcc; 32]), vec![]),
+                (
+                    Operation::SendTxAddInput {
+                        include_shared_input_txid,
+                    },
+                    vec![0, 1, 2, 3, 4, 5],
+                ),
             ])
         }
         "tx_add_output" => Some(vec![

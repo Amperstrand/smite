@@ -32,6 +32,9 @@ impl Mutator for OperationParamMutator {
 }
 
 /// Returns `true` if the operation was changed.
+// One arm per operation keeps the mutation logic flat next to the enum; the
+// exhaustive match naturally exceeds the pedantic line budget.
+#[allow(clippy::too_many_lines)]
 fn mutate_operation(op: &mut Operation, rng: &mut impl Rng) -> bool {
     match op {
         Operation::LoadAmount(v) => {
@@ -107,6 +110,13 @@ fn mutate_operation(op: &mut Operation, rng: &mut impl Rng) -> bool {
             *include_alias = !*include_alias;
             true
         }
+        Operation::SendTxAddInput {
+            include_shared_input_txid,
+        } => {
+            // Toggle the shared_input_txid TLV; flipping always changes it.
+            *include_shared_input_txid = !*include_shared_input_txid;
+            true
+        }
 
         // Non-mutable variants. Reaching here means `is_param_mutable` and this
         // match have drifted out of sync.
@@ -126,7 +136,6 @@ fn mutate_operation(op: &mut Operation, rng: &mut impl Rng) -> bool {
         | Operation::SendSpliceInit
         | Operation::SendSpliceAck
         | Operation::SendSpliceLocked
-        | Operation::SendTxAddInput
         | Operation::SendTxAddOutput
         | Operation::SendTxComplete
         | Operation::SendTxAbort

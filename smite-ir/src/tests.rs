@@ -627,8 +627,14 @@ fn display_tx_family_program() {
             inputs: vec![],
         },
         Instruction {
-            operation: Operation::SendTxAddInput,
-            inputs: vec![0, 1, 2, 3, 3],
+            operation: Operation::LoadBytes(vec![0xcc; 32]),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::SendTxAddInput {
+                include_shared_input_txid: false,
+            },
+            inputs: vec![0, 1, 2, 3, 3, 5],
         },
         Instruction {
             operation: Operation::SendTxAddOutput,
@@ -650,16 +656,18 @@ fn display_tx_family_program() {
     let lines: Vec<&str> = text.lines().collect();
 
     let cid_hex = "cd".repeat(32);
+    let txid_hex = "cc".repeat(32);
     let expected: Vec<String> = vec![
         format!("v0 = LoadChannelId(0x{cid_hex})"),
         "v1 = LoadU32(42)".into(),
         "v2 = LoadBytes(0xdead)".into(),
         "v3 = LoadU32(4294967293)".into(),
         "v4 = LoadAmount(1000)".into(),
-        "v5 = SendTxAddInput(v0, v1, v2, v3, v3)".into(),
-        "v6 = SendTxAddOutput(v0, v1, v4, v2)".into(),
-        "v7 = SendTxComplete(v0)".into(),
-        "v8 = SendTxAbort(v0, v2)".into(),
+        format!("v5 = LoadBytes(0x{txid_hex})"),
+        "v6 = SendTxAddInput{include_shared_input_txid=false}(v0, v1, v2, v3, v3, v5)".into(),
+        "v7 = SendTxAddOutput(v0, v1, v4, v2)".into(),
+        "v8 = SendTxComplete(v0)".into(),
+        "v9 = SendTxAbort(v0, v2)".into(),
     ];
     assert_eq!(lines.len(), expected.len(), "line count mismatch");
     for (i, (got, want)) in lines.iter().zip(expected.iter()).enumerate() {

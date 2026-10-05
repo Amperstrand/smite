@@ -255,15 +255,26 @@ pub enum Operation {
     /// Build and send a `tx_add_input` message (BOLT 2, type 66).
     /// Produces a `SentTxAddInput` variable.
     ///
-    /// The `shared_input_txid` TLV is omitted (default TLVs).
+    /// The `shared_input_txid` TLV marks the current channel input in a
+    /// splice. Since `include_shared_input_txid` controls presence, the
+    /// valid shared-input shape is `true` with an empty `prevtx` (BOLT 2:
+    /// MUST NOT include `prevtx` for that shared input); `false` omits the
+    /// TLV and ignores input 5.
     ///
-    /// Inputs (5, matching wire order):
-    ///   0: `channel_id`  (`ChannelId`)
-    ///   1: `serial_id`   (`U32`, widened to u64)
-    ///   2: `prevtx`      (`Bytes`, consensus-encoded previous transaction)
-    ///   3: `prevtx_vout` (`U32`)
-    ///   4: `sequence`    (`U32`)
-    SendTxAddInput,
+    /// Inputs (6, matching wire order):
+    ///   0: `channel_id`          (`ChannelId`)
+    ///   1: `serial_id`           (`U32`, widened to u64)
+    ///   2: `prevtx`              (`Bytes`, consensus-encoded previous
+    ///                             transaction; empty for a shared input)
+    ///   3: `prevtx_vout`         (`U32`)
+    ///   4: `sequence`            (`U32`)
+    ///   5: `shared_input_txid`   (`Bytes`, 32 bytes; shorter inputs are
+    ///                             zero-padded)
+    SendTxAddInput {
+        /// Whether to include the `shared_input_txid` TLV from input 5.
+        /// If `false`, the TLV is omitted and input 5 is ignored.
+        include_shared_input_txid: bool,
+    },
     /// Build and send a `tx_add_output` message (BOLT 2, type 67).
     /// Produces a `SentTxAddOutput` variable.
     ///
@@ -679,12 +690,17 @@ impl fmt::Display for Operation {
             Self::SendChannelReady { include_alias } => {
                 write!(f, "SendChannelReady{{include_alias={include_alias}}}")
             }
+            Self::SendTxAddInput {
+                include_shared_input_txid,
+            } => write!(
+                f,
+                "SendTxAddInput{{include_shared_input_txid={include_shared_input_txid}}}"
+            ),
             Self::SendShutdown => write!(f, "SendShutdown"),
             Self::SendStfu => write!(f, "SendStfu"),
             Self::SendSpliceInit => write!(f, "SendSpliceInit"),
             Self::SendSpliceAck => write!(f, "SendSpliceAck"),
             Self::SendSpliceLocked => write!(f, "SendSpliceLocked"),
-            Self::SendTxAddInput => write!(f, "SendTxAddInput"),
             Self::SendTxAddOutput => write!(f, "SendTxAddOutput"),
             Self::SendTxComplete => write!(f, "SendTxComplete"),
             Self::SendTxAbort => write!(f, "SendTxAbort"),
@@ -748,7 +764,7 @@ impl Operation {
             Self::SendSpliceInit => Some(VariableType::SentSpliceInit),
             Self::SendSpliceAck => Some(VariableType::SentSpliceAck),
             Self::SendSpliceLocked => Some(VariableType::SentSpliceLocked),
-            Self::SendTxAddInput => Some(VariableType::SentTxAddInput),
+            Self::SendTxAddInput { .. } => Some(VariableType::SentTxAddInput),
             Self::SendTxAddOutput => Some(VariableType::SentTxAddOutput),
             Self::SendTxComplete => Some(VariableType::SentTxComplete),
             Self::SendTxAbort => Some(VariableType::SentTxAbort),
@@ -901,12 +917,13 @@ impl Operation {
                 VariableType::ChannelId, // channel_id
                 VariableType::Bytes,     // splice_txid (32 bytes)
             ],
-            Self::SendTxAddInput => vec![
+            Self::SendTxAddInput { .. } => vec![
                 VariableType::ChannelId, // channel_id
                 VariableType::U32,       // serial_id (widened to u64)
                 VariableType::Bytes,     // prevtx
                 VariableType::U32,       // prevtx_vout
                 VariableType::U32,       // sequence
+                VariableType::Bytes,     // shared_input_txid (32 bytes)
             ],
             Self::SendTxAddOutput => vec![
                 VariableType::ChannelId, // channel_id
@@ -987,7 +1004,7 @@ impl Operation {
             | Self::SendSpliceInit
             | Self::SendSpliceAck
             | Self::SendSpliceLocked
-            | Self::SendTxAddInput
+            | Self::SendTxAddInput { .. }
             | Self::SendTxAddOutput
             | Self::SendTxComplete
             | Self::SendTxAbort
@@ -1052,7 +1069,7 @@ impl Operation {
             | Self::SendSpliceInit
             | Self::SendSpliceAck
             | Self::SendSpliceLocked
-            | Self::SendTxAddInput
+            | Self::SendTxAddInput { .. }
             | Self::SendTxAddOutput
             | Self::SendTxComplete
             | Self::SendTxAbort
@@ -1114,7 +1131,7 @@ impl Operation {
             | Self::SendSpliceInit
             | Self::SendSpliceAck
             | Self::SendSpliceLocked
-            | Self::SendTxAddInput
+            | Self::SendTxAddInput { .. }
             | Self::SendTxAddOutput
             | Self::SendTxComplete
             | Self::SendTxAbort
@@ -1173,6 +1190,7 @@ impl Operation {
             | Self::LoadShutdownScript(_)
             | Self::LoadChannelType(_)
             | Self::ExtractAcceptChannel(_)
+            | Self::SendTxAddInput { .. }
             | Self::BuildNodeAnnouncement { .. }
             | Self::SendChannelReady { .. }
             | Self::MineBlocks(_) => true,
@@ -1193,7 +1211,6 @@ impl Operation {
             | Self::SendSpliceInit
             | Self::SendSpliceAck
             | Self::SendSpliceLocked
-            | Self::SendTxAddInput
             | Self::SendTxAddOutput
             | Self::SendTxComplete
             | Self::SendTxAbort

@@ -77,7 +77,7 @@ fn main() {
                     | smite_ir::operation::Operation::SendSpliceInit
                     | smite_ir::operation::Operation::SendSpliceAck
                     | smite_ir::operation::Operation::SendSpliceLocked
-                    | smite_ir::operation::Operation::SendTxAddInput
+                    | smite_ir::operation::Operation::SendTxAddInput { .. }
                     | smite_ir::operation::Operation::SendTxAddOutput
                     | smite_ir::operation::Operation::SendTxComplete
                     | smite_ir::operation::Operation::SendTxAbort

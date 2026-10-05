@@ -1161,9 +1161,19 @@ fn execute_send_tx_family() {
     let prevtx_var = b.append(Operation::LoadBytes(prevtx.clone()), &[]);
     let sequence = b.append(Operation::LoadU32(0xFFFF_FFFD), &[]);
     let sats = b.append(Operation::LoadAmount(1000), &[]);
+    let shared_txid = b.append(Operation::LoadBytes(vec![0xcc; 32]), &[]);
     b.append(
-        Operation::SendTxAddInput,
-        &[channel_id_var, serial_id, prevtx_var, sequence, sequence],
+        Operation::SendTxAddInput {
+            include_shared_input_txid: false,
+        },
+        &[
+            channel_id_var,
+            serial_id,
+            prevtx_var,
+            sequence,
+            sequence,
+            shared_txid,
+        ],
     );
     b.append(
         Operation::SendTxAddOutput,
@@ -1251,6 +1261,36 @@ fn execute_send_tx_rbf_and_signatures() {
 }
 
 #[test]
+fn execute_send_tx_add_input_shared_input_tlv() {
+    let channel_id = ChannelId::new([0x66; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let serial = b.append(Operation::LoadU32(42), &[]);
+    // Empty prevtx: the valid shape for a shared input.
+    let prevtx = b.append(Operation::LoadBytes(Vec::new()), &[]);
+    let vout = b.append(Operation::LoadU32(0), &[]);
+    let sequence = b.append(Operation::LoadU32(0xFFFF_FFFD), &[]);
+    let shared_txid = b.append(Operation::LoadBytes(vec![0xcc; 32]), &[]);
+    b.append(
+        Operation::SendTxAddInput {
+            include_shared_input_txid: true,
+        },
+        &[channel_id_var, serial, prevtx, vout, sequence, shared_txid],
+    );
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    let tai: TxAddInput = fx.sent(0);
+    assert_eq!(tai.prevtx, Vec::<u8>::new());
+    assert_eq!(
+        tai.tlvs.shared_input_txid,
+        Some(Txid::from_byte_array([0xcc; 32]))
+    );
+}
+
+#[test]
 fn execute_send_tx_abort_recv_echo() {
     let channel_id = ChannelId::new([0x66; 32]);
 
@@ -1283,9 +1323,19 @@ fn execute_recv_tx_abort_after_bad_tx_add_input() {
     let serial = b.append(Operation::LoadU32(43), &[]);
     let prevtx = b.append(Operation::LoadBytes(vec![0xde, 0xad]), &[]);
     let sequence = b.append(Operation::LoadU32(0xFFFF_FFFF), &[]);
+    let shared_txid = b.append(Operation::LoadBytes(vec![0xcc; 32]), &[]);
     b.append(
-        Operation::SendTxAddInput,
-        &[channel_id_var, serial, prevtx, sequence, sequence],
+        Operation::SendTxAddInput {
+            include_shared_input_txid: false,
+        },
+        &[
+            channel_id_var,
+            serial,
+            prevtx,
+            sequence,
+            sequence,
+            shared_txid,
+        ],
     );
     b.append(Operation::RecvTxAbort, &[]);
 
