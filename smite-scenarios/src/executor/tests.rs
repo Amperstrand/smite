@@ -1200,6 +1200,58 @@ fn execute_send_tx_family() {
 }
 
 #[test]
+fn execute_send_tx_rbf_and_signatures() {
+    let channel_id = ChannelId::new([0x71; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(18), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    b.append(
+        Operation::SendTxInitRbf,
+        &[channel_id_var, locktime, feerate],
+    );
+    b.append(Operation::SendTxAckRbf, &[channel_id_var]);
+    let txid = b.append(Operation::LoadBytes(vec![0xab; 32]), &[]);
+    let witness = b.append(Operation::LoadBytes(vec![0x77; 71]), &[]);
+    b.append(
+        Operation::SendTxSignatures,
+        &[channel_id_var, txid, witness],
+    );
+    // All-0xFF is never a valid compact signature (out of scalar range), so
+    // this input exercises the executor's zero-signature fallback.
+    let bad_sig = b.append(Operation::LoadBytes(vec![0xff; 71]), &[]);
+    b.append(Operation::SendFundingSigned, &[channel_id_var, bad_sig]);
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    assert_eq!(fx.sent_len(), 4);
+
+    let tir: TxInitRbf = fx.sent(0);
+    assert_eq!(tir.channel_id, channel_id);
+    assert_eq!(tir.locktime, 18);
+    assert_eq!(tir.feerate, 253);
+    assert_eq!(tir.tlvs, TxInitRbfTlvs::default());
+
+    let tar: TxAckRbf = fx.sent(1);
+    assert_eq!(tar.channel_id, channel_id);
+    assert_eq!(tar.tlvs, TxAckRbfTlvs::default());
+
+    let ts: TxSignatures = fx.sent(2);
+    assert_eq!(ts.channel_id, channel_id);
+    assert_eq!(ts.txid.to_byte_array(), [0xab; 32]);
+    assert_eq!(ts.witnesses, vec![vec![0x77; 71]]);
+    assert_eq!(ts.tlvs, TxSignaturesTlvs::default());
+
+    let fs: FundingSigned = fx.sent(3);
+    assert_eq!(fs.channel_id, channel_id);
+    // 71 bytes is not a compact signature, so the executor falls back to
+    // the all-zero signature.
+    assert_eq!(fs.signature, Signature::from_compact(&[0u8; 64]).unwrap());
+}
+
+#[test]
 fn execute_recv_channel_ready_invalid_funding_outpoint_is_noop() {
     // Corrupt the negotiated acceptor funding pubkey so the broadcast funding
     // transaction's output no longer pays the negotiated 2-of-2 script,

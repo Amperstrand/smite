@@ -84,6 +84,14 @@ pub enum Variable {
     SentTxComplete,
     /// `tx_abort` has been sent.
     SentTxAbort,
+    /// `tx_init_rbf` has been sent.
+    SentTxInitRbf,
+    /// `tx_ack_rbf` has been sent.
+    SentTxAckRbf,
+    /// `tx_signatures` has been sent.
+    SentTxSignatures,
+    /// `funding_signed` has been sent.
+    SentFundingSigned,
 }
 
 impl Variable {
@@ -123,6 +131,10 @@ impl Variable {
             Self::SentTxAddOutput => VariableType::SentTxAddOutput,
             Self::SentTxComplete => VariableType::SentTxComplete,
             Self::SentTxAbort => VariableType::SentTxAbort,
+            Self::SentTxInitRbf => VariableType::SentTxInitRbf,
+            Self::SentTxAckRbf => VariableType::SentTxAckRbf,
+            Self::SentTxSignatures => VariableType::SentTxSignatures,
+            Self::SentFundingSigned => VariableType::SentFundingSigned,
         }
     }
 }
@@ -163,6 +175,10 @@ pub enum VariableType {
     SentTxAddOutput,
     SentTxComplete,
     SentTxAbort,
+    SentTxInitRbf,
+    SentTxAckRbf,
+    SentTxSignatures,
+    SentFundingSigned,
 }
 
 impl VariableType {
@@ -179,7 +195,11 @@ impl VariableType {
             | Self::SentTxAddInput
             | Self::SentTxAddOutput
             | Self::SentTxComplete
-            | Self::SentTxAbort => true,
+            | Self::SentTxAbort
+            | Self::SentTxInitRbf
+            | Self::SentTxAckRbf
+            | Self::SentTxSignatures
+            | Self::SentFundingSigned => true,
 
             Self::Bytes
             | Self::ChainHash

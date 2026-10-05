@@ -14,7 +14,8 @@ use smite::bolt::{
     ChannelReadyTlvs, ChannelUpdate, Features, FromMessage, FundingCreated, FundingSigned, Message,
     MessageType, NodeAnnouncement, OpenChannel, OpenChannelTlvs, Pong, ShortChannelId, Shutdown,
     SpliceAck, SpliceAckTlvs, SpliceInit, SpliceInitTlvs, SpliceLocked, Stfu, TemporaryChannelId,
-    TxAbort, TxAddInput, TxAddInputTlvs, TxAddOutput, TxComplete,
+    TxAbort, TxAckRbf, TxAckRbfTlvs, TxAddInput, TxAddInputTlvs, TxAddOutput, TxComplete,
+    TxInitRbf, TxInitRbfTlvs, TxSignatures, TxSignaturesTlvs,
 };
 use smite::channel_tx::{
     ChannelConfig, ChannelPartyConfig, ChannelState, FundingTransaction, HolderIdentity, Side,
@@ -660,6 +661,97 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     );
                     self.conn.send_message(&encoded)?;
                     Some(Variable::SentTxAbort)
+                }
+
+                Operation::SendTxInitRbf => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let locktime = resolve_block_height(&variables, instr.inputs[1]);
+                    let feerate = resolve_feerate(&variables, instr.inputs[2]);
+                    let msg = TxInitRbf {
+                        channel_id,
+                        locktime,
+                        feerate,
+                        tlvs: TxInitRbfTlvs::default(),
+                    };
+                    let encoded = Message::TxInitRbf(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxInitRbf: {} bytes (locktime={}, feerate={})",
+                        start.elapsed(),
+                        encoded.len(),
+                        locktime,
+                        feerate
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxInitRbf)
+                }
+
+                Operation::SendTxAckRbf => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let msg = TxAckRbf {
+                        channel_id,
+                        tlvs: TxAckRbfTlvs::default(),
+                    };
+                    let encoded = Message::TxAckRbf(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxAckRbf: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxAckRbf)
+                }
+
+                Operation::SendTxSignatures => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let txid_bytes = resolve_bytes(&variables, instr.inputs[1]);
+                    // Zero-padded copy: the param mutator may shrink the
+                    // input below 32 bytes, and a malformed txid is a
+                    // fuzzing outcome, not an invariant violation.
+                    let mut txid_arr = [0u8; 32];
+                    let n = txid_bytes.len().min(32);
+                    txid_arr[..n].copy_from_slice(&txid_bytes[..n]);
+                    let witness = resolve_bytes(&variables, instr.inputs[2]).to_vec();
+                    let msg = TxSignatures {
+                        channel_id,
+                        txid: Txid::from_byte_array(txid_arr),
+                        witnesses: vec![witness],
+                        tlvs: TxSignaturesTlvs::default(),
+                    };
+                    let encoded = Message::TxSignatures(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxSignatures: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxSignatures)
+                }
+
+                Operation::SendFundingSigned => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let sig_bytes = resolve_bytes(&variables, instr.inputs[1]);
+                    // Fall back to an all-zero signature when the input is
+                    // not a parseable 64-byte compact signature; malformed
+                    // signatures are for the target to judge, not a panic.
+                    let signature = sig_bytes
+                        .first_chunk::<64>()
+                        .and_then(|chunk| Signature::from_compact(chunk).ok())
+                        .unwrap_or_else(|| {
+                            Signature::from_compact(&[0u8; 64])
+                                .expect("zero bytes parse as a signature")
+                        });
+                    let msg = FundingSigned {
+                        channel_id,
+                        signature,
+                    };
+                    let encoded = Message::FundingSigned(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendFundingSigned: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentFundingSigned)
                 }
 
                 Operation::RecvAcceptChannel => {

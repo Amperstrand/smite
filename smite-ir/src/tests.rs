@@ -668,6 +668,72 @@ fn display_tx_family_program() {
 }
 
 #[test]
+fn display_tx_rbf_and_signatures_program() {
+    let instructions = vec![
+        Instruction {
+            operation: Operation::LoadChannelId([0xcd; 32]),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadBlockHeight(18),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadFeeratePerKw(253),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::SendTxInitRbf,
+            inputs: vec![0, 1, 2],
+        },
+        Instruction {
+            operation: Operation::SendTxAckRbf,
+            inputs: vec![0],
+        },
+        Instruction {
+            operation: Operation::LoadBytes(vec![0xab; 32]),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadBytes(vec![0x00; 64]),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::SendTxSignatures,
+            inputs: vec![0, 5, 6],
+        },
+        Instruction {
+            operation: Operation::SendFundingSigned,
+            inputs: vec![0, 6],
+        },
+    ];
+
+    let program = Program { instructions };
+    assert_well_formed(&program);
+    let text = program.to_string();
+    let lines: Vec<&str> = text.lines().collect();
+
+    let cid_hex = "cd".repeat(32);
+    let txid_hex = "ab".repeat(32);
+    let zeros_hex = "00".repeat(64);
+    let expected: Vec<String> = vec![
+        format!("v0 = LoadChannelId(0x{cid_hex})"),
+        "v1 = LoadBlockHeight(18)".into(),
+        "v2 = LoadFeeratePerKw(253)".into(),
+        "v3 = SendTxInitRbf(v0, v1, v2)".into(),
+        "v4 = SendTxAckRbf(v0)".into(),
+        format!("v5 = LoadBytes(0x{txid_hex})"),
+        format!("v6 = LoadBytes(0x{zeros_hex})"),
+        "v7 = SendTxSignatures(v0, v5, v6)".into(),
+        "v8 = SendFundingSigned(v0, v6)".into(),
+    ];
+    assert_eq!(lines.len(), expected.len(), "line count mismatch");
+    for (i, (got, want)) in lines.iter().zip(expected.iter()).enumerate() {
+        assert_eq!(got, want, "line {i} mismatch");
+    }
+}
+
+#[test]
 fn postcard_roundtrip() {
     let program = Program {
         instructions: vec![

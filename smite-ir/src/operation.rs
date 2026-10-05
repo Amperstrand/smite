@@ -286,6 +286,43 @@ pub enum Operation {
     ///   0: `channel_id` (`ChannelId`)
     ///   1: `data`       (`Bytes`, optional abort reason)
     SendTxAbort,
+    /// Build and send a `tx_init_rbf` message (BOLT 2, type 72).
+    /// Produces a `SentTxInitRbf` variable.
+    ///
+    /// The TLVs are omitted (default TLVs).
+    ///
+    /// Inputs (3):
+    ///   0: `channel_id` (`ChannelId`)
+    ///   1: `locktime`   (`BlockHeight`)
+    ///   2: `feerate`    (`FeeratePerKw`)
+    SendTxInitRbf,
+    /// Build and send a `tx_ack_rbf` message (BOLT 2, type 73).
+    /// Produces a `SentTxAckRbf` variable.
+    ///
+    /// The TLVs are omitted (default TLVs).
+    ///
+    /// Inputs (1):
+    ///   0: `channel_id` (`ChannelId`)
+    SendTxAckRbf,
+    /// Build and send a `tx_signatures` message (BOLT 2, type 71).
+    /// Produces a `SentTxSignatures` variable.
+    ///
+    /// Sends exactly one witness entry (the IR has no variadic inputs);
+    /// the `shared_input_signature` TLV is omitted.
+    ///
+    /// Inputs (3):
+    ///   0: `channel_id` (`ChannelId`)
+    ///   1: `txid`       (`Bytes`, 32 bytes; shorter inputs are zero-padded)
+    ///   2: `witness`    (`Bytes`, one pre-encoded witness entry)
+    SendTxSignatures,
+    /// Build and send a `funding_signed` message (BOLT 2, type 35).
+    /// Produces a `SentFundingSigned` variable.
+    ///
+    /// Inputs (2):
+    ///   0: `channel_id` (`ChannelId`)
+    ///   1: `signature`  (`Bytes`, 64-byte compact; other lengths fall back
+    ///      to an all-zero signature)
+    SendFundingSigned,
     /// Receive and parse a `splice_ack` response after sending `splice_init`.
     /// Produces a `SpliceAck` variable.
     /// Input: `SentSpliceInit` (affine).
@@ -643,6 +680,10 @@ impl fmt::Display for Operation {
             Self::SendTxAddOutput => write!(f, "SendTxAddOutput"),
             Self::SendTxComplete => write!(f, "SendTxComplete"),
             Self::SendTxAbort => write!(f, "SendTxAbort"),
+            Self::SendTxInitRbf => write!(f, "SendTxInitRbf"),
+            Self::SendTxAckRbf => write!(f, "SendTxAckRbf"),
+            Self::SendTxSignatures => write!(f, "SendTxSignatures"),
+            Self::SendFundingSigned => write!(f, "SendFundingSigned"),
             Self::RecvSpliceAck => write!(f, "RecvSpliceAck"),
             Self::RecvSpliceLocked => write!(f, "RecvSpliceLocked"),
             Self::RecvAcceptChannel => write!(f, "RecvAcceptChannel"),
@@ -702,6 +743,10 @@ impl Operation {
             Self::SendTxAddOutput => Some(VariableType::SentTxAddOutput),
             Self::SendTxComplete => Some(VariableType::SentTxComplete),
             Self::SendTxAbort => Some(VariableType::SentTxAbort),
+            Self::SendTxInitRbf => Some(VariableType::SentTxInitRbf),
+            Self::SendTxAckRbf => Some(VariableType::SentTxAckRbf),
+            Self::SendTxSignatures => Some(VariableType::SentTxSignatures),
+            Self::SendFundingSigned => Some(VariableType::SentFundingSigned),
             Self::RecvSpliceAck => Some(VariableType::SpliceAck),
             Self::RecvSpliceLocked => Some(VariableType::SpliceLocked),
             Self::RecvAcceptChannel => Some(VariableType::AcceptChannel),
@@ -863,6 +908,21 @@ impl Operation {
                 VariableType::ChannelId, // channel_id
                 VariableType::Bytes,     // data (abort reason)
             ],
+            Self::SendTxInitRbf => vec![
+                VariableType::ChannelId,    // channel_id
+                VariableType::BlockHeight,  // locktime
+                VariableType::FeeratePerKw, // feerate
+            ],
+            Self::SendTxAckRbf => vec![VariableType::ChannelId],
+            Self::SendTxSignatures => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Bytes,     // txid (32 bytes, zero-padded)
+                VariableType::Bytes,     // witness (one pre-encoded entry)
+            ],
+            Self::SendFundingSigned => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Bytes,     // signature (64-byte compact)
+            ],
             Self::RecvAcceptChannel => vec![VariableType::SentOpenChannel],
             Self::RecvFundingSigned => vec![VariableType::SentFundingCreated],
             Self::RecvSpliceAck => vec![VariableType::SentSpliceInit],
@@ -920,6 +980,10 @@ impl Operation {
             | Self::SendTxAddOutput
             | Self::SendTxComplete
             | Self::SendTxAbort
+            | Self::SendTxInitRbf
+            | Self::SendTxAckRbf
+            | Self::SendTxSignatures
+            | Self::SendFundingSigned
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
             | Self::RecvSpliceAck
@@ -980,6 +1044,10 @@ impl Operation {
             | Self::SendTxAddOutput
             | Self::SendTxComplete
             | Self::SendTxAbort
+            | Self::SendTxInitRbf
+            | Self::SendTxAckRbf
+            | Self::SendTxSignatures
+            | Self::SendFundingSigned
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
@@ -1036,7 +1104,11 @@ impl Operation {
             | Self::SendTxAddInput
             | Self::SendTxAddOutput
             | Self::SendTxComplete
-            | Self::SendTxAbort => true,
+            | Self::SendTxAbort
+            | Self::SendTxInitRbf
+            | Self::SendTxAckRbf
+            | Self::SendTxSignatures
+            | Self::SendFundingSigned => true,
             // `CreateFundingTransaction` selects coins from the wallet, whose
             // contents change as transactions are created and broadcast.
             // `SendFundingCreated` builds its message from the recorded
@@ -1111,6 +1183,10 @@ impl Operation {
             | Self::SendTxAddOutput
             | Self::SendTxComplete
             | Self::SendTxAbort
+            | Self::SendTxInitRbf
+            | Self::SendTxAckRbf
+            | Self::SendTxSignatures
+            | Self::SendFundingSigned
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady

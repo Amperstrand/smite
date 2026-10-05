@@ -130,6 +130,10 @@ fn mutate_operation(op: &mut Operation, rng: &mut impl Rng) -> bool {
         | Operation::SendTxAddOutput
         | Operation::SendTxComplete
         | Operation::SendTxAbort
+        | Operation::SendTxInitRbf
+        | Operation::SendTxAckRbf
+        | Operation::SendTxSignatures
+        | Operation::SendFundingSigned
         | Operation::RecvAcceptChannel
         | Operation::RecvFundingSigned
         | Operation::RecvSpliceAck

@@ -243,7 +243,11 @@ impl ProgramBuilder {
             | VariableType::SentTxAddInput
             | VariableType::SentTxAddOutput
             | VariableType::SentTxComplete
-            | VariableType::SentTxAbort => {
+            | VariableType::SentTxAbort
+            | VariableType::SentTxInitRbf
+            | VariableType::SentTxAckRbf
+            | VariableType::SentTxSignatures
+            | VariableType::SentFundingSigned => {
                 panic!("cannot generate fresh affine type")
             }
         }
