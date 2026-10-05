@@ -331,6 +331,14 @@ pub enum Operation {
     /// Produces a `SpliceLocked` variable.
     /// Input: `SentSpliceAck` (affine).
     RecvSpliceLocked,
+    /// Receive and parse a `tx_abort` message from the target.
+    /// Produces a `TxAbort` variable.
+    ///
+    /// Ungated (no variable inputs): the target may send `tx_abort` both as
+    /// the echo of ours (BOLT 2: upon `tx_abort`, MUST echo back) and as the
+    /// failure response to an invalid negotiation message, so this receive
+    /// may follow any send.
+    RecvTxAbort,
     /// Receive and parse an `accept_channel` response.
     /// Produces an `AcceptChannel` compound variable.
     RecvAcceptChannel,
@@ -686,6 +694,7 @@ impl fmt::Display for Operation {
             Self::SendFundingSigned => write!(f, "SendFundingSigned"),
             Self::RecvSpliceAck => write!(f, "RecvSpliceAck"),
             Self::RecvSpliceLocked => write!(f, "RecvSpliceLocked"),
+            Self::RecvTxAbort => write!(f, "RecvTxAbort()"),
             Self::RecvAcceptChannel => write!(f, "RecvAcceptChannel"),
             Self::RecvFundingSigned => write!(f, "RecvFundingSigned"),
             Self::RecvChannelReady => write!(f, "RecvChannelReady()"),
@@ -749,6 +758,7 @@ impl Operation {
             Self::SendFundingSigned => Some(VariableType::SentFundingSigned),
             Self::RecvSpliceAck => Some(VariableType::SpliceAck),
             Self::RecvSpliceLocked => Some(VariableType::SpliceLocked),
+            Self::RecvTxAbort => Some(VariableType::TxAbort),
             Self::RecvAcceptChannel => Some(VariableType::AcceptChannel),
         }
     }
@@ -780,6 +790,7 @@ impl Operation {
             | Self::LoadTargetPubkeyFromContext
             | Self::LoadChainHashFromContext
             | Self::RecvChannelReady
+            | Self::RecvTxAbort
             | Self::MineBlocks(_) => vec![],
 
             Self::DerivePoint => vec![VariableType::PrivateKey],
@@ -988,6 +999,7 @@ impl Operation {
             | Self::RecvChannelReady
             | Self::RecvSpliceAck
             | Self::RecvSpliceLocked
+            | Self::RecvTxAbort
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => vec![],
@@ -1053,6 +1065,7 @@ impl Operation {
             | Self::RecvChannelReady
             | Self::RecvSpliceAck
             | Self::RecvSpliceLocked
+            | Self::RecvTxAbort
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction => true,
         }
@@ -1123,6 +1136,7 @@ impl Operation {
             | Self::RecvChannelReady
             | Self::RecvSpliceAck
             | Self::RecvSpliceLocked
+            | Self::RecvTxAbort
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => false,
@@ -1192,6 +1206,7 @@ impl Operation {
             | Self::RecvChannelReady
             | Self::RecvSpliceAck
             | Self::RecvSpliceLocked
+            | Self::RecvTxAbort
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => false,
         }

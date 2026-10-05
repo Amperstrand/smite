@@ -1222,7 +1222,6 @@ fn execute_send_tx_rbf_and_signatures() {
     // this input exercises the executor's zero-signature fallback.
     let bad_sig = b.append(Operation::LoadBytes(vec![0xff; 71]), &[]);
     b.append(Operation::SendFundingSigned, &[channel_id_var, bad_sig]);
-
     let mut fx = Fixture::new();
     fx.run(&b.build());
 
@@ -1249,6 +1248,52 @@ fn execute_send_tx_rbf_and_signatures() {
     // 71 bytes is not a compact signature, so the executor falls back to
     // the all-zero signature.
     assert_eq!(fs.signature, Signature::from_compact(&[0u8; 64]).unwrap());
+}
+
+#[test]
+fn execute_send_tx_abort_recv_echo() {
+    let channel_id = ChannelId::new([0x66; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let reason = b.append(
+        Operation::LoadBytes(b"smite: negotiation failed".to_vec()),
+        &[],
+    );
+    b.append(Operation::SendTxAbort, &[channel_id_var, reason]);
+    b.append(Operation::RecvTxAbort, &[]);
+
+    let echo = Message::TxAbort(TxAbort::new(channel_id, "echo"));
+    let mut fx = Fixture::new().queue(&echo);
+    fx.run(&b.build());
+
+    assert_eq!(fx.sent_len(), 1);
+    assert_eq!(fx.queued_len(), 0);
+    let sent: TxAbort = fx.sent(0);
+    assert_eq!(sent.channel_id, channel_id);
+}
+
+#[test]
+fn execute_recv_tx_abort_after_bad_tx_add_input() {
+    let channel_id = ChannelId::new([0x66; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    // Odd serial from the initiator violates the BOLT 2 parity rule.
+    let serial = b.append(Operation::LoadU32(43), &[]);
+    let prevtx = b.append(Operation::LoadBytes(vec![0xde, 0xad]), &[]);
+    let sequence = b.append(Operation::LoadU32(0xFFFF_FFFF), &[]);
+    b.append(
+        Operation::SendTxAddInput,
+        &[channel_id_var, serial, prevtx, sequence, sequence],
+    );
+    b.append(Operation::RecvTxAbort, &[]);
+
+    let abort = Message::TxAbort(TxAbort::new(channel_id, "bad serial"));
+    let mut fx = Fixture::new().queue(&abort);
+    fx.run(&b.build());
+
+    assert_eq!(fx.queued_len(), 0);
 }
 
 #[test]

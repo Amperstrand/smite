@@ -706,6 +706,10 @@ fn display_tx_rbf_and_signatures_program() {
             operation: Operation::SendFundingSigned,
             inputs: vec![0, 6],
         },
+        Instruction {
+            operation: Operation::RecvTxAbort,
+            inputs: vec![],
+        },
     ];
 
     let program = Program { instructions };
@@ -726,6 +730,7 @@ fn display_tx_rbf_and_signatures_program() {
         format!("v6 = LoadBytes(0x{zeros_hex})"),
         "v7 = SendTxSignatures(v0, v5, v6)".into(),
         "v8 = SendFundingSigned(v0, v6)".into(),
+        "v9 = RecvTxAbort()".into(),
     ];
     assert_eq!(lines.len(), expected.len(), "line count mismatch");
     for (i, (got, want)) in lines.iter().zip(expected.iter()).enumerate() {

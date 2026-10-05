@@ -92,14 +92,23 @@ pub fn sketch_to_operations(sketch: &ProgramSketch) -> Option<Vec<(Operation, Ve
             (Operation::LoadChannelId([0x42; 32]), vec![]),
             (Operation::SendTxComplete, vec![0]),
         ]),
-        "tx_abort" => Some(vec![
-            (Operation::LoadChannelId([0x42; 32]), vec![]),
-            (
-                Operation::LoadBytes(b"smite: negotiation failed".to_vec()),
-                vec![],
-            ),
-            (Operation::SendTxAbort, vec![0, 1]),
-        ]),
+        "tx_abort" => {
+            // a-receiving-node:3: the target MUST echo our `tx_abort` back,
+            // so the assert-response sketch waits for it.
+            let echo = sketch.goal.contains("echo");
+            let mut ops = vec![
+                (Operation::LoadChannelId([0x42; 32]), vec![]),
+                (
+                    Operation::LoadBytes(b"smite: negotiation failed".to_vec()),
+                    vec![],
+                ),
+                (Operation::SendTxAbort, vec![0, 1]),
+            ];
+            if echo {
+                ops.push((Operation::RecvTxAbort, vec![]));
+            }
+            Some(ops)
+        }
         "tx_init_rbf" => Some(vec![
             (Operation::LoadChannelId([0x42; 32]), vec![]),
             (Operation::LoadBlockHeight(0), vec![]),

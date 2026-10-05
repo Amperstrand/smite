@@ -796,6 +796,13 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     Some(Variable::SpliceLocked(sl))
                 }
 
+                Operation::RecvTxAbort => {
+                    log::debug!("[{:?}] RecvTxAbort: waiting", start.elapsed());
+                    let ta: TxAbort = recv_bolt(&mut self.conn, RECV_IDLE_TIMEOUT)?;
+                    log::debug!("[{:?}] RecvTxAbort: received", start.elapsed());
+                    Some(Variable::TxAbort(ta))
+                }
+
                 Operation::RecvFundingSigned => {
                     consume_affine(
                         &mut variables,

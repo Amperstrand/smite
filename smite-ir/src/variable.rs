@@ -4,7 +4,9 @@
 //! The serialized program stores data only in [`Operation`] literals.
 
 use bitcoin::secp256k1::PublicKey;
-use smite::bolt::{AcceptChannel, ChannelId, OpenChannel, ShortChannelId, SpliceAck, SpliceLocked};
+use smite::bolt::{
+    AcceptChannel, ChannelId, OpenChannel, ShortChannelId, SpliceAck, SpliceLocked, TxAbort,
+};
 use smite::channel_tx::FundingTransaction;
 
 const CHAIN_HASH_SIZE: usize = 32;
@@ -59,6 +61,8 @@ pub enum Variable {
     SpliceAck(SpliceAck),
     /// Parsed `splice_locked` message.
     SpliceLocked(SpliceLocked),
+    /// Parsed `tx_abort` message received from the target.
+    TxAbort(TxAbort),
 
     // Affine (single-use) variables
     /// `open_channel` has been sent, so `accept_channel` may now be received.
@@ -120,6 +124,7 @@ impl Variable {
             Self::FundingTransaction(_) => VariableType::FundingTransaction,
             Self::SpliceAck(_) => VariableType::SpliceAck,
             Self::SpliceLocked(_) => VariableType::SpliceLocked,
+            Self::TxAbort(_) => VariableType::TxAbort,
             Self::SentOpenChannel => VariableType::SentOpenChannel,
             Self::SentFundingCreated => VariableType::SentFundingCreated,
             Self::SentShutdown => VariableType::SentShutdown,
@@ -164,6 +169,7 @@ pub enum VariableType {
     FundingTransaction,
     SpliceAck,
     SpliceLocked,
+    TxAbort,
     SentOpenChannel,
     SentFundingCreated,
     SentShutdown,
@@ -207,6 +213,7 @@ impl VariableType {
             | Self::Point
             | Self::SpliceAck
             | Self::SpliceLocked
+            | Self::TxAbort
             | Self::PrivateKey
             | Self::Amount
             | Self::FeeratePerKw
