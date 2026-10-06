@@ -1291,6 +1291,23 @@ fn execute_send_tx_add_input_shared_input_tlv() {
 }
 
 #[test]
+fn execute_send_tx_complete_recv_consecutive() {
+    let channel_id = ChannelId::new([0x46; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    b.append(Operation::SendTxComplete, &[channel_id_var]);
+    b.append(Operation::RecvTxComplete, &[]);
+
+    let reply = Message::TxComplete(TxComplete { channel_id });
+    let mut fx = Fixture::new().queue(&reply);
+    fx.run(&b.build());
+
+    assert_eq!(fx.sent_len(), 1);
+    assert_eq!(fx.queued_len(), 0);
+}
+
+#[test]
 fn execute_send_tx_abort_recv_echo() {
     let channel_id = ChannelId::new([0x66; 32]);
 

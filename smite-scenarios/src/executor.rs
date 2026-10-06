@@ -816,6 +816,13 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     Some(Variable::TxAbort(ta))
                 }
 
+                Operation::RecvTxComplete => {
+                    log::debug!("[{:?}] RecvTxComplete: waiting", start.elapsed());
+                    let tc: TxComplete = recv_bolt(&mut self.conn, RECV_IDLE_TIMEOUT)?;
+                    log::debug!("[{:?}] RecvTxComplete: received", start.elapsed());
+                    Some(Variable::TxComplete(tc))
+                }
+
                 Operation::RecvFundingSigned => {
                     consume_affine(
                         &mut variables,

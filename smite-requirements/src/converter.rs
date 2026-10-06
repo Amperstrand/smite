@@ -107,10 +107,20 @@ pub fn sketch_to_operations(sketch: &ProgramSketch) -> Option<Vec<(Operation, Ve
             (Operation::LoadBytes(P2WPKH_SCRIPT.to_vec()), vec![]),
             (Operation::SendTxAddOutput, vec![0, 1, 2, 3]),
         ]),
-        "tx_complete" => Some(vec![
-            (Operation::LoadChannelId([0x42; 32]), vec![]),
-            (Operation::SendTxComplete, vec![0]),
-        ]),
+        "tx_complete" => {
+            // upon-receipt-of-consecutive-txcompletes: the negotiation
+            // concludes when both sides send tx_complete in succession, so
+            // those sketches wait for the target's message after ours.
+            let expect_reply = sketch.id.contains("consecutive");
+            let mut ops = vec![
+                (Operation::LoadChannelId([0x42; 32]), vec![]),
+                (Operation::SendTxComplete, vec![0]),
+            ];
+            if expect_reply {
+                ops.push((Operation::RecvTxComplete, vec![]));
+            }
+            Some(ops)
+        }
         "tx_abort" => {
             // a-receiving-node:3: the target MUST echo our `tx_abort` back,
             // so the assert-response sketch waits for it.

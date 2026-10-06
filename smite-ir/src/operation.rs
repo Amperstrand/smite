@@ -350,6 +350,13 @@ pub enum Operation {
     /// failure response to an invalid negotiation message, so this receive
     /// may follow any send.
     RecvTxAbort,
+    /// Receive and parse a `tx_complete` message from the target.
+    /// Produces a `TxComplete` variable.
+    ///
+    /// Ungated (no variable inputs): the negotiation concludes only once
+    /// both sides have sent `tx_complete` in succession, and either side
+    /// may send theirs first.
+    RecvTxComplete,
     /// Receive and parse an `accept_channel` response.
     /// Produces an `AcceptChannel` compound variable.
     RecvAcceptChannel,
@@ -711,6 +718,7 @@ impl fmt::Display for Operation {
             Self::RecvSpliceAck => write!(f, "RecvSpliceAck"),
             Self::RecvSpliceLocked => write!(f, "RecvSpliceLocked"),
             Self::RecvTxAbort => write!(f, "RecvTxAbort()"),
+            Self::RecvTxComplete => write!(f, "RecvTxComplete()"),
             Self::RecvAcceptChannel => write!(f, "RecvAcceptChannel"),
             Self::RecvFundingSigned => write!(f, "RecvFundingSigned"),
             Self::RecvChannelReady => write!(f, "RecvChannelReady()"),
@@ -775,6 +783,7 @@ impl Operation {
             Self::RecvSpliceAck => Some(VariableType::SpliceAck),
             Self::RecvSpliceLocked => Some(VariableType::SpliceLocked),
             Self::RecvTxAbort => Some(VariableType::TxAbort),
+            Self::RecvTxComplete => Some(VariableType::TxComplete),
             Self::RecvAcceptChannel => Some(VariableType::AcceptChannel),
         }
     }
@@ -807,6 +816,7 @@ impl Operation {
             | Self::LoadChainHashFromContext
             | Self::RecvChannelReady
             | Self::RecvTxAbort
+            | Self::RecvTxComplete
             | Self::MineBlocks(_) => vec![],
 
             Self::DerivePoint => vec![VariableType::PrivateKey],
@@ -1017,6 +1027,7 @@ impl Operation {
             | Self::RecvSpliceAck
             | Self::RecvSpliceLocked
             | Self::RecvTxAbort
+            | Self::RecvTxComplete
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => vec![],
@@ -1083,6 +1094,7 @@ impl Operation {
             | Self::RecvSpliceAck
             | Self::RecvSpliceLocked
             | Self::RecvTxAbort
+            | Self::RecvTxComplete
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction => true,
         }
@@ -1154,6 +1166,7 @@ impl Operation {
             | Self::RecvSpliceAck
             | Self::RecvSpliceLocked
             | Self::RecvTxAbort
+            | Self::RecvTxComplete
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => false,
@@ -1224,6 +1237,7 @@ impl Operation {
             | Self::RecvSpliceAck
             | Self::RecvSpliceLocked
             | Self::RecvTxAbort
+            | Self::RecvTxComplete
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => false,
         }

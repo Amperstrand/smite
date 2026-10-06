@@ -223,7 +223,10 @@ impl ProgramBuilder {
             VariableType::AcceptChannel => {
                 panic!("cannot generate fresh AcceptChannel: requires protocol interaction")
             }
-            VariableType::SpliceAck | VariableType::SpliceLocked | VariableType::TxAbort => {
+            VariableType::SpliceAck
+            | VariableType::SpliceLocked
+            | VariableType::TxAbort
+            | VariableType::TxComplete => {
                 panic!("cannot generate fresh protocol response: requires protocol interaction")
             }
             VariableType::FundingTransaction => {
