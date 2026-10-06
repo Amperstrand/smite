@@ -10,6 +10,7 @@ use super::*;
 use generators::{
     AnyGenerator, ChannelAnnouncementGenerator, ChannelReadyGenerator, ChannelUpdateGenerator,
     FundingCreatedGenerator, FundingFlowGenerator, NodeAnnouncementGenerator, OpenChannelGenerator,
+    SpliceFlowGenerator, TxAbortEchoGenerator, TxNegotiationGenerator,
 };
 use minimizers::{CommonSubexpressionEliminator, DeadCodeEliminator, Minimizer};
 use mutators::{
@@ -1058,7 +1059,10 @@ fn any_generator_all_is_complete() {
             | AnyGenerator::OpenChannel(_)
             | AnyGenerator::FundingCreated(_)
             | AnyGenerator::ChannelReady(_)
-            | AnyGenerator::FundingFlow(_) => 7,
+            | AnyGenerator::FundingFlow(_)
+            | AnyGenerator::SpliceFlow(_)
+            | AnyGenerator::TxNegotiation(_)
+            | AnyGenerator::TxAbortEcho(_) => 10,
         }
     };
     assert_eq!(AnyGenerator::ALL.len(), variant_count(AnyGenerator::ALL[0]));
@@ -1227,6 +1231,80 @@ fn generate_open_channel_program(seed: u64) -> Program {
     let mut builder = ProgramBuilder::new();
     OpenChannelGenerator.generate(&mut builder, &mut rng);
     builder.build()
+}
+
+fn generate_splice_flow_program(seed: u64) -> Program {
+    let mut rng = SmallRng::seed_from_u64(seed);
+    let mut builder = ProgramBuilder::new();
+    SpliceFlowGenerator.generate(&mut builder, &mut rng);
+    builder.build()
+}
+
+fn generate_tx_negotiation_program(seed: u64) -> Program {
+    let mut rng = SmallRng::seed_from_u64(seed);
+    let mut builder = ProgramBuilder::new();
+    TxNegotiationGenerator.generate(&mut builder, &mut rng);
+    builder.build()
+}
+
+fn generate_tx_abort_echo_program(seed: u64) -> Program {
+    let mut rng = SmallRng::seed_from_u64(seed);
+    let mut builder = ProgramBuilder::new();
+    TxAbortEchoGenerator.generate(&mut builder, &mut rng);
+    builder.build()
+}
+
+// If SpliceFlowGenerator completes without panicking, every instruction has
+// correct input types (enforced by ProgramBuilder::append).
+#[test]
+fn generated_splice_flow_program_is_type_correct() {
+    for seed in 0..100 {
+        let program = generate_splice_flow_program(seed);
+        assert_well_formed(&program);
+    }
+}
+
+#[test]
+fn generated_tx_negotiation_program_is_type_correct() {
+    for seed in 0..100 {
+        let program = generate_tx_negotiation_program(seed);
+        assert_well_formed(&program);
+    }
+}
+
+#[test]
+fn generated_tx_abort_echo_program_is_type_correct() {
+    for seed in 0..100 {
+        let program = generate_tx_abort_echo_program(seed);
+        assert_well_formed(&program);
+    }
+}
+
+#[test]
+fn generated_splice_flow_program_structure() {
+    let program = generate_splice_flow_program(0);
+    let ops: Vec<&Operation> = program.instructions.iter().map(|i| &i.operation).collect();
+    assert!(matches!(ops[0], Operation::LoadChannelId(_)));
+    assert!(
+        matches!(ops.last(), Some(Operation::SendSpliceLocked)),
+        "splice flow must end with SendSpliceLocked: {ops:?}"
+    );
+    let recvs = ops
+        .iter()
+        .filter(|op| matches!(op, Operation::RecvSpliceAck | Operation::RecvSpliceLocked))
+        .count();
+    assert_eq!(recvs, 2, "splice flow must receive ack and locked: {ops:?}");
+}
+
+#[test]
+fn generated_tx_negotiation_program_structure() {
+    let program = generate_tx_negotiation_program(0);
+    let has =
+        |pred: &dyn Fn(&Operation) -> bool| program.instructions.iter().any(|i| pred(&i.operation));
+    assert!(has(&|op| matches!(op, Operation::SendTxAddInput { .. })));
+    assert!(has(&|op| matches!(op, Operation::SendTxAddOutput)));
+    assert!(has(&|op| matches!(op, Operation::SendTxComplete)));
+    assert!(has(&|op| matches!(op, Operation::RecvTxComplete)));
 }
 
 // If OpenChannelGenerator completes without panicking, every instruction has

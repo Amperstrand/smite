@@ -12,6 +12,8 @@ mod funding_created;
 mod funding_flow;
 mod node_announcement;
 mod open_channel;
+mod splice;
+mod tx;
 
 pub use channel_announcement::ChannelAnnouncementGenerator;
 pub use channel_ready::ChannelReadyGenerator;
@@ -20,6 +22,8 @@ pub use funding_created::FundingCreatedGenerator;
 pub use funding_flow::FundingFlowGenerator;
 pub use node_announcement::NodeAnnouncementGenerator;
 pub use open_channel::OpenChannelGenerator;
+pub use splice::SpliceFlowGenerator;
+pub use tx::{TxAbortEchoGenerator, TxNegotiationGenerator};
 
 use rand::Rng;
 
@@ -42,6 +46,9 @@ pub enum AnyGenerator {
     FundingCreated(FundingCreatedGenerator),
     ChannelReady(ChannelReadyGenerator),
     FundingFlow(FundingFlowGenerator),
+    SpliceFlow(SpliceFlowGenerator),
+    TxNegotiation(TxNegotiationGenerator),
+    TxAbortEcho(TxAbortEchoGenerator),
 }
 
 impl AnyGenerator {
@@ -54,6 +61,9 @@ impl AnyGenerator {
         Self::FundingCreated(FundingCreatedGenerator),
         Self::ChannelReady(ChannelReadyGenerator),
         Self::FundingFlow(FundingFlowGenerator),
+        Self::SpliceFlow(SpliceFlowGenerator),
+        Self::TxNegotiation(TxNegotiationGenerator),
+        Self::TxAbortEcho(TxAbortEchoGenerator),
     ];
 }
 
@@ -67,6 +77,9 @@ impl Generator for AnyGenerator {
             Self::FundingCreated(generator) => generator.generate(builder, rng),
             Self::ChannelReady(generator) => generator.generate(builder, rng),
             Self::FundingFlow(generator) => generator.generate(builder, rng),
+            Self::SpliceFlow(generator) => generator.generate(builder, rng),
+            Self::TxNegotiation(generator) => generator.generate(builder, rng),
+            Self::TxAbortEcho(generator) => generator.generate(builder, rng),
         }
     }
 }
