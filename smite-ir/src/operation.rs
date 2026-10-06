@@ -41,14 +41,8 @@ pub enum Operation {
     LoadU16(u16),
     /// Load a u8 protocol parameter (e.g., `channel_flags`).
     LoadU8(u8),
-    /// Load a u32 protocol parameter (e.g., `prevtx_vout`, `sequence`,
-    /// `serial_id`).
-    LoadU32(u32),
     /// Load raw bytes.
     LoadBytes(Vec<u8>),
-    /// Load an encoded BOLT message (with type prefix), ready for
-    /// [`Operation::SendMessage`].
-    LoadMessage(Vec<u8>),
     /// Load feature bits.
     LoadFeatures(Vec<u8>),
     /// Load a secp256k1 private key.
@@ -79,12 +73,6 @@ pub enum Operation {
     /// Extract a field from a parsed `accept_channel` response.
     /// Input: `AcceptChannel`.
     ExtractAcceptChannel(AcceptChannelField),
-    /// Extract the `channel_id` from a received `tx_complete`.
-    /// Input: `TxComplete`.
-    ExtractTxCompleteChannelId,
-    /// Extract the `channel_id` from a received `tx_abort`.
-    /// Input: `TxAbort`.
-    ExtractTxAbortChannelId,
     /// Create a BOLT 3 funding transaction for the channel funding flow.
     ///
     /// Inputs (4):
@@ -258,6 +246,77 @@ pub enum Operation {
     ///   0: `channel_id`  (`ChannelId`)
     ///   1: `splice_txid` (`Bytes`, 32 bytes)
     SendSpliceLocked,
+    /// Receive and parse a `splice_ack` response after sending `splice_init`.
+    /// Produces a `SpliceAck` variable.
+    /// Input: `SentSpliceInit` (affine).
+    RecvSpliceAck,
+    /// Receive and parse a `splice_locked` message after the ack exchange.
+    /// Produces a `SpliceLocked` variable.
+    /// Input: `SentSpliceAck` (affine).
+    RecvSpliceLocked,
+    /// Receive and parse an `accept_channel` response.
+    /// Produces an `AcceptChannel` compound variable.
+    RecvAcceptChannel,
+    /// Receive and parse a `funding_signed` response.
+    /// Produces the `ChannelId` carried in the message.
+    /// TODO: Add `ExtractFundingSigned` when implementing force-close scenarios.
+    RecvFundingSigned,
+    /// Receive and parse a `channel_ready` response.
+    ///
+    /// This is a no-op unless some tracked channel is awaiting `channel_ready`
+    /// (still at commitment number 0 with the counterparty's next per-commitment
+    /// point unknown) and its funding transaction has enough confirmations for
+    /// the target to have sent `channel_ready`.
+    RecvChannelReady,
+    /// Mines the given number of blocks on the Bitcoin network.
+    MineBlocks(u8),
+    /// Sign wallet inputs of the transaction and broadcast it via `bitcoin-cli`.
+    /// Input: `FundingTransaction`.
+    BroadcastTransaction,
+    // -- Query: read state from outside the program --
+    /// Look up the confirmed block position of a broadcast funding transaction
+    /// and produce the corresponding BOLT 7 `short_channel_id`.
+    ///
+    /// This is the bridge between an on-chain funding output and the gossip
+    /// layer: the resulting `ShortChannelId` can be fed into
+    /// `BuildChannelAnnouncement`, `BuildChannelUpdate`, and
+    /// `BuildAnnouncementSignatures` so that gossip messages reference a real
+    /// UTXO and can pass the on-chain validation performed by CLN and LND.
+    ///
+    /// The typical program shape is:
+    ///
+    /// ```text
+    /// ft   = CreateFundingTransaction(...)
+    /// _    = BroadcastTransaction(ft)
+    /// _    = MineBlocks(k)          // k >= 1 for the tx to be confirmed
+    /// scid = LookupShortChannelId(ft)
+    /// ```
+    ///
+    /// If the funding transaction is unknown to the node or still in the
+    /// mempool (e.g. `MineBlocks` was dropped by a mutator), the sentinel
+    /// `ShortChannelId::new(0, 0, 0)` is produced. This keeps downstream
+    /// consumers well-typed without introducing a target- or program-side
+    /// error: any resulting gossip message simply fails on-chain validation.
+    ///
+    /// Input: `FundingTransaction`.
+    LookupShortChannelId,
+
+    // -- Variants appended after the initial corpus freeze --
+    // Operation serializes as postcard variant indices, so new variants
+    // MUST be appended here (never inserted mid-enum) to keep existing
+    // AFL corpora and crash files decodable.
+    /// Load a u32 protocol parameter (e.g., `prevtx_vout`, `sequence`,
+    /// `serial_id`).
+    LoadU32(u32),
+    /// Load an encoded BOLT message (with type prefix), ready for
+    /// [`Operation::SendMessage`].
+    LoadMessage(Vec<u8>),
+    /// Extract the `channel_id` from a received `tx_complete`.
+    /// Input: `TxComplete`.
+    ExtractTxCompleteChannelId,
+    /// Extract the `channel_id` from a received `tx_abort`.
+    /// Input: `TxAbort`.
+    ExtractTxAbortChannelId,
     /// Build and send a `tx_add_input` message (BOLT 2, type 66).
     /// Produces a `SentTxAddInput` variable.
     ///
@@ -340,14 +399,6 @@ pub enum Operation {
     ///   1: `signature`  (`Bytes`, 64-byte compact; other lengths fall back
     ///      to an all-zero signature)
     SendFundingSigned,
-    /// Receive and parse a `splice_ack` response after sending `splice_init`.
-    /// Produces a `SpliceAck` variable.
-    /// Input: `SentSpliceInit` (affine).
-    RecvSpliceAck,
-    /// Receive and parse a `splice_locked` message after the ack exchange.
-    /// Produces a `SpliceLocked` variable.
-    /// Input: `SentSpliceAck` (affine).
-    RecvSpliceLocked,
     /// Receive and parse a `tx_abort` message from the target.
     /// Produces a `TxAbort` variable.
     ///
@@ -363,52 +414,6 @@ pub enum Operation {
     /// both sides have sent `tx_complete` in succession, and either side
     /// may send theirs first.
     RecvTxComplete,
-    /// Receive and parse an `accept_channel` response.
-    /// Produces an `AcceptChannel` compound variable.
-    RecvAcceptChannel,
-    /// Receive and parse a `funding_signed` response.
-    /// Produces the `ChannelId` carried in the message.
-    /// TODO: Add `ExtractFundingSigned` when implementing force-close scenarios.
-    RecvFundingSigned,
-    /// Receive and parse a `channel_ready` response.
-    ///
-    /// This is a no-op unless some tracked channel is awaiting `channel_ready`
-    /// (still at commitment number 0 with the counterparty's next per-commitment
-    /// point unknown) and its funding transaction has enough confirmations for
-    /// the target to have sent `channel_ready`.
-    RecvChannelReady,
-    /// Mines the given number of blocks on the Bitcoin network.
-    MineBlocks(u8),
-    /// Sign wallet inputs of the transaction and broadcast it via `bitcoin-cli`.
-    /// Input: `FundingTransaction`.
-    BroadcastTransaction,
-    // -- Query: read state from outside the program --
-    /// Look up the confirmed block position of a broadcast funding transaction
-    /// and produce the corresponding BOLT 7 `short_channel_id`.
-    ///
-    /// This is the bridge between an on-chain funding output and the gossip
-    /// layer: the resulting `ShortChannelId` can be fed into
-    /// `BuildChannelAnnouncement`, `BuildChannelUpdate`, and
-    /// `BuildAnnouncementSignatures` so that gossip messages reference a real
-    /// UTXO and can pass the on-chain validation performed by CLN and LND.
-    ///
-    /// The typical program shape is:
-    ///
-    /// ```text
-    /// ft   = CreateFundingTransaction(...)
-    /// _    = BroadcastTransaction(ft)
-    /// _    = MineBlocks(k)          // k >= 1 for the tx to be confirmed
-    /// scid = LookupShortChannelId(ft)
-    /// ```
-    ///
-    /// If the funding transaction is unknown to the node or still in the
-    /// mempool (e.g. `MineBlocks` was dropped by a mutator), the sentinel
-    /// `ShortChannelId::new(0, 0, 0)` is produced. This keeps downstream
-    /// consumers well-typed without introducing a target- or program-side
-    /// error: any resulting gossip message simply fails on-chain validation.
-    ///
-    /// Input: `FundingTransaction`.
-    LookupShortChannelId,
 }
 
 /// A BOLT 2 compliant `upfront_shutdown_script` template.

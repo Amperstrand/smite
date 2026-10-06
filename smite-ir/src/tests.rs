@@ -747,6 +747,49 @@ fn display_tx_rbf_and_signatures_program() {
     }
 }
 
+// Postcard encodes `Operation` variants by declaration index. The indices
+// of every variant below PRE_SESSION_VARIANT_COUNT are frozen: AFL corpora
+// and crash files persist across rebuilds, and inserting a variant mid-enum
+// silently reinterprets them. New variants must be appended at the enum
+// tail; this test fails if the frozen prefix shifts.
+const PRE_SESSION_VARIANT_COUNT: u8 = 41;
+
+#[test]
+fn operation_variant_discriminants_are_frozen() {
+    let index = |op: &Operation| -> u8 {
+        let bytes = postcard::to_allocvec(op).expect("operation encodes");
+        bytes[0]
+    };
+    let single_byte = |op: &Operation| -> u8 {
+        let bytes = postcard::to_allocvec(op).expect("unit variants encode to one byte");
+        assert_eq!(bytes.len(), 1, "expected a fieldless variant: {op:?}");
+        bytes[0]
+    };
+
+    // Sentinels across the frozen prefix.
+    assert_eq!(single_byte(&Operation::LoadTargetPubkeyFromContext), 14);
+    assert_eq!(
+        single_byte(&Operation::LookupShortChannelId),
+        PRE_SESSION_VARIANT_COUNT - 1
+    );
+
+    // Everything appended after the freeze encodes above the frozen range.
+    for op in [
+        Operation::LoadU32(0),
+        Operation::LoadMessage(Vec::new()),
+        Operation::ExtractTxCompleteChannelId,
+        Operation::SendTxAddInput {
+            include_shared_input_txid: false,
+        },
+        Operation::RecvTxAbort,
+    ] {
+        assert!(
+            index(&op) >= PRE_SESSION_VARIANT_COUNT,
+            "{op:?} must be appended after the frozen prefix"
+        );
+    }
+}
+
 #[test]
 fn postcard_roundtrip() {
     let program = Program {
