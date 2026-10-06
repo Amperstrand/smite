@@ -117,6 +117,10 @@ fn main() {
         "result: {} valid, {} invalid, {} total operations",
         valid, invalid, total_ops
     );
+    if invalid > 0 {
+        eprintln!("verify_seeds: {invalid} invalid seed(s)");
+        std::process::exit(1);
+    }
 
     // Also verify the splice BOLT messages encode to valid wire format
     println!("\nBOLT message encoding verification:");
