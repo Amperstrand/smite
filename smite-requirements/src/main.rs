@@ -111,6 +111,11 @@ fn run() -> Result<(), String> {
                     stats.written - stats.roundtrip_ok
                 ));
             }
+            // Match the smitebot `seeds` gate: an output dir with zero seeds
+            // is a pipeline failure, not a silent success.
+            if stats.written == 0 {
+                return Err("no convertible sketches: emitted nothing".to_owned());
+            }
             Ok(())
         }
         Some("programs") => {
@@ -156,7 +161,7 @@ fn run() -> Result<(), String> {
             Ok(())
         }
         _ => Err(format!(
-            "usage: {} <extract|verify|seeds> ...\n  extract <bolt-md>\n  verify <bolt-md> <requirements.json>\n  seeds <bolt-md> [--findings <findings.json>]",
+            "usage: {} <extract|verify|seeds|sketches|programs|emit> ...\n  extract <bolt-md>\n  verify <bolt-md> <requirements.json>\n  seeds <bolt-md> [--findings <findings.json>]\n  sketches <bolt-md>\n  programs <bolt-md>\n  emit <bolt-md> <output-dir>",
             args.first()
                 .map(String::as_str)
                 .unwrap_or("smite-requirements")

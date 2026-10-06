@@ -111,7 +111,11 @@ pub fn sketch_to_operations(sketch: &ProgramSketch) -> Option<Vec<(Operation, Ve
             // upon-receipt-of-consecutive-txcompletes: the negotiation
             // concludes when both sides send tx_complete in succession, so
             // those sketches wait for the target's message after ours.
-            let expect_reply = sketch.id.contains("consecutive");
+            // Match the full role slug, not a substring, so unrelated
+            // future requirements cannot pick up the recv by accident.
+            let expect_reply = sketch
+                .id
+                .contains(":upon-receipt-of-consecutive-txcompletes-");
             let mut ops = vec![
                 (Operation::LoadChannelId([0x42; 32]), vec![]),
                 (Operation::SendTxComplete, vec![0]),
@@ -322,4 +326,78 @@ pub fn convertible_count(sketches: &[ProgramSketch]) -> (usize, usize) {
         .filter(|s| sketch_to_operations(s).is_some())
         .count();
     (convertible, sketches.len())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bridge::SketchStep;
+
+    fn sketch(id: &str, goal: &str, target: &str) -> ProgramSketch {
+        ProgramSketch {
+            id: id.to_owned(),
+            seed_id: format!("{id}:seed"),
+            requirement_id: id.to_owned(),
+            goal: goal.to_owned(),
+            steps: vec![SketchStep {
+                action: "send".into(),
+                target: target.into(),
+                note: None,
+            }],
+        }
+    }
+
+    fn op_names(sketch: &ProgramSketch) -> Vec<String> {
+        sketch_to_operations(sketch)
+            .expect("sketch converts")
+            .into_iter()
+            .map(|(op, _)| format!("{op}"))
+            .collect()
+    }
+
+    #[test]
+    fn consecutive_tx_complete_sketch_waits_for_reply() {
+        let ops = op_names(&sketch(
+            "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:1:seed:sketch",
+            "Exercise BOLT requirement: MUST MUST fail the negotiation if:",
+            "tx_complete",
+        ));
+        assert_eq!(
+            ops.last(),
+            Some(&"RecvTxComplete()".to_owned()),
+            "consecutive-txcompletes sketch must assert the reply: {ops:?}"
+        );
+    }
+
+    #[test]
+    fn plain_tx_complete_sketch_is_send_only() {
+        let ops = op_names(&sketch(
+            "bolt02:tx_complete:the-receiving-node:1:seed:sketch",
+            "Exercise BOLT requirement: MUST MUST add all received outputs",
+            "tx_complete",
+        ));
+        assert_eq!(ops.last(), Some(&"SendTxComplete".to_owned()));
+    }
+
+    #[test]
+    fn tx_abort_echo_sketch_waits_for_echo() {
+        let ops = op_names(&sketch(
+            "bolt02:tx_abort:a-receiving-node:3:seed:sketch",
+            "Exercise BOLT requirement: MUST MUST echo back `tx_abort`",
+            "tx_abort",
+        ));
+        assert_eq!(ops.last(), Some(&"RecvTxAbort()".to_owned()));
+    }
+
+    #[test]
+    fn unknown_send_target_does_not_convert() {
+        assert!(
+            sketch_to_operations(&sketch(
+                "bolt02:closing_sig:the-sender:1:seed:sketch",
+                "Exercise BOLT requirement: MUST MUST sign",
+                "closing_sig",
+            ))
+            .is_none()
+        );
+    }
 }
