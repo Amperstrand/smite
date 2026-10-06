@@ -739,6 +739,7 @@ dependencies = [
  "serde_json",
  "simple_logger",
  "smite-ir",
+ "smite-requirements",
  "tempfile",
  "thiserror",
  "toml",
