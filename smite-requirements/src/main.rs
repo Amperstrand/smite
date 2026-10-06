@@ -7,15 +7,11 @@
 //! - `seeds <bolt-md> [--findings <findings.json>]` — derive seed candidates,
 //!   gated by finding disclosure states
 
-mod bridge;
-mod converter;
-mod model;
-mod parser;
-
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use model::FindingRef;
+use smite_requirements::model::{self, FindingRef};
+use smite_requirements::{bridge, converter, emit_seed_dir, parser};
 
 fn main() -> ExitCode {
     match run() {
@@ -104,34 +100,15 @@ fn run() -> Result<(), String> {
         Some("emit") => {
             let md = args.get(2).ok_or("usage: emit <bolt-md> <output-dir>")?;
             let dir = args.get(3).ok_or("usage: emit <bolt-md> <output-dir>")?;
-            let text = read(md)?;
-            let reqs = parser::parse(&file_stem(md), &text).map_err(|e| e.to_string())?;
-            let seeds = parser::seeds(&reqs);
-            let sketches = bridge::sketches(&seeds, &reqs);
-
-            std::fs::create_dir_all(dir).map_err(|e| format!("mkdir {dir}: {e}"))?;
-            let mut written = 0usize;
-            let mut roundtrip_ok = 0usize;
-            for sketch in &sketches {
-                let Some(program) = converter::sketch_to_program(sketch) else {
-                    continue;
-                };
-                let bytes = postcard::to_allocvec(&program)
-                    .map_err(|e| format!("serialize {}: {e}", sketch.id))?;
-                let name = format!("{}/{}.seed", dir, sketch.id.replace([':', '/'], "-"));
-                std::fs::write(&name, &bytes).map_err(|e| format!("write {name}: {e}"))?;
-                written += 1;
-                match postcard::from_bytes::<smite_ir::Program>(&bytes) {
-                    Ok(decoded) if decoded == program => roundtrip_ok += 1,
-                    Ok(_) => eprintln!("ROUNDTRIP MISMATCH: {}", sketch.id),
-                    Err(e) => eprintln!("ROUNDTRIP FAIL: {} — {e}", sketch.id),
-                }
-            }
-            println!("emit: {written} seed files, {roundtrip_ok} postcard roundtrips verified");
-            if roundtrip_ok < written {
+            let stats = emit_seed_dir(Path::new(md), Path::new(dir))?;
+            println!(
+                "emit: {} seed files, {} postcard roundtrips verified (of {} sketches)",
+                stats.written, stats.roundtrip_ok, stats.sketches
+            );
+            if stats.roundtrip_ok < stats.written {
                 return Err(format!(
                     "{} seed(s) failed roundtrip verification",
-                    written - roundtrip_ok
+                    stats.written - stats.roundtrip_ok
                 ));
             }
             Ok(())
