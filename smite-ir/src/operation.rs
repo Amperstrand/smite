@@ -79,6 +79,12 @@ pub enum Operation {
     /// Extract a field from a parsed `accept_channel` response.
     /// Input: `AcceptChannel`.
     ExtractAcceptChannel(AcceptChannelField),
+    /// Extract the `channel_id` from a received `tx_complete`.
+    /// Input: `TxComplete`.
+    ExtractTxCompleteChannelId,
+    /// Extract the `channel_id` from a received `tx_abort`.
+    /// Input: `TxAbort`.
+    ExtractTxAbortChannelId,
     /// Create a BOLT 3 funding transaction for the channel funding flow.
     ///
     /// Inputs (4):
@@ -680,6 +686,8 @@ impl fmt::Display for Operation {
             // Operations with inputs: parens added by Program::Display.
             Self::DerivePoint => write!(f, "DerivePoint"),
             Self::ExtractAcceptChannel(field) => write!(f, "Extract{field}"),
+            Self::ExtractTxCompleteChannelId => write!(f, "ExtractTxCompleteChannelId"),
+            Self::ExtractTxAbortChannelId => write!(f, "ExtractTxAbortChannelId"),
             Self::CreateFundingTransaction => write!(f, "CreateFundingTransaction"),
             Self::BuildOpenChannel => write!(f, "BuildOpenChannel"),
             Self::BuildChannelAnnouncement => write!(f, "BuildChannelAnnouncement"),
@@ -749,7 +757,10 @@ impl Operation {
             Self::LoadBytes(_) | Self::LoadShutdownScript(_) => Some(VariableType::Bytes),
             Self::LoadFeatures(_) | Self::LoadChannelType(_) => Some(VariableType::Features),
             Self::LoadPrivateKey(_) => Some(VariableType::PrivateKey),
-            Self::LoadChannelId(_) | Self::RecvFundingSigned => Some(VariableType::ChannelId),
+            Self::LoadChannelId(_)
+            | Self::RecvFundingSigned
+            | Self::ExtractTxCompleteChannelId
+            | Self::ExtractTxAbortChannelId => Some(VariableType::ChannelId),
             Self::LoadTargetPubkeyFromContext | Self::DerivePoint => Some(VariableType::Point),
             Self::LoadChainHashFromContext => Some(VariableType::ChainHash),
             Self::ExtractAcceptChannel(field) => Some(field.output_type()),
@@ -821,6 +832,8 @@ impl Operation {
 
             Self::DerivePoint => vec![VariableType::PrivateKey],
             Self::ExtractAcceptChannel(_) => vec![VariableType::AcceptChannel],
+            Self::ExtractTxCompleteChannelId => vec![VariableType::TxComplete],
+            Self::ExtractTxAbortChannelId => vec![VariableType::TxAbort],
             Self::CreateFundingTransaction => vec![
                 VariableType::Point,        // opener_funding_pubkey
                 VariableType::Point,        // acceptor_funding_pubkey
@@ -999,6 +1012,8 @@ impl Operation {
             | Self::LoadChainHashFromContext
             | Self::DerivePoint
             | Self::ExtractAcceptChannel(_)
+            | Self::ExtractTxCompleteChannelId
+            | Self::ExtractTxAbortChannelId
             | Self::CreateFundingTransaction
             | Self::BuildOpenChannel
             | Self::BuildChannelAnnouncement
@@ -1026,8 +1041,6 @@ impl Operation {
             | Self::RecvChannelReady
             | Self::RecvSpliceAck
             | Self::RecvSpliceLocked
-            | Self::RecvTxAbort
-            | Self::RecvTxComplete
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => vec![],
@@ -1036,6 +1049,10 @@ impl Operation {
                 .iter()
                 .map(|&f| (Self::ExtractAcceptChannel(f), f.output_type()))
                 .collect(),
+            Self::RecvTxComplete => {
+                vec![(Self::ExtractTxCompleteChannelId, VariableType::ChannelId)]
+            }
+            Self::RecvTxAbort => vec![(Self::ExtractTxAbortChannelId, VariableType::ChannelId)],
         }
     }
 
@@ -1064,6 +1081,8 @@ impl Operation {
             | Self::LoadChainHashFromContext
             | Self::DerivePoint
             | Self::ExtractAcceptChannel(_)
+            | Self::ExtractTxCompleteChannelId
+            | Self::ExtractTxAbortChannelId
             | Self::BuildOpenChannel
             | Self::BuildChannelAnnouncement
             | Self::BuildNodeAnnouncement { .. }
@@ -1130,6 +1149,8 @@ impl Operation {
             | Self::LoadChainHashFromContext
             | Self::DerivePoint
             | Self::ExtractAcceptChannel(_)
+            | Self::ExtractTxCompleteChannelId
+            | Self::ExtractTxAbortChannelId
             | Self::BuildOpenChannel
             | Self::BuildChannelAnnouncement
             | Self::BuildNodeAnnouncement { .. }
@@ -1211,6 +1232,8 @@ impl Operation {
             Self::LoadTargetPubkeyFromContext
             | Self::LoadChainHashFromContext
             | Self::DerivePoint
+            | Self::ExtractTxCompleteChannelId
+            | Self::ExtractTxAbortChannelId
             | Self::CreateFundingTransaction
             | Self::BuildOpenChannel
             | Self::BuildChannelAnnouncement

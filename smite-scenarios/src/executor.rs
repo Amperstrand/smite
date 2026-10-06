@@ -383,6 +383,16 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     Some(extract_field(ac, *field))
                 }
 
+                Operation::ExtractTxCompleteChannelId => {
+                    let tc = resolve_tx_complete(&variables, instr.inputs[0]);
+                    Some(Variable::ChannelId(tc.channel_id))
+                }
+
+                Operation::ExtractTxAbortChannelId => {
+                    let ta = resolve_tx_abort(&variables, instr.inputs[0]);
+                    Some(Variable::ChannelId(ta.channel_id))
+                }
+
                 Operation::CreateFundingTransaction => {
                     let ft = create_funding_transaction(
                         &variables,
@@ -987,6 +997,8 @@ define_resolver!(
     &OpenChannel
 );
 define_resolver!(resolve_accept_channel, AcceptChannel, &AcceptChannel);
+define_resolver!(resolve_tx_complete, TxComplete, &TxComplete);
+define_resolver!(resolve_tx_abort, TxAbort, &TxAbort);
 define_resolver!(
     resolve_funding_transaction,
     FundingTransaction,

@@ -1308,6 +1308,32 @@ fn execute_send_tx_complete_recv_consecutive() {
 }
 
 #[test]
+fn execute_extract_tx_complete_channel_id() {
+    // The target concludes on its own channel; the extracted channel_id
+    // must carry into our reply.
+    let target_channel = ChannelId::new([0x99; 32]);
+    let our_channel = ChannelId::new([0x46; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(our_channel.0), &[]);
+    b.append(Operation::SendTxComplete, &[channel_id_var]);
+    let received = b.append(Operation::RecvTxComplete, &[]);
+    let extracted = b.append(Operation::ExtractTxCompleteChannelId, &[received]);
+    b.append(Operation::SendTxComplete, &[extracted]);
+
+    let reply = Message::TxComplete(TxComplete {
+        channel_id: target_channel,
+    });
+    let mut fx = Fixture::new().queue(&reply);
+    fx.run(&b.build());
+
+    let first: TxComplete = fx.sent(0);
+    let second: TxComplete = fx.sent(1);
+    assert_eq!(first.channel_id, our_channel);
+    assert_eq!(second.channel_id, target_channel);
+}
+
+#[test]
 fn execute_send_tx_abort_recv_echo() {
     let channel_id = ChannelId::new([0x66; 32]);
 
