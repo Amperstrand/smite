@@ -581,8 +581,12 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                 Operation::SendSpliceLocked => {
                     let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
                     let txid_bytes = resolve_bytes(&variables, instr.inputs[1]);
+                    // Zero-padded copy: the param mutator may shrink the
+                    // input below 32 bytes, and a malformed txid is a
+                    // fuzzing outcome, not an invariant violation.
                     let mut txid_arr = [0u8; 32];
-                    txid_arr.copy_from_slice(&txid_bytes[..32]);
+                    let n = txid_bytes.len().min(32);
+                    txid_arr[..n].copy_from_slice(&txid_bytes[..n]);
                     let splice_txid = sha256::Hash::from_byte_array(txid_arr);
                     let msg = SpliceLocked {
                         channel_id,

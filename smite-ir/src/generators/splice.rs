@@ -44,9 +44,11 @@ impl Generator for SpliceFlowGenerator {
         // Receive the target's splice_locked.
         builder.append(Operation::RecvSpliceLocked, &[sent_splice_ack]);
 
-        // Build and send our splice_locked.
+        // Build and send our splice_locked. The txid must be exactly 32
+        // bytes: `generate_fresh(Bytes)` draws lengths 0..=256, and the
+        // executor's txid copy would panic on shorter payloads.
         let channel_id = builder.pick_variable(VariableType::ChannelId, rng);
-        let splice_txid = builder.generate_fresh(VariableType::Bytes, rng);
+        let splice_txid = builder.append(Operation::LoadBytes(vec![0x00; 32]), &[]);
         builder.append(Operation::SendSpliceLocked, &[channel_id, splice_txid]);
     }
 }

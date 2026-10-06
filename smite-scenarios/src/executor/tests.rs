@@ -1291,6 +1291,26 @@ fn execute_send_tx_add_input_shared_input_tlv() {
 }
 
 #[test]
+fn execute_send_splice_locked_short_txid_does_not_panic() {
+    // Regression: a mutated sub-32-byte splice_txid must reach the target
+    // zero-padded, not panic the scenario binary (false crash in AFL).
+    let channel_id = ChannelId::new([0x5c; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let short_txid = b.append(Operation::LoadBytes(vec![0xde, 0xad]), &[]);
+    b.append(Operation::SendSpliceLocked, &[channel_id_var, short_txid]);
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    let sl: SpliceLocked = fx.sent(0);
+    let mut expected = [0u8; 32];
+    expected[..2].copy_from_slice(&[0xde, 0xad]);
+    assert_eq!(sl.splice_txid.to_byte_array(), expected);
+}
+
+#[test]
 fn execute_send_tx_complete_recv_consecutive() {
     let channel_id = ChannelId::new([0x46; 32]);
 
