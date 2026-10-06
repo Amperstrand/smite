@@ -80,17 +80,26 @@ requirements become violation seeds (`seeds`), seeds become program sketches
 (`sketches`), sketches are checked for sketch-to-IR conversion (`programs`),
 and convertible sketches are written as postcard-encoded seed files (`emit`).
 
+The BOLT-02 peer-protocol source is checked in next to its derived artifacts
+(`smite-requirements/data/`), so the pipeline is reproducible without a
+network fetch; `smitebot seeds` (below) is the one-step form.
+
 ```bash
+MD=smite-requirements/data/bolt02-peer-protocol.md
 # Extract requirements from a BOLT markdown file
-cargo run --release -p smite-requirements --bin smite-requirements -- extract /tmp/bolts/02-peer-protocol.md
+cargo run --release -p smite-requirements --bin smite-requirements -- extract "$MD"
 
 # Derive violation seeds and program sketches, check conversion
-cargo run --release -p smite-requirements --bin smite-requirements -- seeds /tmp/bolts/02-peer-protocol.md
-cargo run --release -p smite-requirements --bin smite-requirements -- sketches /tmp/bolts/02-peer-protocol.md
-cargo run --release -p smite-requirements --bin smite-requirements -- programs /tmp/bolts/02-peer-protocol.md
+cargo run --release -p smite-requirements --bin smite-requirements -- seeds "$MD"
+cargo run --release -p smite-requirements --bin smite-requirements -- sketches "$MD"
+cargo run --release -p smite-requirements --bin smite-requirements -- programs "$MD"
 
 # Emit postcard-encoded seed files usable as an ir scenario corpus
-cargo run --release -p smite-requirements --bin smite-requirements -- emit /tmp/bolts/02-peer-protocol.md /tmp/smite-seeds
+cargo run --release -p smite-requirements --bin smite-requirements -- emit "$MD" /tmp/smite-seeds
+
+# Differential run: execute every seed against a target in local Docker
+# mode and classify outcomes (needs the smite-<target>-ir image built)
+scripts/diff-run-seeds.sh ldk /tmp/smite-seeds /tmp/smite-seeds-ldk.csv
 
 # Verify emitted seeds decode to executable IR programs (no Nyx needed)
 cargo run --release -p smite-requirements --bin verify_seeds /tmp/smite-seeds
