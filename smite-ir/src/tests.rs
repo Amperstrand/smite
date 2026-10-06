@@ -10,7 +10,8 @@ use super::*;
 use generators::{
     AnyGenerator, ChannelAnnouncementGenerator, ChannelReadyGenerator, ChannelUpdateGenerator,
     FundingCreatedGenerator, FundingFlowGenerator, NodeAnnouncementGenerator, OpenChannelGenerator,
-    SpliceFlowGenerator, TxAbortEchoGenerator, TxNegotiationGenerator,
+    SpliceFlowGenerator, SpliceOnLiveChannelGenerator, TxAbortEchoGenerator,
+    TxNegotiationGenerator,
 };
 use minimizers::{CommonSubexpressionEliminator, DeadCodeEliminator, Minimizer};
 use mutators::{
@@ -1104,8 +1105,9 @@ fn any_generator_all_is_complete() {
             | AnyGenerator::ChannelReady(_)
             | AnyGenerator::FundingFlow(_)
             | AnyGenerator::SpliceFlow(_)
+            | AnyGenerator::SpliceOnLiveChannel(_)
             | AnyGenerator::TxNegotiation(_)
-            | AnyGenerator::TxAbortEcho(_) => 10,
+            | AnyGenerator::TxAbortEcho(_) => 11,
         }
     };
     assert_eq!(AnyGenerator::ALL.len(), variant_count(AnyGenerator::ALL[0]));
@@ -1288,6 +1290,46 @@ fn generate_tx_negotiation_program(seed: u64) -> Program {
     let mut builder = ProgramBuilder::new();
     TxNegotiationGenerator.generate(&mut builder, &mut rng);
     builder.build()
+}
+
+fn generate_splice_on_live_channel_program(seed: u64) -> Program {
+    let mut rng = SmallRng::seed_from_u64(seed);
+    let mut builder = ProgramBuilder::new();
+    SpliceOnLiveChannelGenerator.generate(&mut builder, &mut rng);
+    builder.build()
+}
+
+#[test]
+fn generated_splice_on_live_channel_program_is_type_correct() {
+    for seed in 0..25 {
+        let program = generate_splice_on_live_channel_program(seed);
+        assert_well_formed(&program);
+    }
+}
+
+#[test]
+fn generated_splice_on_live_channel_program_structure() {
+    let program = generate_splice_on_live_channel_program(0);
+    let ops: Vec<&Operation> = program.instructions.iter().map(|i| &i.operation).collect();
+    let has = |name: &str| ops.iter().any(|op| format!("{op}").contains(name));
+    for name in [
+        "SendStfu",
+        "SendSpliceInit",
+        "RecvSpliceAck",
+        "SendTxAddInput",
+        "SendTxComplete",
+        "RecvTxComplete",
+        "SendTxSignatures",
+    ] {
+        assert!(
+            has(name),
+            "splice-on-live-channel flow missing {name}: {ops:?}"
+        );
+    }
+    assert!(
+        matches!(ops.last(), Some(Operation::SendTxSignatures)),
+        "flow must end with signing: {ops:?}"
+    );
 }
 
 fn generate_tx_abort_echo_program(seed: u64) -> Program {
