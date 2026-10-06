@@ -1414,6 +1414,74 @@ fn execute_send_commitment_family() {
 }
 
 #[test]
+fn execute_quiescence_violation_detected() {
+    // stfu + splice engagement establishes quiescence; a shutdown from the
+    // target afterwards breaks the BOLT 2 allowed-message set.
+    let channel_id = ChannelId::new([0x51; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let initiator = b.append(Operation::LoadU8(1), &[]);
+    b.append(Operation::SendStfu, &[channel_id_var, initiator]);
+    let amount = b.append(Operation::LoadAmount(250_000), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent_init = b.append(
+        Operation::SendSpliceInit,
+        &[channel_id_var, amount, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent_init]);
+    b.append(Operation::RecvTxComplete, &[]);
+
+    let ack = Message::SpliceAck(SpliceAck {
+        channel_id,
+        funding_contribution_satoshis: 0,
+        funding_pubkey: sample_context().target_pubkey,
+        tlvs: SpliceAckTlvs::default(),
+    });
+    let stray = Message::Shutdown(Shutdown {
+        channel_id,
+        scriptpubkey: vec![],
+    });
+    let mut fx = Fixture::new().queue(&ack).queue(&stray);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::Violation(Violation::QuiescenceBroken(cid, _)) if cid == channel_id
+        ),
+        "expected quiescence violation, got {err:?}"
+    );
+}
+
+#[test]
+fn execute_missing_tx_abort_echo_detected() {
+    // We abort, keep listening (the tx_complete receive), and the target
+    // never echoes: the end-of-program sweep must flag it.
+    let channel_id = ChannelId::new([0x52; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let reason = b.append(Operation::LoadBytes(b"bye".to_vec()), &[]);
+    b.append(Operation::SendTxAbort, &[channel_id_var, reason]);
+    b.append(Operation::RecvTxComplete, &[]);
+
+    let reply = Message::TxComplete(TxComplete { channel_id });
+    let mut fx = Fixture::new().queue(&reply);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::Violation(Violation::MissingTxAbortEcho(cid)) if cid == channel_id
+        ),
+        "expected missing echo violation, got {err:?}"
+    );
+}
+
+#[test]
 fn execute_send_tx_abort_recv_echo() {
     let channel_id = ChannelId::new([0x66; 32]);
 

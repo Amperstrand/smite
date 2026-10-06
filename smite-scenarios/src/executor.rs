@@ -25,6 +25,7 @@ use smite::channel_tx::{
 use smite::noise::{ConnectionError, NoiseConnection};
 use smite::oracles::{
     AcceptChannelContext, AcceptChannelOracle, FundingSignedContext, FundingSignedOracle, Oracle,
+    QuiescenceContext, QuiescenceOracle,
 };
 use smite::pending_channel::PendingChannel;
 use smite::violation::Violation;
@@ -264,6 +265,18 @@ pub struct Executor<C, B, R> {
     /// transaction can change its raw hex, but the txid stays the same, so
     /// deduplication keys on the txid while the raw hex is what gets mined.
     private_mempool: Vec<(Txid, String)>,
+    /// Channels we sent `stfu` for, received `stfu` for, and engaged in a
+    /// splice / interactive-tx operation on. Quiescence is judged
+    /// established once we sent `stfu` and either observed the target's
+    /// `stfu` or the target demonstrably engaged the pending operation
+    /// (it does not answer splice messages pre-quiescence).
+    stfu_sent: HashSet<ChannelId>,
+    stfu_received: HashSet<ChannelId>,
+    splice_engaged: HashSet<ChannelId>,
+    /// Channels we sent `tx_abort` for whose echo has not arrived. The
+    /// bool records whether any receive completed since, i.e. whether the
+    /// target had observable chances to echo.
+    pending_abort_echoes: HashMap<ChannelId, bool>,
     /// Transactions broadcast but not yet mined. Unlike `private_mempool`,
     /// which only holds what Bitcoin Core's mempool rejected, this tracks every
     /// broadcast.
@@ -287,7 +300,53 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
             private_mempool: Vec::new(),
             unmined_txids: HashSet::new(),
             mined_txids: HashSet::new(),
+            stfu_sent: HashSet::new(),
+            stfu_received: HashSet::new(),
+            splice_engaged: HashSet::new(),
+            pending_abort_echoes: HashMap::new(),
         }
+    }
+
+    /// Receives one message like [`recv_bolt`] while tracking protocol
+    /// state for the oracles: records the target's `stfu`, judges every
+    /// message against the quiescence-allowed set once quiescence is
+    /// established, and marks pending `tx_abort` echoes as having had a
+    /// chance to arrive.
+    fn recv_tracked<M: FromMessage>(&mut self, timeout: Duration) -> Result<M, ExecuteError> {
+        let msg = recv_non_ping(&mut self.conn, timeout)?;
+        if let Message::Stfu(stfu) = &msg {
+            self.stfu_received.insert(stfu.channel_id);
+        }
+        if let Some(channel) = self.quiescent_channel() {
+            QuiescenceOracle.evaluate(&QuiescenceContext {
+                message: &msg,
+                quiescent_channel: Some(channel),
+            })?;
+        }
+        for had_chance in self.pending_abort_echoes.values_mut() {
+            *had_chance = true;
+        }
+        let got = msg.msg_type();
+        M::from_message(msg).ok_or(ExecuteError::UnexpectedMessage {
+            expected: M::TYPE,
+            got,
+        })
+    }
+
+    /// Returns a channel that is quiescent, if any: one we sent `stfu`
+    /// for and that either answered with `stfu` or engaged the pending
+    /// splice operation.
+    fn quiescent_channel(&self) -> Option<ChannelId> {
+        self.stfu_sent
+            .intersection(
+                &self
+                    .splice_engaged
+                    .union(&self.stfu_received)
+                    .copied()
+                    .collect::<HashSet<_>>(),
+            )
+            .next()
+            .copied()
     }
 
     /// Returns a mutable reference to the underlying connection.
@@ -514,6 +573,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                 Operation::SendStfu => {
                     let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
                     let initiator = resolve_u8(&variables, instr.inputs[1]);
+                    self.stfu_sent.insert(channel_id);
                     let msg = Stfu {
                         channel_id,
                         initiator,
@@ -531,6 +591,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
 
                 Operation::SendSpliceInit => {
                     let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    self.splice_engaged.insert(channel_id);
                     let amount = resolve_amount(&variables, instr.inputs[1]);
                     let feerate = resolve_feerate(&variables, instr.inputs[2]);
                     let locktime = resolve_block_height(&variables, instr.inputs[3]);
@@ -607,6 +668,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     include_shared_input_txid,
                 } => {
                     let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    self.splice_engaged.insert(channel_id);
                     let serial_id = u64::from(resolve_u32(&variables, instr.inputs[1]));
                     let prevtx = resolve_bytes(&variables, instr.inputs[2]).to_vec();
                     let prevtx_vout = resolve_u32(&variables, instr.inputs[3]);
@@ -643,6 +705,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
 
                 Operation::SendTxAddOutput => {
                     let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    self.splice_engaged.insert(channel_id);
                     let serial_id = u64::from(resolve_u32(&variables, instr.inputs[1]));
                     let sats = resolve_amount(&variables, instr.inputs[2]);
                     let script = resolve_bytes(&variables, instr.inputs[3]).to_vec();
@@ -679,6 +742,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
 
                 Operation::SendTxAbort => {
                     let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    self.pending_abort_echoes.insert(channel_id, false);
                     let data = resolve_bytes(&variables, instr.inputs[1]).to_vec();
                     let msg = TxAbort { channel_id, data };
                     let encoded = Message::TxAbort(msg).encode();
@@ -878,7 +942,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                         instr.operation.input_types()[0],
                     );
                     log::debug!("[{:?}] RecvAcceptChannel: waiting", start.elapsed());
-                    let ac: AcceptChannel = recv_bolt(&mut self.conn, RECV_IDLE_TIMEOUT)?;
+                    let ac: AcceptChannel = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
                     log::debug!("[{:?}] RecvAcceptChannel: received", start.elapsed());
                     AcceptChannelOracle.evaluate(&AcceptChannelContext {
                         accept_channel: &ac,
@@ -896,7 +960,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                         instr.operation.input_types()[0],
                     );
                     log::debug!("[{:?}] RecvSpliceAck: waiting", start.elapsed());
-                    let sa: SpliceAck = recv_bolt(&mut self.conn, RECV_IDLE_TIMEOUT)?;
+                    let sa: SpliceAck = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
                     log::debug!("[{:?}] RecvSpliceAck: received", start.elapsed());
                     Some(Variable::SpliceAck(sa))
                 }
@@ -908,21 +972,22 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                         instr.operation.input_types()[0],
                     );
                     log::debug!("[{:?}] RecvSpliceLocked: waiting", start.elapsed());
-                    let sl: SpliceLocked = recv_bolt(&mut self.conn, RECV_IDLE_TIMEOUT)?;
+                    let sl: SpliceLocked = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
                     log::debug!("[{:?}] RecvSpliceLocked: received", start.elapsed());
                     Some(Variable::SpliceLocked(sl))
                 }
 
                 Operation::RecvTxAbort => {
                     log::debug!("[{:?}] RecvTxAbort: waiting", start.elapsed());
-                    let ta: TxAbort = recv_bolt(&mut self.conn, RECV_IDLE_TIMEOUT)?;
+                    let ta: TxAbort = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
                     log::debug!("[{:?}] RecvTxAbort: received", start.elapsed());
+                    self.pending_abort_echoes.remove(&ta.channel_id);
                     Some(Variable::TxAbort(ta))
                 }
 
                 Operation::RecvTxComplete => {
                     log::debug!("[{:?}] RecvTxComplete: waiting", start.elapsed());
-                    let tc: TxComplete = recv_bolt(&mut self.conn, RECV_IDLE_TIMEOUT)?;
+                    let tc: TxComplete = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
                     log::debug!("[{:?}] RecvTxComplete: received", start.elapsed());
                     Some(Variable::TxComplete(tc))
                 }
@@ -934,7 +999,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                         instr.operation.input_types()[0],
                     );
                     log::debug!("[{:?}] RecvFundingSigned: waiting", start.elapsed());
-                    let fs: FundingSigned = recv_bolt(&mut self.conn, RECV_IDLE_TIMEOUT)?;
+                    let fs: FundingSigned = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
                     log::debug!("[{:?}] RecvFundingSigned: received", start.elapsed());
                     FundingSignedOracle.evaluate(&FundingSignedContext {
                         funding_signed: &fs,
@@ -1020,6 +1085,20 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
             };
 
             variables.push(result);
+        }
+
+        // tx_abort echo sweep: a completed program that kept receiving after
+        // its abort (the bool) proves the target had observable chances to
+        // echo and never did. Programs that end immediately after the abort
+        // or error out earlier are not judged — the echo window never got a
+        // fair chance.
+        if let Some(channel_id) = self
+            .pending_abort_echoes
+            .iter()
+            .find(|(_, had_chance)| **had_chance)
+            .map(|(channel_id, _)| *channel_id)
+        {
+            return Err(Violation::MissingTxAbortEcho(channel_id).into());
         }
 
         Ok(())
