@@ -9,9 +9,9 @@ use smite::bolt::{MAX_MESSAGE_SIZE, ShortChannelId};
 use super::*;
 use generators::{
     AnyGenerator, ChannelAnnouncementGenerator, ChannelReadyGenerator, ChannelUpdateGenerator,
-    FundingCreatedGenerator, FundingFlowGenerator, NodeAnnouncementGenerator, OpenChannelGenerator,
-    SpliceFlowGenerator, SpliceOnLiveChannelGenerator, TxAbortEchoGenerator,
-    TxNegotiationGenerator,
+    CommitmentFlowGenerator, FundingCreatedGenerator, FundingFlowGenerator,
+    NodeAnnouncementGenerator, OpenChannelGenerator, SpliceFlowGenerator,
+    SpliceOnLiveChannelGenerator, TxAbortEchoGenerator, TxNegotiationGenerator,
 };
 use minimizers::{CommonSubexpressionEliminator, DeadCodeEliminator, Minimizer};
 use mutators::{
@@ -1103,11 +1103,12 @@ fn any_generator_all_is_complete() {
             | AnyGenerator::OpenChannel(_)
             | AnyGenerator::FundingCreated(_)
             | AnyGenerator::ChannelReady(_)
+            | AnyGenerator::CommitmentFlow(_)
             | AnyGenerator::FundingFlow(_)
             | AnyGenerator::SpliceFlow(_)
             | AnyGenerator::SpliceOnLiveChannel(_)
             | AnyGenerator::TxNegotiation(_)
-            | AnyGenerator::TxAbortEcho(_) => 11,
+            | AnyGenerator::TxAbortEcho(_) => 12,
         }
     };
     assert_eq!(AnyGenerator::ALL.len(), variant_count(AnyGenerator::ALL[0]));
@@ -1330,6 +1331,31 @@ fn generated_splice_on_live_channel_program_structure() {
         matches!(ops.last(), Some(Operation::SendTxSignatures)),
         "flow must end with signing: {ops:?}"
     );
+}
+
+fn generate_commitment_flow_program(seed: u64) -> Program {
+    let mut rng = SmallRng::seed_from_u64(seed);
+    let mut builder = ProgramBuilder::new();
+    CommitmentFlowGenerator.generate(&mut builder, &mut rng);
+    builder.build()
+}
+
+#[test]
+fn generated_commitment_flow_program_is_type_correct() {
+    for seed in 0..25 {
+        let program = generate_commitment_flow_program(seed);
+        assert_well_formed(&program);
+    }
+}
+
+#[test]
+fn generated_commitment_flow_program_structure() {
+    let program = generate_commitment_flow_program(0);
+    let ops: Vec<&Operation> = program.instructions.iter().map(|i| &i.operation).collect();
+    let has = |name: &str| ops.iter().any(|op| format!("{op}").contains(name));
+    for name in ["SendUpdateAddHtlc", "SendCommitmentSigned"] {
+        assert!(has(name), "commitment flow missing {name}: {ops:?}");
+    }
 }
 
 fn generate_tx_abort_echo_program(seed: u64) -> Program {

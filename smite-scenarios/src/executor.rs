@@ -11,11 +11,12 @@ use bitcoin::{OutPoint, ScriptBuf, Txid};
 use smite::bitcoin::{BitcoinCli, TxBlockPosition, Utxo};
 use smite::bolt::{
     AcceptChannel, AnnouncementSignatures, ChannelAnnouncement, ChannelId, ChannelReady,
-    ChannelReadyTlvs, ChannelUpdate, Features, FromMessage, FundingCreated, FundingSigned, Message,
-    MessageType, NodeAnnouncement, OpenChannel, OpenChannelTlvs, Pong, ShortChannelId, Shutdown,
-    SpliceAck, SpliceAckTlvs, SpliceInit, SpliceInitTlvs, SpliceLocked, Stfu, TemporaryChannelId,
-    TxAbort, TxAckRbf, TxAckRbfTlvs, TxAddInput, TxAddInputTlvs, TxAddOutput, TxComplete,
-    TxInitRbf, TxInitRbfTlvs, TxSignatures, TxSignaturesTlvs,
+    ChannelReadyTlvs, ChannelUpdate, CommitmentSigned, CommitmentSignedTlvs, Features, FromMessage,
+    FundingCreated, FundingSigned, Message, MessageType, NodeAnnouncement, OpenChannel,
+    OpenChannelTlvs, Pong, RevokeAndAck, ShortChannelId, Shutdown, SpliceAck, SpliceAckTlvs,
+    SpliceInit, SpliceInitTlvs, SpliceLocked, Stfu, TemporaryChannelId, TxAbort, TxAckRbf,
+    TxAckRbfTlvs, TxAddInput, TxAddInputTlvs, TxAddOutput, TxComplete, TxInitRbf, TxInitRbfTlvs,
+    TxSignatures, TxSignaturesTlvs, UpdateAddHtlc, UpdateAddHtlcTlvs,
 };
 use smite::channel_tx::{
     ChannelConfig, ChannelPartyConfig, ChannelState, FundingTransaction, HolderIdentity, Side,
@@ -779,6 +780,95 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     );
                     self.conn.send_message(&encoded)?;
                     Some(Variable::SentFundingSigned)
+                }
+
+                Operation::SendUpdateAddHtlc => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let id = u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let amount_msat = resolve_amount(&variables, instr.inputs[2]);
+                    let hash_bytes = resolve_bytes(&variables, instr.inputs[3]);
+                    // Zero-padded copy: the param mutator may shrink the
+                    // input below 32 bytes, and a malformed hash is a
+                    // fuzzing outcome, not an invariant violation.
+                    let mut payment_hash = [0u8; 32];
+                    let n = hash_bytes.len().min(32);
+                    payment_hash[..n].copy_from_slice(&hash_bytes[..n]);
+                    let cltv_expiry = resolve_block_height(&variables, instr.inputs[4]);
+                    let onion_bytes = resolve_bytes(&variables, instr.inputs[5]);
+                    // The onion packet is a fixed 1366-byte field: pad or
+                    // truncate the (possibly mutated) input into it.
+                    let mut onion_routing_packet = [0u8; 1366];
+                    let n = onion_bytes.len().min(1366);
+                    onion_routing_packet[..n].copy_from_slice(&onion_bytes[..n]);
+                    let msg = UpdateAddHtlc {
+                        channel_id,
+                        id,
+                        amount_msat,
+                        payment_hash,
+                        cltv_expiry,
+                        onion_routing_packet,
+                        tlvs: UpdateAddHtlcTlvs::default(),
+                    };
+                    let encoded = Message::UpdateAddHtlc(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendUpdateAddHtlc: {} bytes (id={id}, amount_msat={amount_msat})",
+                        start.elapsed(),
+                        encoded.len(),
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentUpdateAddHtlc)
+                }
+
+                Operation::SendCommitmentSigned => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let sig_bytes = resolve_bytes(&variables, instr.inputs[1]);
+                    // Same zero-signature fallback as SendFundingSigned:
+                    // malformed signatures are for the target to judge.
+                    let signature = sig_bytes
+                        .first_chunk::<64>()
+                        .and_then(|chunk| Signature::from_compact(chunk).ok())
+                        .unwrap_or_else(|| {
+                            Signature::from_compact(&[0u8; 64])
+                                .expect("zero bytes parse as a signature")
+                        });
+                    let msg = CommitmentSigned {
+                        channel_id,
+                        signature,
+                        htlc_signatures: Vec::new(),
+                        tlvs: CommitmentSignedTlvs::default(),
+                    };
+                    let encoded = Message::CommitmentSigned(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendCommitmentSigned: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentCommitmentSigned)
+                }
+
+                Operation::SendRevokeAndAck => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let secret_bytes = resolve_bytes(&variables, instr.inputs[1]);
+                    // Zero-padded copy: same mutator-shrink rationale as the
+                    // other fixed-width fields.
+                    let mut per_commitment_secret = [0u8; 32];
+                    let n = secret_bytes.len().min(32);
+                    per_commitment_secret[..n].copy_from_slice(&secret_bytes[..n]);
+                    let next_per_commitment_point = resolve_pubkey(&variables, instr.inputs[2]);
+                    let msg = RevokeAndAck {
+                        channel_id,
+                        per_commitment_secret,
+                        next_per_commitment_point,
+                    };
+                    let encoded = Message::RevokeAndAck(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendRevokeAndAck: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentRevokeAndAck)
                 }
 
                 Operation::RecvAcceptChannel => {

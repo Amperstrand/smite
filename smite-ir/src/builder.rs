@@ -250,7 +250,10 @@ impl ProgramBuilder {
             | VariableType::SentTxInitRbf
             | VariableType::SentTxAckRbf
             | VariableType::SentTxSignatures
-            | VariableType::SentFundingSigned => {
+            | VariableType::SentFundingSigned
+            | VariableType::SentUpdateAddHtlc
+            | VariableType::SentCommitmentSigned
+            | VariableType::SentRevokeAndAck => {
                 panic!("cannot generate fresh affine type")
             }
         }

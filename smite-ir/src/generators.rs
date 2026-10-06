@@ -8,6 +8,7 @@
 mod channel_announcement;
 mod channel_ready;
 mod channel_update;
+mod commitment;
 mod funding_created;
 mod funding_flow;
 mod node_announcement;
@@ -18,6 +19,7 @@ mod tx;
 pub use channel_announcement::ChannelAnnouncementGenerator;
 pub use channel_ready::ChannelReadyGenerator;
 pub use channel_update::ChannelUpdateGenerator;
+pub use commitment::CommitmentFlowGenerator;
 pub use funding_created::FundingCreatedGenerator;
 pub use funding_flow::FundingFlowGenerator;
 pub use node_announcement::NodeAnnouncementGenerator;
@@ -45,6 +47,7 @@ pub enum AnyGenerator {
     OpenChannel(OpenChannelGenerator),
     FundingCreated(FundingCreatedGenerator),
     ChannelReady(ChannelReadyGenerator),
+    CommitmentFlow(CommitmentFlowGenerator),
     FundingFlow(FundingFlowGenerator),
     SpliceFlow(SpliceFlowGenerator),
     SpliceOnLiveChannel(SpliceOnLiveChannelGenerator),
@@ -61,6 +64,7 @@ impl AnyGenerator {
         Self::OpenChannel(OpenChannelGenerator),
         Self::FundingCreated(FundingCreatedGenerator),
         Self::ChannelReady(ChannelReadyGenerator),
+        Self::CommitmentFlow(CommitmentFlowGenerator),
         Self::FundingFlow(FundingFlowGenerator),
         Self::SpliceFlow(SpliceFlowGenerator),
         Self::SpliceOnLiveChannel(SpliceOnLiveChannelGenerator),
@@ -78,6 +82,7 @@ impl Generator for AnyGenerator {
             Self::OpenChannel(generator) => generator.generate(builder, rng),
             Self::FundingCreated(generator) => generator.generate(builder, rng),
             Self::ChannelReady(generator) => generator.generate(builder, rng),
+            Self::CommitmentFlow(generator) => generator.generate(builder, rng),
             Self::FundingFlow(generator) => generator.generate(builder, rng),
             Self::SpliceFlow(generator) => generator.generate(builder, rng),
             Self::SpliceOnLiveChannel(generator) => generator.generate(builder, rng),

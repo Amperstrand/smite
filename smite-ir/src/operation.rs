@@ -414,6 +414,41 @@ pub enum Operation {
     /// both sides have sent `tx_complete` in succession, and either side
     /// may send theirs first.
     RecvTxComplete,
+    /// Build and send an `update_add_htlc` message (BOLT 2, type 128).
+    /// Produces a `SentUpdateAddHtlc` variable.
+    ///
+    /// The `blinded_path` TLV is omitted (default TLVs).
+    ///
+    /// Inputs (6, matching wire order):
+    ///   0: `channel_id`            (`ChannelId`)
+    ///   1: `id`                    (`U32`, widened to u64)
+    ///   2: `amount_msat`           (`Amount`)
+    ///   3: `payment_hash`          (`Bytes`, 32 bytes; shorter inputs are
+    ///                               zero-padded)
+    ///   4: `cltv_expiry`           (`BlockHeight`)
+    ///   5: `onion_routing_packet`  (`Bytes`, 1366 bytes; shorter inputs
+    ///                               are zero-padded, longer truncated)
+    SendUpdateAddHtlc,
+    /// Build and send a `commitment_signed` message (BOLT 2, type 132).
+    /// Produces a `SentCommitmentSigned` variable.
+    ///
+    /// Sends no HTLC signatures (the IR has no variadic inputs); the
+    /// `funding_txid` TLV is omitted.
+    ///
+    /// Inputs (2):
+    ///   0: `channel_id`  (`ChannelId`)
+    ///   1: `signature`   (`Bytes`, 64-byte compact; other lengths fall
+    ///                     back to an all-zero signature)
+    SendCommitmentSigned,
+    /// Build and send a `revoke_and_ack` message (BOLT 2, type 133).
+    /// Produces a `SentRevokeAndAck` variable.
+    ///
+    /// Inputs (3):
+    ///   0: `channel_id`               (`ChannelId`)
+    ///   1: `per_commitment_secret`    (`Bytes`, 32 bytes; shorter inputs
+    ///                                  are zero-padded)
+    ///   2: `next_per_commitment_point` (`Point`)
+    SendRevokeAndAck,
 }
 
 /// A BOLT 2 compliant `upfront_shutdown_script` template.
@@ -732,6 +767,9 @@ impl fmt::Display for Operation {
             Self::RecvSpliceLocked => write!(f, "RecvSpliceLocked"),
             Self::RecvTxAbort => write!(f, "RecvTxAbort()"),
             Self::RecvTxComplete => write!(f, "RecvTxComplete()"),
+            Self::SendUpdateAddHtlc => write!(f, "SendUpdateAddHtlc"),
+            Self::SendCommitmentSigned => write!(f, "SendCommitmentSigned"),
+            Self::SendRevokeAndAck => write!(f, "SendRevokeAndAck"),
             Self::RecvAcceptChannel => write!(f, "RecvAcceptChannel"),
             Self::RecvFundingSigned => write!(f, "RecvFundingSigned"),
             Self::RecvChannelReady => write!(f, "RecvChannelReady()"),
@@ -800,6 +838,9 @@ impl Operation {
             Self::RecvSpliceLocked => Some(VariableType::SpliceLocked),
             Self::RecvTxAbort => Some(VariableType::TxAbort),
             Self::RecvTxComplete => Some(VariableType::TxComplete),
+            Self::SendUpdateAddHtlc => Some(VariableType::SentUpdateAddHtlc),
+            Self::SendCommitmentSigned => Some(VariableType::SentCommitmentSigned),
+            Self::SendRevokeAndAck => Some(VariableType::SentRevokeAndAck),
             Self::RecvAcceptChannel => Some(VariableType::AcceptChannel),
         }
     }
@@ -981,6 +1022,23 @@ impl Operation {
             ],
             Self::RecvAcceptChannel => vec![VariableType::SentOpenChannel],
             Self::RecvFundingSigned => vec![VariableType::SentFundingCreated],
+            Self::SendUpdateAddHtlc => vec![
+                VariableType::ChannelId,   // channel_id
+                VariableType::U32,         // id (widened to u64)
+                VariableType::Amount,      // amount_msat
+                VariableType::Bytes,       // payment_hash (32 bytes)
+                VariableType::BlockHeight, // cltv_expiry
+                VariableType::Bytes,       // onion_routing_packet (1366 bytes)
+            ],
+            Self::SendCommitmentSigned => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Bytes,     // signature (64-byte compact)
+            ],
+            Self::SendRevokeAndAck => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Bytes,     // per_commitment_secret (32 bytes)
+                VariableType::Point,     // next_per_commitment_point
+            ],
             Self::RecvSpliceAck => vec![VariableType::SentSpliceInit],
             Self::RecvSpliceLocked => vec![VariableType::SentSpliceAck],
             Self::BroadcastTransaction | Self::LookupShortChannelId => {
@@ -1042,6 +1100,9 @@ impl Operation {
             | Self::SendTxAckRbf
             | Self::SendTxSignatures
             | Self::SendFundingSigned
+            | Self::SendUpdateAddHtlc
+            | Self::SendCommitmentSigned
+            | Self::SendRevokeAndAck
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
             | Self::RecvSpliceAck
@@ -1117,6 +1178,9 @@ impl Operation {
             | Self::RecvChannelReady
             | Self::RecvSpliceAck
             | Self::RecvSpliceLocked
+            | Self::SendUpdateAddHtlc
+            | Self::SendCommitmentSigned
+            | Self::SendRevokeAndAck
             | Self::RecvTxAbort
             | Self::RecvTxComplete
             | Self::MineBlocks(_)
@@ -1176,7 +1240,10 @@ impl Operation {
             | Self::SendTxInitRbf
             | Self::SendTxAckRbf
             | Self::SendTxSignatures
-            | Self::SendFundingSigned => true,
+            | Self::SendFundingSigned
+            | Self::SendUpdateAddHtlc
+            | Self::SendCommitmentSigned
+            | Self::SendRevokeAndAck => true,
             // `CreateFundingTransaction` selects coins from the wallet, whose
             // contents change as transactions are created and broadcast.
             // `SendFundingCreated` builds its message from the recorded
@@ -1264,6 +1331,9 @@ impl Operation {
             | Self::RecvChannelReady
             | Self::RecvSpliceAck
             | Self::RecvSpliceLocked
+            | Self::SendUpdateAddHtlc
+            | Self::SendCommitmentSigned
+            | Self::SendRevokeAndAck
             | Self::RecvTxAbort
             | Self::RecvTxComplete
             | Self::BroadcastTransaction

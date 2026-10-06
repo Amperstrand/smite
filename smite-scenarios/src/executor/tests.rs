@@ -1354,6 +1354,66 @@ fn execute_extract_tx_complete_channel_id() {
 }
 
 #[test]
+fn execute_send_commitment_family() {
+    let channel_id = ChannelId::new([0x84; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let htlc_id = b.append(Operation::LoadU32(7), &[]);
+    let amount = b.append(Operation::LoadAmount(50_000), &[]);
+    // 2-byte hash and 5-byte onion: both must reach the wire zero-padded.
+    let payment_hash = b.append(Operation::LoadBytes(vec![0xde, 0xad]), &[]);
+    let cltv = b.append(Operation::LoadBlockHeight(800_020), &[]);
+    let onion = b.append(Operation::LoadBytes(vec![1, 2, 3, 4, 5]), &[]);
+    b.append(
+        Operation::SendUpdateAddHtlc,
+        &[channel_id_var, htlc_id, amount, payment_hash, cltv, onion],
+    );
+    // All-0xFF never parses as a compact signature: exercises the
+    // zero-signature fallback.
+    let bad_sig = b.append(Operation::LoadBytes(vec![0xff; 71]), &[]);
+    b.append(Operation::SendCommitmentSigned, &[channel_id_var, bad_sig]);
+    let secret = b.append(Operation::LoadBytes(vec![0x5e, 0xed]), &[]);
+    let point = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    b.append(
+        Operation::SendRevokeAndAck,
+        &[channel_id_var, secret, point],
+    );
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    assert_eq!(fx.sent_len(), 3);
+
+    let uah: UpdateAddHtlc = fx.sent(0);
+    assert_eq!(uah.channel_id, channel_id);
+    assert_eq!(uah.id, 7);
+    assert_eq!(uah.amount_msat, 50_000);
+    let mut expected_hash = [0u8; 32];
+    expected_hash[..2].copy_from_slice(&[0xde, 0xad]);
+    assert_eq!(uah.payment_hash, expected_hash);
+    assert_eq!(uah.cltv_expiry, 800_020);
+    let mut expected_onion = [0u8; 1366];
+    expected_onion[..5].copy_from_slice(&[1, 2, 3, 4, 5]);
+    assert_eq!(uah.onion_routing_packet, expected_onion);
+
+    let cs: CommitmentSigned = fx.sent(1);
+    assert_eq!(cs.channel_id, channel_id);
+    assert_eq!(cs.htlc_signatures.len(), 0);
+    assert_eq!(cs.signature, Signature::from_compact(&[0u8; 64]).unwrap());
+
+    let raa: RevokeAndAck = fx.sent(2);
+    assert_eq!(raa.channel_id, channel_id);
+    let mut expected_secret = [0u8; 32];
+    expected_secret[..2].copy_from_slice(&[0x5e, 0xed]);
+    assert_eq!(raa.per_commitment_secret, expected_secret);
+    assert_eq!(
+        raa.next_per_commitment_point,
+        sample_context().target_pubkey
+    );
+}
+
+#[test]
 fn execute_send_tx_abort_recv_echo() {
     let channel_id = ChannelId::new([0x66; 32]);
 

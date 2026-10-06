@@ -99,6 +99,12 @@ pub enum Variable {
     SentTxSignatures,
     /// `funding_signed` has been sent.
     SentFundingSigned,
+    /// `update_add_htlc` has been sent.
+    SentUpdateAddHtlc,
+    /// `commitment_signed` has been sent.
+    SentCommitmentSigned,
+    /// `revoke_and_ack` has been sent.
+    SentRevokeAndAck,
 }
 
 impl Variable {
@@ -144,6 +150,9 @@ impl Variable {
             Self::SentTxAckRbf => VariableType::SentTxAckRbf,
             Self::SentTxSignatures => VariableType::SentTxSignatures,
             Self::SentFundingSigned => VariableType::SentFundingSigned,
+            Self::SentUpdateAddHtlc => VariableType::SentUpdateAddHtlc,
+            Self::SentCommitmentSigned => VariableType::SentCommitmentSigned,
+            Self::SentRevokeAndAck => VariableType::SentRevokeAndAck,
         }
     }
 }
@@ -190,6 +199,9 @@ pub enum VariableType {
     SentTxAckRbf,
     SentTxSignatures,
     SentFundingSigned,
+    SentUpdateAddHtlc,
+    SentCommitmentSigned,
+    SentRevokeAndAck,
 }
 
 impl VariableType {
@@ -210,7 +222,10 @@ impl VariableType {
             | Self::SentTxInitRbf
             | Self::SentTxAckRbf
             | Self::SentTxSignatures
-            | Self::SentFundingSigned => true,
+            | Self::SentFundingSigned
+            | Self::SentUpdateAddHtlc
+            | Self::SentCommitmentSigned
+            | Self::SentRevokeAndAck => true,
 
             Self::Bytes
             | Self::ChainHash
