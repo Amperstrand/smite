@@ -148,6 +148,8 @@ fn mutate_operation(op: &mut Operation, rng: &mut impl Rng) -> bool {
         | Operation::SendUpdateAddHtlc
         | Operation::SendCommitmentSigned
         | Operation::SendRevokeAndAck
+        | Operation::SendUpdateFailHtlc
+        | Operation::SendUpdateFulfillHtlc
         | Operation::RecvAcceptChannel
         | Operation::RecvFundingSigned
         | Operation::RecvSpliceAck

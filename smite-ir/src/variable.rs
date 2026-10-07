@@ -109,6 +109,10 @@ pub enum Variable {
     SentCommitmentSigned,
     /// `revoke_and_ack` has been sent.
     SentRevokeAndAck,
+    /// `update_fail_htlc` has been sent.
+    SentUpdateFailHtlc,
+    /// `update_fulfill_htlc` has been sent.
+    SentUpdateFulfillHtlc,
 }
 
 impl Variable {
@@ -159,6 +163,8 @@ impl Variable {
             Self::SentUpdateAddHtlc => VariableType::SentUpdateAddHtlc,
             Self::SentCommitmentSigned => VariableType::SentCommitmentSigned,
             Self::SentRevokeAndAck => VariableType::SentRevokeAndAck,
+            Self::SentUpdateFailHtlc => VariableType::SentUpdateFailHtlc,
+            Self::SentUpdateFulfillHtlc => VariableType::SentUpdateFulfillHtlc,
         }
     }
 }
@@ -210,6 +216,8 @@ pub enum VariableType {
     SentUpdateAddHtlc,
     SentCommitmentSigned,
     SentRevokeAndAck,
+    SentUpdateFailHtlc,
+    SentUpdateFulfillHtlc,
 }
 
 impl VariableType {
@@ -233,7 +241,9 @@ impl VariableType {
             | Self::SentFundingSigned
             | Self::SentUpdateAddHtlc
             | Self::SentCommitmentSigned
-            | Self::SentRevokeAndAck => true,
+            | Self::SentRevokeAndAck
+            | Self::SentUpdateFailHtlc
+            | Self::SentUpdateFulfillHtlc => true,
 
             Self::Bytes
             | Self::ChainHash

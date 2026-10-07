@@ -42,6 +42,27 @@ impl Generator for CommitmentFlowGenerator {
             );
         }
 
+        // Resolve or fail an HTLC before signing. Failing needs no target
+        // cooperation, so weight it 2:1. The id mostly chains off a
+        // previously offered HTLC (pick_variable's most-recent bias);
+        // fresh ids resolve never-offered HTLCs, which is itself a
+        // violation shape worth reaching.
+        let roll: u32 = rng.random_range(0..3);
+        if roll < 2 {
+            let channel_id = builder.pick_variable(VariableType::ChannelId, rng);
+            let id = builder.pick_variable(VariableType::U32, rng);
+            let reason = builder.generate_fresh(VariableType::Bytes, rng);
+            builder.append(Operation::SendUpdateFailHtlc, &[channel_id, id, reason]);
+        } else {
+            let channel_id = builder.pick_variable(VariableType::ChannelId, rng);
+            let id = builder.pick_variable(VariableType::U32, rng);
+            let payment_preimage = builder.generate_fresh(VariableType::Bytes, rng);
+            builder.append(
+                Operation::SendUpdateFulfillHtlc,
+                &[channel_id, id, payment_preimage],
+            );
+        }
+
         // Sign the new commitment.
         let channel_id = builder.pick_variable(VariableType::ChannelId, rng);
         let signature = builder.generate_fresh(VariableType::Bytes, rng);

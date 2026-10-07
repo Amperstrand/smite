@@ -255,7 +255,9 @@ impl ProgramBuilder {
             | VariableType::SentFundingSigned
             | VariableType::SentUpdateAddHtlc
             | VariableType::SentCommitmentSigned
-            | VariableType::SentRevokeAndAck => {
+            | VariableType::SentRevokeAndAck
+            | VariableType::SentUpdateFailHtlc
+            | VariableType::SentUpdateFulfillHtlc => {
                 panic!("cannot generate fresh affine type")
             }
         }

@@ -16,7 +16,8 @@ use smite::bolt::{
     OpenChannelTlvs, Pong, RevokeAndAck, ShortChannelId, Shutdown, SpliceAck, SpliceAckTlvs,
     SpliceInit, SpliceInitTlvs, SpliceLocked, Stfu, TemporaryChannelId, TxAbort, TxAckRbf,
     TxAckRbfTlvs, TxAddInput, TxAddInputTlvs, TxAddOutput, TxComplete, TxInitRbf, TxInitRbfTlvs,
-    TxSignatures, TxSignaturesTlvs, UpdateAddHtlc, UpdateAddHtlcTlvs,
+    TxSignatures, TxSignaturesTlvs, UpdateAddHtlc, UpdateAddHtlcTlvs, UpdateFailHtlc,
+    UpdateFailHtlcTlvs, UpdateFulfillHtlc, UpdateFulfillHtlcTlvs,
 };
 use smite::channel_tx::{
     ChannelConfig, ChannelPartyConfig, ChannelState, FundingTransaction, HolderIdentity, Side,
@@ -887,6 +888,52 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     );
                     self.conn.send_message(&encoded)?;
                     Some(Variable::SentUpdateAddHtlc)
+                }
+
+                Operation::SendUpdateFailHtlc => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let id = u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let reason = resolve_bytes(&variables, instr.inputs[2]).to_vec();
+                    let msg = UpdateFailHtlc {
+                        channel_id,
+                        id,
+                        reason,
+                        tlvs: UpdateFailHtlcTlvs::default(),
+                    };
+                    let encoded = Message::UpdateFailHtlc(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendUpdateFailHtlc: {} bytes (id={id})",
+                        start.elapsed(),
+                        encoded.len(),
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentUpdateFailHtlc)
+                }
+
+                Operation::SendUpdateFulfillHtlc => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let id = u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let preimage_bytes = resolve_bytes(&variables, instr.inputs[2]);
+                    // Zero-padded copy: the param mutator may shrink the
+                    // input below 32 bytes, and a malformed preimage is a
+                    // fuzzing outcome, not an invariant violation.
+                    let mut payment_preimage = [0u8; 32];
+                    let n = preimage_bytes.len().min(32);
+                    payment_preimage[..n].copy_from_slice(&preimage_bytes[..n]);
+                    let msg = UpdateFulfillHtlc {
+                        channel_id,
+                        id,
+                        payment_preimage,
+                        tlvs: UpdateFulfillHtlcTlvs::default(),
+                    };
+                    let encoded = Message::UpdateFulfillHtlc(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendUpdateFulfillHtlc: {} bytes (id={id})",
+                        start.elapsed(),
+                        encoded.len(),
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentUpdateFulfillHtlc)
                 }
 
                 Operation::SendCommitmentSigned => {

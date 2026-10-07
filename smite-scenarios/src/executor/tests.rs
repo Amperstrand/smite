@@ -1447,6 +1447,40 @@ fn execute_commitment_dance_recvs() {
 }
 
 #[test]
+fn execute_send_htlc_fail_fulfill() {
+    let channel_id = ChannelId::new([0x83; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let htlc_id = b.append(Operation::LoadU32(9), &[]);
+    let reason = b.append(Operation::LoadBytes(vec![0xaa, 0xbb]), &[]);
+    b.append(
+        Operation::SendUpdateFailHtlc,
+        &[channel_id_var, htlc_id, reason],
+    );
+    let htlc_id2 = b.append(Operation::LoadU32(10), &[]);
+    // 3-byte preimage must reach the wire zero-padded.
+    let preimage = b.append(Operation::LoadBytes(vec![1, 2, 3]), &[]);
+    b.append(
+        Operation::SendUpdateFulfillHtlc,
+        &[channel_id_var, htlc_id2, preimage],
+    );
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    let fail: UpdateFailHtlc = fx.sent(0);
+    assert_eq!(fail.id, 9);
+    assert_eq!(fail.reason, vec![0xaa, 0xbb]);
+
+    let fulfill: UpdateFulfillHtlc = fx.sent(1);
+    assert_eq!(fulfill.id, 10);
+    let mut expected = [0u8; 32];
+    expected[..3].copy_from_slice(&[1, 2, 3]);
+    assert_eq!(fulfill.payment_preimage, expected);
+}
+
+#[test]
 fn execute_splice_ack_balance_violation_detected() {
     // Funding flow to a tracked channel (opener balance
     // 10_000_000_000 - 3_000_000_000 = 7_000_000_000 msat), then a

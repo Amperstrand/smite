@@ -459,6 +459,27 @@ pub enum Operation {
     /// Ungated (no variable inputs): the target may sign whenever it has
     /// pending changes, including ones it initiated.
     RecvCommitmentSigned,
+    /// Build and send an `update_fail_htlc` message (BOLT 2, type 131).
+    /// Produces a `SentUpdateFailHtlc` variable.
+    ///
+    /// The `attribution_data` TLV is omitted (default TLVs).
+    ///
+    /// Inputs (3):
+    ///   0: `channel_id` (`ChannelId`)
+    ///   1: `id`         (`U32`, widened to u64)
+    ///   2: `reason`     (`Bytes`, encrypted failure reason)
+    SendUpdateFailHtlc,
+    /// Build and send an `update_fulfill_htlc` message (BOLT 2, type 130).
+    /// Produces a `SentUpdateFulfillHtlc` variable.
+    ///
+    /// The `attribution_data` TLV is omitted (default TLVs).
+    ///
+    /// Inputs (3):
+    ///   0: `channel_id`       (`ChannelId`)
+    ///   1: `id`               (`U32`, widened to u64)
+    ///   2: `payment_preimage` (`Bytes`, 32 bytes; shorter inputs are
+    ///                          zero-padded)
+    SendUpdateFulfillHtlc,
 }
 
 /// A BOLT 2 compliant `upfront_shutdown_script` template.
@@ -782,6 +803,8 @@ impl fmt::Display for Operation {
             Self::SendRevokeAndAck => write!(f, "SendRevokeAndAck"),
             Self::RecvRevokeAndAck => write!(f, "RecvRevokeAndAck"),
             Self::RecvCommitmentSigned => write!(f, "RecvCommitmentSigned()"),
+            Self::SendUpdateFailHtlc => write!(f, "SendUpdateFailHtlc"),
+            Self::SendUpdateFulfillHtlc => write!(f, "SendUpdateFulfillHtlc"),
             Self::RecvAcceptChannel => write!(f, "RecvAcceptChannel"),
             Self::RecvFundingSigned => write!(f, "RecvFundingSigned"),
             Self::RecvChannelReady => write!(f, "RecvChannelReady()"),
@@ -855,6 +878,8 @@ impl Operation {
             Self::SendRevokeAndAck => Some(VariableType::SentRevokeAndAck),
             Self::RecvRevokeAndAck => Some(VariableType::RevokeAndAck),
             Self::RecvCommitmentSigned => Some(VariableType::CommitmentSigned),
+            Self::SendUpdateFailHtlc => Some(VariableType::SentUpdateFailHtlc),
+            Self::SendUpdateFulfillHtlc => Some(VariableType::SentUpdateFulfillHtlc),
             Self::RecvAcceptChannel => Some(VariableType::AcceptChannel),
         }
     }
@@ -1057,6 +1082,16 @@ impl Operation {
             Self::RecvSpliceAck => vec![VariableType::SentSpliceInit],
             Self::RecvSpliceLocked => vec![VariableType::SentSpliceAck],
             Self::RecvRevokeAndAck => vec![VariableType::SentCommitmentSigned],
+            Self::SendUpdateFailHtlc => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U32,       // id (widened to u64)
+                VariableType::Bytes,     // reason
+            ],
+            Self::SendUpdateFulfillHtlc => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U32,       // id (widened to u64)
+                VariableType::Bytes,     // payment_preimage (32 bytes)
+            ],
             Self::BroadcastTransaction | Self::LookupShortChannelId => {
                 vec![VariableType::FundingTransaction]
             }
@@ -1125,6 +1160,8 @@ impl Operation {
             | Self::RecvSpliceLocked
             | Self::RecvCommitmentSigned
             | Self::RecvRevokeAndAck
+            | Self::SendUpdateFailHtlc
+            | Self::SendUpdateFulfillHtlc
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => vec![],
@@ -1203,6 +1240,8 @@ impl Operation {
             | Self::RecvTxComplete
             | Self::RecvCommitmentSigned
             | Self::RecvRevokeAndAck
+            | Self::SendUpdateFailHtlc
+            | Self::SendUpdateFulfillHtlc
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction => true,
         }
@@ -1263,7 +1302,9 @@ impl Operation {
             | Self::SendFundingSigned
             | Self::SendUpdateAddHtlc
             | Self::SendCommitmentSigned
-            | Self::SendRevokeAndAck => true,
+            | Self::SendRevokeAndAck
+            | Self::SendUpdateFailHtlc
+            | Self::SendUpdateFulfillHtlc => true,
             // `CreateFundingTransaction` selects coins from the wallet, whose
             // contents change as transactions are created and broadcast.
             // `SendFundingCreated` builds its message from the recorded
@@ -1360,6 +1401,8 @@ impl Operation {
             | Self::RecvTxComplete
             | Self::RecvCommitmentSigned
             | Self::RecvRevokeAndAck
+            | Self::SendUpdateFailHtlc
+            | Self::SendUpdateFulfillHtlc
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => false,
         }
