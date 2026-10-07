@@ -6,6 +6,9 @@
 //! - `verify <bolt-md> <requirements.json>` — check stored texts still match (drift)
 //! - `seeds <bolt-md> [--findings <findings.json>]` — derive seed candidates,
 //!   gated by finding disclosure states
+//! - `sketches <bolt-md>` — print program sketches derived from the seeds
+//! - `programs <bolt-md>` — report sketch-to-IR conversion coverage
+//! - `emit <bolt-md> <output-dir>` — write postcard-encoded IR seed files
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
