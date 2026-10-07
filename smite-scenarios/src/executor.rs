@@ -25,7 +25,7 @@ use smite::channel_tx::{
 use smite::noise::{ConnectionError, NoiseConnection};
 use smite::oracles::{
     AcceptChannelContext, AcceptChannelOracle, FundingSignedContext, FundingSignedOracle, Oracle,
-    QuiescenceContext, QuiescenceOracle,
+    QuiescenceContext, QuiescenceOracle, SpliceAckContext, SpliceAckOracle,
 };
 use smite::pending_channel::PendingChannel;
 use smite::violation::Violation;
@@ -273,6 +273,9 @@ pub struct Executor<C, B, R> {
     stfu_sent: HashSet<ChannelId>,
     stfu_received: HashSet<ChannelId>,
     splice_engaged: HashSet<ChannelId>,
+    /// `funding_contribution_satoshis` of each `splice_init` we sent,
+    /// consumed by the matching `splice_ack` for the balance oracle.
+    splice_contributions: HashMap<ChannelId, i64>,
     /// Channels we sent `tx_abort` for whose echo has not arrived. The
     /// bool records whether any receive completed since, i.e. whether the
     /// target had observable chances to echo.
@@ -300,6 +303,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
             private_mempool: Vec::new(),
             unmined_txids: HashSet::new(),
             mined_txids: HashSet::new(),
+            splice_contributions: HashMap::new(),
             stfu_sent: HashSet::new(),
             stfu_received: HashSet::new(),
             splice_engaged: HashSet::new(),
@@ -593,6 +597,8 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
                     self.splice_engaged.insert(channel_id);
                     let amount = resolve_amount(&variables, instr.inputs[1]);
+                    self.splice_contributions
+                        .insert(channel_id, amount.cast_signed());
                     let feerate = resolve_feerate(&variables, instr.inputs[2]);
                     let locktime = resolve_block_height(&variables, instr.inputs[3]);
                     let pubkey = resolve_pubkey(&variables, instr.inputs[4]);
@@ -962,6 +968,11 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     log::debug!("[{:?}] RecvSpliceAck: waiting", start.elapsed());
                     let sa: SpliceAck = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
                     log::debug!("[{:?}] RecvSpliceAck: received", start.elapsed());
+                    SpliceAckOracle.evaluate(&SpliceAckContext {
+                        splice_ack: &sa,
+                        our_contribution_satoshis: self.splice_contributions.remove(&sa.channel_id),
+                        channel_state: self.channel_states.get(&sa.channel_id),
+                    })?;
                     Some(Variable::SpliceAck(sa))
                 }
 

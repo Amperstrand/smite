@@ -1447,6 +1447,79 @@ fn execute_commitment_dance_recvs() {
 }
 
 #[test]
+fn execute_splice_ack_balance_violation_detected() {
+    // Funding flow to a tracked channel (opener balance
+    // 10_000_000_000 - 3_000_000_000 = 7_000_000_000 msat), then a
+    // splice_init splicing out 8_000_000_000 msat: the target MUST reject
+    // it, so a splice_ack acknowledging the negotiation is a violation.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    // The u64 two's-complement encoding of the i64 contribution
+    // -8_000_000 satoshis = -8_000_000_000 msat.
+    let overdraw = b.append(Operation::LoadAmount((-8_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent_init = b.append(
+        Operation::SendSpliceInit,
+        &[cid, overdraw, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent_init]);
+
+    let ack = Message::SpliceAck(SpliceAck {
+        channel_id,
+        funding_contribution_satoshis: 0,
+        funding_pubkey: sample_context().target_pubkey,
+        tlvs: SpliceAckTlvs::default(),
+    });
+    let mut fx = recv_funding_signed_fixture().queue(&ack);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::Violation(Violation::InvalidSpliceAck(cid, _)) if cid == channel_id
+        ),
+        "expected splice balance violation, got {err:?}"
+    );
+}
+
+#[test]
+fn execute_splice_ack_within_balance_accepted() {
+    // Same flow with a 1_000_000_000 msat splice-out (well within the
+    // 7_000_000_000 msat balance): the ack must stand.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let splice_out = b.append(Operation::LoadAmount((-1_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent_init = b.append(
+        Operation::SendSpliceInit,
+        &[cid, splice_out, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent_init]);
+
+    let ack = Message::SpliceAck(SpliceAck {
+        channel_id,
+        funding_contribution_satoshis: 0,
+        funding_pubkey: sample_context().target_pubkey,
+        tlvs: SpliceAckTlvs::default(),
+    });
+    let mut fx = recv_funding_signed_fixture().queue(&ack);
+    fx.run(&b.build());
+    assert_eq!(fx.queued_len(), 0);
+}
+
+#[test]
 fn execute_quiescence_violation_detected() {
     // stfu + splice engagement establishes quiescence; a shutdown from the
     // target afterwards breaks the BOLT 2 allowed-message set.

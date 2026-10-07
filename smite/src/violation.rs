@@ -64,4 +64,11 @@ pub enum Violation {
     /// the receiving node MUST echo it).
     #[error("missing tx_abort echo for channel_id {0}")]
     MissingTxAbortEcho(ChannelId),
+
+    /// The target's `splice_ack` broke a BOLT 2 requirement, as judged by
+    /// [`crate::oracles::SpliceAckOracle`]: it acknowledged a `splice_init`
+    /// whose `funding_contribution_satoshis` splices out more than our
+    /// tracked channel balance — a negotiation the target MUST reject.
+    #[error("invalid splice_ack for channel_id {0}: {1}")]
+    InvalidSpliceAck(ChannelId, String),
 }

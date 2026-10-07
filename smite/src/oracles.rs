@@ -5,11 +5,13 @@
 mod accept_channel;
 mod funding_signed;
 mod quiescence;
+mod splice_ack;
 
 use super::violation::Violation;
 pub use accept_channel::{AcceptChannelContext, AcceptChannelOracle};
 pub use funding_signed::{FundingSignedContext, FundingSignedOracle};
 pub use quiescence::{QuiescenceContext, QuiescenceOracle};
+pub use splice_ack::{SpliceAckContext, SpliceAckOracle};
 
 /// `Oracle` evaluates a condition against some context
 pub trait Oracle<C> {
