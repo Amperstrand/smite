@@ -242,6 +242,23 @@ pub enum ExecuteError {
     Violation(#[from] Violation),
 }
 
+/// How the target answered a `splice_init` we sent, observed regardless of
+/// what message the program was expecting next.
+///
+/// Diagnostics only: no invariant is judged from the shape itself; the
+/// balance verdict still comes from [`SpliceAckOracle`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SpliceResponseShape {
+    /// The target answered `splice_ack`.
+    Acked,
+    /// The target answered `tx_abort`.
+    Aborted,
+    /// The target answered a BOLT `error`.
+    Errored,
+    /// The program ended with no observed answer.
+    Silent,
+}
+
 /// Executes IR programs against a target over an established connection.
 pub struct Executor<C, B, R> {
     /// Connection used to send and receive Lightning messages.
@@ -278,6 +295,11 @@ pub struct Executor<C, B, R> {
     /// `funding_contribution_satoshis` of each `splice_init` we sent,
     /// consumed by the matching `splice_ack` for the balance oracle.
     splice_contributions: HashMap<ChannelId, i64>,
+    /// How the target answered each `splice_init` we sent, keyed by
+    /// `ChannelId`. Diagnostics only; filled by the recv-time shape hooks
+    /// and summarized by the end-of-program sweep. An all-channels BOLT
+    /// `error` (`ChannelId::ALL`) matches no entry and reads as silence.
+    splice_response_shapes: HashMap<ChannelId, SpliceResponseShape>,
     /// Channels we sent `tx_abort` for whose echo has not arrived. The
     /// bool records whether any receive completed since, i.e. whether the
     /// target had observable chances to echo.
@@ -306,6 +328,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
             unmined_txids: HashSet::new(),
             mined_txids: HashSet::new(),
             splice_contributions: HashMap::new(),
+            splice_response_shapes: HashMap::new(),
             stfu_sent: HashSet::new(),
             stfu_received: HashSet::new(),
             splice_engaged: HashSet::new(),
@@ -319,7 +342,17 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
     /// established, and marks pending `tx_abort` echoes as having had a
     /// chance to arrive.
     fn recv_tracked<M: FromMessage>(&mut self, timeout: Duration) -> Result<M, ExecuteError> {
-        let msg = recv_non_ping(&mut self.conn, timeout)?;
+        let msg = match recv_non_ping(&mut self.conn, timeout) {
+            Ok(msg) => msg,
+            Err(ExecuteError::PeerError(e)) => {
+                if self.splice_contributions.remove(&e.channel_id).is_some() {
+                    self.splice_response_shapes
+                        .insert(e.channel_id, SpliceResponseShape::Errored);
+                }
+                return Err(ExecuteError::PeerError(e));
+            }
+            Err(other) => return Err(other),
+        };
         if let Message::Stfu(stfu) = &msg {
             self.stfu_received.insert(stfu.channel_id);
         }
@@ -333,6 +366,27 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
             *had_chance = true;
         }
         let got = msg.msg_type();
+        if let Message::TxAbort(ta) = &msg
+            && self.splice_contributions.remove(&ta.channel_id).is_some()
+        {
+            self.splice_response_shapes
+                .insert(ta.channel_id, SpliceResponseShape::Aborted);
+        }
+        // Out-of-band splice_ack: the program expected something else, but
+        // an answer to our splice_init must still be judged and consumed.
+        // The in-band case is left to the typed RecvSpliceAck arm.
+        if M::TYPE != SpliceAck::TYPE
+            && let Message::SpliceAck(sa) = &msg
+            && let Some(contribution) = self.splice_contributions.remove(&sa.channel_id)
+        {
+            self.splice_response_shapes
+                .insert(sa.channel_id, SpliceResponseShape::Acked);
+            SpliceAckOracle.evaluate(&SpliceAckContext {
+                splice_ack: sa,
+                our_contribution_satoshis: Some(contribution),
+                channel_state: self.channel_states.get(&sa.channel_id),
+            })?;
+        }
         M::from_message(msg).ok_or(ExecuteError::UnexpectedMessage {
             expected: M::TYPE,
             got,
@@ -1068,6 +1122,10 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     log::debug!("[{:?}] RecvSpliceAck: waiting", start.elapsed());
                     let sa: SpliceAck = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
                     log::debug!("[{:?}] RecvSpliceAck: received", start.elapsed());
+                    if self.splice_contributions.contains_key(&sa.channel_id) {
+                        self.splice_response_shapes
+                            .insert(sa.channel_id, SpliceResponseShape::Acked);
+                    }
                     SpliceAckOracle.evaluate(&SpliceAckContext {
                         splice_ack: &sa,
                         our_contribution_satoshis: self.splice_contributions.remove(&sa.channel_id),
@@ -1230,6 +1288,17 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
         {
             return Err(Violation::MissingTxAbortEcho(channel_id).into());
         }
+
+        // splice response-shape sweep: contributions that survived to the
+        // end of the program never observed an answer — record them as
+        // silence and log the run's full shape summary. Silence is not a
+        // violation: only acceptance is unambiguous.
+        let silent: Vec<ChannelId> = self.splice_contributions.keys().copied().collect();
+        for channel_id in silent {
+            self.splice_response_shapes
+                .insert(channel_id, SpliceResponseShape::Silent);
+        }
+        log::debug!("splice response shapes: {:?}", self.splice_response_shapes);
 
         Ok(())
     }

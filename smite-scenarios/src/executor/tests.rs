@@ -1733,6 +1733,165 @@ fn execute_recv_tx_abort_after_bad_tx_add_input() {
 }
 
 #[test]
+fn execute_out_of_band_splice_ack_balance_violation_detected() {
+    // Overdrawn splice-out answered by a splice_ack while the program waits
+    // for tx_complete: the ack arrives out of band but must still be judged
+    // by the balance oracle.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    // The u64 two's-complement encoding of -8_000_000 satoshis, a
+    // 8_000_000_000 msat splice-out against a 7_000_000_000 msat balance.
+    let overdraw = b.append(Operation::LoadAmount((-8_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    b.append(
+        Operation::SendSpliceInit,
+        &[cid, overdraw, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvTxComplete, &[]);
+
+    let ack = Message::SpliceAck(SpliceAck {
+        channel_id,
+        funding_contribution_satoshis: 0,
+        funding_pubkey: sample_context().target_pubkey,
+        tlvs: SpliceAckTlvs::default(),
+    });
+    let mut fx = recv_funding_signed_fixture().queue(&ack);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::Violation(Violation::InvalidSpliceAck(c, _)) if c == channel_id
+        ),
+        "expected out-of-band splice balance violation, got {err:?}"
+    );
+    assert_eq!(
+        fx.splice_response_shape(&channel_id),
+        Some(SpliceResponseShape::Acked)
+    );
+}
+
+#[test]
+fn execute_splice_init_answered_by_tx_abort_is_unexpected_not_violation() {
+    // Overdrawn splice-out answered by tx_abort while the program waits for
+    // splice_ack: the rejection is correct target behavior, so the run fails
+    // on the mismatched expectation only and the shape is recorded as
+    // Aborted.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let overdraw = b.append(Operation::LoadAmount((-8_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent_init = b.append(
+        Operation::SendSpliceInit,
+        &[cid, overdraw, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent_init]);
+
+    let abort = Message::TxAbort(TxAbort::new(channel_id, "overdrawn splice"));
+    let mut fx = recv_funding_signed_fixture().queue(&abort);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::UnexpectedMessage {
+                expected: MessageType::SPLICE_ACK,
+                got: MessageType::TX_ABORT,
+            }
+        ),
+        "expected unexpected-message, got {err:?}"
+    );
+    assert!(!matches!(err, ExecuteError::Violation(_)));
+    assert_eq!(
+        fx.splice_response_shape(&channel_id),
+        Some(SpliceResponseShape::Aborted)
+    );
+}
+
+#[test]
+fn execute_splice_init_answered_by_error_is_peer_error_not_violation() {
+    // Overdrawn splice-out answered by a BOLT error for the channel: a
+    // valid rejection, so the PeerError surfaces unchanged and the shape is
+    // recorded as Errored.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let overdraw = b.append(Operation::LoadAmount((-8_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent_init = b.append(
+        Operation::SendSpliceInit,
+        &[cid, overdraw, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent_init]);
+
+    let error = Message::Error(smite::bolt::Error::for_channel(
+        channel_id,
+        "overdrawn splice",
+    ));
+    let mut fx = recv_funding_signed_fixture().queue(&error);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(&err, ExecuteError::PeerError(e) if e.channel_id == channel_id),
+        "expected peer error, got {err:?}"
+    );
+    assert!(!matches!(err, ExecuteError::Violation(_)));
+    assert_eq!(
+        fx.splice_response_shape(&channel_id),
+        Some(SpliceResponseShape::Errored)
+    );
+}
+
+#[test]
+fn execute_splice_init_silence_records_silent_shape() {
+    // Overdrawn splice-out the target never answers: the program's actual
+    // expectation (tx_complete) is met and the run succeeds, with the
+    // contribution swept as Silent. Silence is not judged — only
+    // acceptance is unambiguous.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let overdraw = b.append(Operation::LoadAmount((-8_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    b.append(
+        Operation::SendSpliceInit,
+        &[cid, overdraw, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvTxComplete, &[]);
+
+    let done = Message::TxComplete(TxComplete { channel_id });
+    let mut fx = recv_funding_signed_fixture().queue(&done);
+    fx.run(&b.build());
+
+    assert_eq!(
+        fx.splice_response_shape(&channel_id),
+        Some(SpliceResponseShape::Silent)
+    );
+}
+
+#[test]
 fn execute_recv_channel_ready_invalid_funding_outpoint_is_noop() {
     // Corrupt the negotiated acceptor funding pubkey so the broadcast funding
     // transaction's output no longer pays the negotiated 2-of-2 script,

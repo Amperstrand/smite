@@ -170,6 +170,11 @@ impl Fixture {
         self.executor.conn.recv_queue.len()
     }
 
+    /// Returns the recorded response shape for a splice we initiated on `id`.
+    pub fn splice_response_shape(&self, id: &ChannelId) -> Option<SpliceResponseShape> {
+        self.executor.splice_response_shapes.get(id).copied()
+    }
+
     /// Runs `program` against the target, panicking if execution fails.
     pub fn run(&mut self, program: &Program) {
         self.executor
