@@ -449,6 +449,16 @@ pub enum Operation {
     ///                                  are zero-padded)
     ///   2: `next_per_commitment_point` (`Point`)
     SendRevokeAndAck,
+    /// Receive and parse the target's `revoke_and_ack` for our
+    /// `commitment_signed`. Produces a `RevokeAndAck` variable.
+    /// Input: `SentCommitmentSigned` (affine).
+    RecvRevokeAndAck,
+    /// Receive and parse a `commitment_signed` message from the target.
+    /// Produces a `CommitmentSigned` variable.
+    ///
+    /// Ungated (no variable inputs): the target may sign whenever it has
+    /// pending changes, including ones it initiated.
+    RecvCommitmentSigned,
 }
 
 /// A BOLT 2 compliant `upfront_shutdown_script` template.
@@ -770,6 +780,8 @@ impl fmt::Display for Operation {
             Self::SendUpdateAddHtlc => write!(f, "SendUpdateAddHtlc"),
             Self::SendCommitmentSigned => write!(f, "SendCommitmentSigned"),
             Self::SendRevokeAndAck => write!(f, "SendRevokeAndAck"),
+            Self::RecvRevokeAndAck => write!(f, "RecvRevokeAndAck"),
+            Self::RecvCommitmentSigned => write!(f, "RecvCommitmentSigned()"),
             Self::RecvAcceptChannel => write!(f, "RecvAcceptChannel"),
             Self::RecvFundingSigned => write!(f, "RecvFundingSigned"),
             Self::RecvChannelReady => write!(f, "RecvChannelReady()"),
@@ -841,6 +853,8 @@ impl Operation {
             Self::SendUpdateAddHtlc => Some(VariableType::SentUpdateAddHtlc),
             Self::SendCommitmentSigned => Some(VariableType::SentCommitmentSigned),
             Self::SendRevokeAndAck => Some(VariableType::SentRevokeAndAck),
+            Self::RecvRevokeAndAck => Some(VariableType::RevokeAndAck),
+            Self::RecvCommitmentSigned => Some(VariableType::CommitmentSigned),
             Self::RecvAcceptChannel => Some(VariableType::AcceptChannel),
         }
     }
@@ -874,6 +888,7 @@ impl Operation {
             | Self::RecvChannelReady
             | Self::RecvTxAbort
             | Self::RecvTxComplete
+            | Self::RecvCommitmentSigned
             | Self::MineBlocks(_) => vec![],
 
             Self::DerivePoint => vec![VariableType::PrivateKey],
@@ -1041,6 +1056,7 @@ impl Operation {
             ],
             Self::RecvSpliceAck => vec![VariableType::SentSpliceInit],
             Self::RecvSpliceLocked => vec![VariableType::SentSpliceAck],
+            Self::RecvRevokeAndAck => vec![VariableType::SentCommitmentSigned],
             Self::BroadcastTransaction | Self::LookupShortChannelId => {
                 vec![VariableType::FundingTransaction]
             }
@@ -1107,6 +1123,8 @@ impl Operation {
             | Self::RecvChannelReady
             | Self::RecvSpliceAck
             | Self::RecvSpliceLocked
+            | Self::RecvCommitmentSigned
+            | Self::RecvRevokeAndAck
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => vec![],
@@ -1183,6 +1201,8 @@ impl Operation {
             | Self::SendRevokeAndAck
             | Self::RecvTxAbort
             | Self::RecvTxComplete
+            | Self::RecvCommitmentSigned
+            | Self::RecvRevokeAndAck
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction => true,
         }
@@ -1260,6 +1280,8 @@ impl Operation {
             | Self::RecvSpliceLocked
             | Self::RecvTxAbort
             | Self::RecvTxComplete
+            | Self::RecvCommitmentSigned
+            | Self::RecvRevokeAndAck
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => false,
@@ -1336,6 +1358,8 @@ impl Operation {
             | Self::SendRevokeAndAck
             | Self::RecvTxAbort
             | Self::RecvTxComplete
+            | Self::RecvCommitmentSigned
+            | Self::RecvRevokeAndAck
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => false,
         }

@@ -5,8 +5,8 @@
 
 use bitcoin::secp256k1::PublicKey;
 use smite::bolt::{
-    AcceptChannel, ChannelId, OpenChannel, ShortChannelId, SpliceAck, SpliceLocked, TxAbort,
-    TxComplete,
+    AcceptChannel, ChannelId, CommitmentSigned, OpenChannel, RevokeAndAck, ShortChannelId,
+    SpliceAck, SpliceLocked, TxAbort, TxComplete,
 };
 use smite::channel_tx::FundingTransaction;
 
@@ -66,6 +66,10 @@ pub enum Variable {
     TxAbort(TxAbort),
     /// Parsed `tx_complete` message received from the target.
     TxComplete(TxComplete),
+    /// Parsed `commitment_signed` message received from the target.
+    CommitmentSigned(CommitmentSigned),
+    /// Parsed `revoke_and_ack` message received from the target.
+    RevokeAndAck(RevokeAndAck),
 
     // Affine (single-use) variables
     /// `open_channel` has been sent, so `accept_channel` may now be received.
@@ -135,6 +139,8 @@ impl Variable {
             Self::SpliceLocked(_) => VariableType::SpliceLocked,
             Self::TxAbort(_) => VariableType::TxAbort,
             Self::TxComplete(_) => VariableType::TxComplete,
+            Self::CommitmentSigned(_) => VariableType::CommitmentSigned,
+            Self::RevokeAndAck(_) => VariableType::RevokeAndAck,
             Self::SentOpenChannel => VariableType::SentOpenChannel,
             Self::SentFundingCreated => VariableType::SentFundingCreated,
             Self::SentShutdown => VariableType::SentShutdown,
@@ -184,6 +190,8 @@ pub enum VariableType {
     SpliceLocked,
     TxAbort,
     TxComplete,
+    CommitmentSigned,
+    RevokeAndAck,
     SentOpenChannel,
     SentFundingCreated,
     SentShutdown,
@@ -235,6 +243,8 @@ impl VariableType {
             | Self::SpliceLocked
             | Self::TxAbort
             | Self::TxComplete
+            | Self::CommitmentSigned
+            | Self::RevokeAndAck
             | Self::PrivateKey
             | Self::Amount
             | Self::FeeratePerKw

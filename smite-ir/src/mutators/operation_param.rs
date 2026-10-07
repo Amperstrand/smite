@@ -154,6 +154,8 @@ fn mutate_operation(op: &mut Operation, rng: &mut impl Rng) -> bool {
         | Operation::RecvSpliceLocked
         | Operation::RecvTxAbort
         | Operation::RecvTxComplete
+        | Operation::RecvCommitmentSigned
+        | Operation::RecvRevokeAndAck
         | Operation::RecvChannelReady
         | Operation::BroadcastTransaction
         | Operation::LookupShortChannelId => {

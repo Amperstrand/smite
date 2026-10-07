@@ -992,6 +992,25 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     Some(Variable::TxComplete(tc))
                 }
 
+                Operation::RecvRevokeAndAck => {
+                    consume_affine(
+                        &mut variables,
+                        instr.inputs[0],
+                        instr.operation.input_types()[0],
+                    );
+                    log::debug!("[{:?}] RecvRevokeAndAck: waiting", start.elapsed());
+                    let raa: RevokeAndAck = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
+                    log::debug!("[{:?}] RecvRevokeAndAck: received", start.elapsed());
+                    Some(Variable::RevokeAndAck(raa))
+                }
+
+                Operation::RecvCommitmentSigned => {
+                    log::debug!("[{:?}] RecvCommitmentSigned: waiting", start.elapsed());
+                    let cs: CommitmentSigned = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
+                    log::debug!("[{:?}] RecvCommitmentSigned: received", start.elapsed());
+                    Some(Variable::CommitmentSigned(cs))
+                }
+
                 Operation::RecvFundingSigned => {
                     consume_affine(
                         &mut variables,

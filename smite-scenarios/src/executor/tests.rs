@@ -1414,6 +1414,39 @@ fn execute_send_commitment_family() {
 }
 
 #[test]
+fn execute_commitment_dance_recvs() {
+    // Our commitment_signed gates the target's revoke_and_ack; the
+    // target's commitment_signed is ungated (it may sign its own changes).
+    let channel_id = ChannelId::new([0x93; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let sig = b.append(Operation::LoadBytes(vec![0x00; 64]), &[]);
+    let sent_cs = b.append(Operation::SendCommitmentSigned, &[channel_id_var, sig]);
+    b.append(Operation::RecvRevokeAndAck, &[sent_cs]);
+    b.append(Operation::RecvCommitmentSigned, &[]);
+
+    let raa = Message::RevokeAndAck(RevokeAndAck {
+        channel_id,
+        per_commitment_secret: [0x11; 32],
+        next_per_commitment_point: sample_context().target_pubkey,
+    });
+    let cs = Message::CommitmentSigned(CommitmentSigned {
+        channel_id,
+        signature: Signature::from_compact(&[0u8; 64]).unwrap(),
+        htlc_signatures: Vec::new(),
+        tlvs: CommitmentSignedTlvs::default(),
+    });
+    let mut fx = Fixture::new().queue(&raa).queue(&cs);
+    fx.run(&b.build());
+
+    // Both receives succeeded and drained the queue; only the
+    // commitment_signed was sent.
+    assert_eq!(fx.queued_len(), 0);
+    assert_eq!(fx.sent_len(), 1);
+}
+
+#[test]
 fn execute_quiescence_violation_detected() {
     // stfu + splice engagement establishes quiescence; a shutdown from the
     // target afterwards breaks the BOLT 2 allowed-message set.

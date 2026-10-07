@@ -226,7 +226,9 @@ impl ProgramBuilder {
             VariableType::SpliceAck
             | VariableType::SpliceLocked
             | VariableType::TxAbort
-            | VariableType::TxComplete => {
+            | VariableType::TxComplete
+            | VariableType::CommitmentSigned
+            | VariableType::RevokeAndAck => {
                 panic!("cannot generate fresh protocol response: requires protocol interaction")
             }
             VariableType::FundingTransaction => {
