@@ -493,6 +493,16 @@ pub enum Operation {
     ///   2: `next_revocation_number`     (`U32`, widened to u64)
     ///   3: `my_current_per_commitment_point` (`Point`)
     SendChannelReestablish,
+    /// Build and send an `update_fail_malformed_htlc` message (BOLT 2,
+    /// type 135). Produces a `SentUpdateFailMalformedHtlc` variable.
+    ///
+    /// Inputs (4):
+    ///   0: `channel_id`      (`ChannelId`)
+    ///   1: `id`              (`U32`, widened to u64)
+    ///   2: `sha256_of_onion` (`Bytes`, 32 bytes; shorter inputs are
+    ///                         zero-padded)
+    ///   3: `failure_code`    (`U16`)
+    SendUpdateFailMalformedHtlc,
 }
 
 /// A BOLT 2 compliant `upfront_shutdown_script` template.
@@ -819,6 +829,7 @@ impl fmt::Display for Operation {
             Self::SendUpdateFailHtlc => write!(f, "SendUpdateFailHtlc"),
             Self::SendUpdateFulfillHtlc => write!(f, "SendUpdateFulfillHtlc"),
             Self::SendChannelReestablish => write!(f, "SendChannelReestablish"),
+            Self::SendUpdateFailMalformedHtlc => write!(f, "SendUpdateFailMalformedHtlc"),
             Self::RecvAcceptChannel => write!(f, "RecvAcceptChannel"),
             Self::RecvFundingSigned => write!(f, "RecvFundingSigned"),
             Self::RecvChannelReady => write!(f, "RecvChannelReady()"),
@@ -895,6 +906,7 @@ impl Operation {
             Self::SendUpdateFailHtlc => Some(VariableType::SentUpdateFailHtlc),
             Self::SendUpdateFulfillHtlc => Some(VariableType::SentUpdateFulfillHtlc),
             Self::SendChannelReestablish => Some(VariableType::SentChannelReestablish),
+            Self::SendUpdateFailMalformedHtlc => Some(VariableType::SentUpdateFailMalformedHtlc),
             Self::RecvAcceptChannel => Some(VariableType::AcceptChannel),
         }
     }
@@ -1113,6 +1125,12 @@ impl Operation {
                 VariableType::U32,       // next_revocation_number (u64)
                 VariableType::Point,     // my_current_per_commitment_point
             ],
+            Self::SendUpdateFailMalformedHtlc => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U32,       // id (widened to u64)
+                VariableType::Bytes,     // sha256_of_onion (32 bytes)
+                VariableType::U16,       // failure_code
+            ],
             Self::BroadcastTransaction | Self::LookupShortChannelId => {
                 vec![VariableType::FundingTransaction]
             }
@@ -1184,6 +1202,7 @@ impl Operation {
             | Self::SendUpdateFailHtlc
             | Self::SendUpdateFulfillHtlc
             | Self::SendChannelReestablish
+            | Self::SendUpdateFailMalformedHtlc
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => vec![],
@@ -1265,6 +1284,7 @@ impl Operation {
             | Self::SendUpdateFailHtlc
             | Self::SendUpdateFulfillHtlc
             | Self::SendChannelReestablish
+            | Self::SendUpdateFailMalformedHtlc
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction => true,
         }
@@ -1328,7 +1348,8 @@ impl Operation {
             | Self::SendRevokeAndAck
             | Self::SendUpdateFailHtlc
             | Self::SendUpdateFulfillHtlc
-            | Self::SendChannelReestablish => true,
+            | Self::SendChannelReestablish
+            | Self::SendUpdateFailMalformedHtlc => true,
             // `CreateFundingTransaction` selects coins from the wallet, whose
             // contents change as transactions are created and broadcast.
             // `SendFundingCreated` builds its message from the recorded
@@ -1428,6 +1449,7 @@ impl Operation {
             | Self::SendUpdateFailHtlc
             | Self::SendUpdateFulfillHtlc
             | Self::SendChannelReestablish
+            | Self::SendUpdateFailMalformedHtlc
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => false,
         }

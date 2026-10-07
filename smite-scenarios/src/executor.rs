@@ -17,8 +17,8 @@ use smite::bolt::{
     ShortChannelId, Shutdown, SpliceAck, SpliceAckTlvs, SpliceInit, SpliceInitTlvs, SpliceLocked,
     Stfu, TemporaryChannelId, TxAbort, TxAckRbf, TxAckRbfTlvs, TxAddInput, TxAddInputTlvs,
     TxAddOutput, TxComplete, TxInitRbf, TxInitRbfTlvs, TxSignatures, TxSignaturesTlvs,
-    UpdateAddHtlc, UpdateAddHtlcTlvs, UpdateFailHtlc, UpdateFailHtlcTlvs, UpdateFulfillHtlc,
-    UpdateFulfillHtlcTlvs,
+    UpdateAddHtlc, UpdateAddHtlcTlvs, UpdateFailHtlc, UpdateFailHtlcTlvs, UpdateFailMalformedHtlc,
+    UpdateFulfillHtlc, UpdateFulfillHtlcTlvs,
 };
 use smite::channel_tx::{
     ChannelConfig, ChannelPartyConfig, ChannelState, FundingTransaction, HolderIdentity, Side,
@@ -961,6 +961,32 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     );
                     self.conn.send_message(&encoded)?;
                     Some(Variable::SentChannelReestablish)
+                }
+
+                Operation::SendUpdateFailMalformedHtlc => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let id = u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let onion_hash_bytes = resolve_bytes(&variables, instr.inputs[2]);
+                    // Zero-padded copy: same mutator-shrink rationale as the
+                    // other fixed-width fields.
+                    let mut sha256_of_onion = [0u8; 32];
+                    let n = onion_hash_bytes.len().min(32);
+                    sha256_of_onion[..n].copy_from_slice(&onion_hash_bytes[..n]);
+                    let failure_code = resolve_u16(&variables, instr.inputs[3]);
+                    let msg = UpdateFailMalformedHtlc {
+                        channel_id,
+                        id,
+                        sha256_of_onion: sha256::Hash::from_byte_array(sha256_of_onion),
+                        failure_code,
+                    };
+                    let encoded = Message::UpdateFailMalformedHtlc(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendUpdateFailMalformedHtlc: {} bytes (id={id}, failure_code={failure_code})",
+                        start.elapsed(),
+                        encoded.len(),
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentUpdateFailMalformedHtlc)
                 }
 
                 Operation::SendCommitmentSigned => {

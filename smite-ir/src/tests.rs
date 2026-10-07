@@ -830,6 +830,11 @@ fn operation_variant_discriminants_are_frozen() {
             include_shared_input_txid: false,
         },
         Operation::RecvTxAbort,
+        Operation::SendUpdateAddHtlc,
+        Operation::SendUpdateFailHtlc,
+        Operation::SendUpdateFulfillHtlc,
+        Operation::SendUpdateFailMalformedHtlc,
+        Operation::SendChannelReestablish,
     ] {
         assert!(
             index(&op) >= PRE_SESSION_VARIANT_COUNT,

@@ -1510,6 +1510,32 @@ fn execute_send_channel_reestablish() {
 }
 
 #[test]
+fn execute_send_update_fail_malformed_htlc() {
+    let channel_id = ChannelId::new([0x8b; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let htlc_id = b.append(Operation::LoadU32(4), &[]);
+    // 2-byte onion hash must reach the wire zero-padded.
+    let onion_hash = b.append(Operation::LoadBytes(vec![0xce, 0x11]), &[]);
+    let failure_code = b.append(Operation::LoadU16(0x4000), &[]);
+    b.append(
+        Operation::SendUpdateFailMalformedHtlc,
+        &[channel_id_var, htlc_id, onion_hash, failure_code],
+    );
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    let fail: UpdateFailMalformedHtlc = fx.sent(0);
+    assert_eq!(fail.id, 4);
+    let mut expected = [0u8; 32];
+    expected[..2].copy_from_slice(&[0xce, 0x11]);
+    assert_eq!(fail.sha256_of_onion.to_byte_array(), expected);
+    assert_eq!(fail.failure_code, 0x4000);
+}
+
+#[test]
 fn execute_splice_ack_balance_violation_detected() {
     // Funding flow to a tracked channel (opener balance
     // 10_000_000_000 - 3_000_000_000 = 7_000_000_000 msat), then a
