@@ -20,6 +20,13 @@ mutator soak, 1184 tests green, all gates (`clippy -D warnings`, `fmt`,
 - **Docker egress re-probed, still broken** in the dev container
   (apt hangs inside containers; host HTTPS fine). The differential run
   stays deferred to hardware per stage 1 below.
+- **`check-bolt-msg-type-order.sh` had been failing unnoticed** since
+  the splice dispatch landed (`TX_ABORT` declared out of canonical
+  order, and the splice messages were missing from the roundtrip tests
+  and `message_type_values`). Fixed: `TxAbort` reordered into canonical
+  position across all seven checked blocks, three splice roundtrip
+  tests and `message_type_values` entries added. Latent only because
+  Actions has never run — see the first gate item.
 
 ## Next stages, in value order
 
@@ -51,6 +58,19 @@ The executor's `channel_states` hold the negotiated
 observable client-side. A splice-out exceeding our balance MUST be
 rejected by the target — detecting the rejection needs response-shape
 observation (abort vs silence vs ack), which is the missing piece.
+
+Status: the ack path landed as `SpliceAckOracle` (in-band judgment in
+`RecvSpliceAck`), and response-shape observation now covers the rest:
+`recv_tracked` classifies every answer to a splice we initiated —
+`tx_abort` (Aborted), BOLT `error` (Errored), out-of-band `splice_ack`
+(still judged by `SpliceAckOracle` even when the program expected a
+different message), and end-of-program silence (Silent, logged in the
+run summary; not judged — only acceptance is unambiguous). Rejection
+shapes drain the pending contribution instead of leaking it. Still
+open: summing `tx_add_input`/`tx_add_output` interactive-tx
+contributions into the conservation check, and adjusting
+`channel_states` balances after a completed splice so sequential
+splices are not judged against a stale balance.
 
 ### 4. VLS integration (needs owner input)
 No VLS code exists in this repo or its remotes. If "VLS" means Validating
