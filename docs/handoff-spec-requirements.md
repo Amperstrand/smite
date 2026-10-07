@@ -6,6 +6,21 @@ generators including stateful live-channel flows, two stateful oracles,
 mutator soak, 1184 tests green, all gates (`clippy -D warnings`, `fmt`,
 `build --features nyx`) clean.
 
+## Gate status (post stand-down re-check)
+
+- **PR #1**: OPEN, mergeable, no reviews yet. `ffa3860..` pushed.
+- **Actions has never run on this repo** (zero workflow runs, zero check
+  runs on the head SHA) despite `actions/permissions.enabled = true` and
+  the workflow targeting `pull_request` → `master`. The new pipeline gate
+  step is locally verified but has never executed on a GitHub runner.
+  Owner action: visit the repo's Actions tab (GitHub often defers
+  workflow initialization until first visit / explicit enable on forks);
+  if runs then appear, confirm the `Spec-derived seed pipeline gate` step
+  passes.
+- **Docker egress re-probed, still broken** in the dev container
+  (apt hangs inside containers; host HTTPS fine). The differential run
+  stays deferred to hardware per stage 1 below.
+
 ## Next stages, in value order
 
 ### 1. Differential seed run (blocked here, ready to run)
