@@ -1481,6 +1481,35 @@ fn execute_send_htlc_fail_fulfill() {
 }
 
 #[test]
+fn execute_send_channel_reestablish() {
+    let channel_id = ChannelId::new([0x87; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let next_commitment = b.append(Operation::LoadU32(1), &[]);
+    let next_revocation = b.append(Operation::LoadU32(0), &[]);
+    let point = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    b.append(
+        Operation::SendChannelReestablish,
+        &[channel_id_var, next_commitment, next_revocation, point],
+    );
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    let cr: ChannelReestablish = fx.sent(0);
+    assert_eq!(cr.channel_id, channel_id);
+    assert_eq!(cr.next_commitment_number, 1);
+    assert_eq!(cr.next_revocation_number, 0);
+    assert_eq!(cr.your_last_per_commitment_secret, [0u8; 32]);
+    assert_eq!(
+        cr.my_current_per_commitment_point,
+        sample_context().target_pubkey
+    );
+    assert_eq!(cr.tlvs, ChannelReestablishTlvs::default());
+}
+
+#[test]
 fn execute_splice_ack_balance_violation_detected() {
     // Funding flow to a tracked channel (opener balance
     // 10_000_000_000 - 3_000_000_000 = 7_000_000_000 msat), then a

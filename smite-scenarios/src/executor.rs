@@ -11,13 +11,14 @@ use bitcoin::{OutPoint, ScriptBuf, Txid};
 use smite::bitcoin::{BitcoinCli, TxBlockPosition, Utxo};
 use smite::bolt::{
     AcceptChannel, AnnouncementSignatures, ChannelAnnouncement, ChannelId, ChannelReady,
-    ChannelReadyTlvs, ChannelUpdate, CommitmentSigned, CommitmentSignedTlvs, Features, FromMessage,
-    FundingCreated, FundingSigned, Message, MessageType, NodeAnnouncement, OpenChannel,
-    OpenChannelTlvs, Pong, RevokeAndAck, ShortChannelId, Shutdown, SpliceAck, SpliceAckTlvs,
-    SpliceInit, SpliceInitTlvs, SpliceLocked, Stfu, TemporaryChannelId, TxAbort, TxAckRbf,
-    TxAckRbfTlvs, TxAddInput, TxAddInputTlvs, TxAddOutput, TxComplete, TxInitRbf, TxInitRbfTlvs,
-    TxSignatures, TxSignaturesTlvs, UpdateAddHtlc, UpdateAddHtlcTlvs, UpdateFailHtlc,
-    UpdateFailHtlcTlvs, UpdateFulfillHtlc, UpdateFulfillHtlcTlvs,
+    ChannelReadyTlvs, ChannelReestablish, ChannelReestablishTlvs, ChannelUpdate, CommitmentSigned,
+    CommitmentSignedTlvs, Features, FromMessage, FundingCreated, FundingSigned, Message,
+    MessageType, NodeAnnouncement, OpenChannel, OpenChannelTlvs, Pong, RevokeAndAck,
+    ShortChannelId, Shutdown, SpliceAck, SpliceAckTlvs, SpliceInit, SpliceInitTlvs, SpliceLocked,
+    Stfu, TemporaryChannelId, TxAbort, TxAckRbf, TxAckRbfTlvs, TxAddInput, TxAddInputTlvs,
+    TxAddOutput, TxComplete, TxInitRbf, TxInitRbfTlvs, TxSignatures, TxSignaturesTlvs,
+    UpdateAddHtlc, UpdateAddHtlcTlvs, UpdateFailHtlc, UpdateFailHtlcTlvs, UpdateFulfillHtlc,
+    UpdateFulfillHtlcTlvs,
 };
 use smite::channel_tx::{
     ChannelConfig, ChannelPartyConfig, ChannelState, FundingTransaction, HolderIdentity, Side,
@@ -934,6 +935,32 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     );
                     self.conn.send_message(&encoded)?;
                     Some(Variable::SentUpdateFulfillHtlc)
+                }
+
+                Operation::SendChannelReestablish => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let next_commitment_number =
+                        u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let next_revocation_number =
+                        u64::from(resolve_u32(&variables, instr.inputs[2]));
+                    let my_current_per_commitment_point =
+                        resolve_pubkey(&variables, instr.inputs[3]);
+                    let msg = ChannelReestablish {
+                        channel_id,
+                        next_commitment_number,
+                        next_revocation_number,
+                        your_last_per_commitment_secret: [0u8; 32],
+                        my_current_per_commitment_point,
+                        tlvs: ChannelReestablishTlvs::default(),
+                    };
+                    let encoded = Message::ChannelReestablish(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendChannelReestablish: {} bytes (next_commitment_number={next_commitment_number})",
+                        start.elapsed(),
+                        encoded.len(),
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentChannelReestablish)
                 }
 
                 Operation::SendCommitmentSigned => {

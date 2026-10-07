@@ -113,6 +113,8 @@ pub enum Variable {
     SentUpdateFailHtlc,
     /// `update_fulfill_htlc` has been sent.
     SentUpdateFulfillHtlc,
+    /// `channel_reestablish` has been sent.
+    SentChannelReestablish,
 }
 
 impl Variable {
@@ -165,6 +167,7 @@ impl Variable {
             Self::SentRevokeAndAck => VariableType::SentRevokeAndAck,
             Self::SentUpdateFailHtlc => VariableType::SentUpdateFailHtlc,
             Self::SentUpdateFulfillHtlc => VariableType::SentUpdateFulfillHtlc,
+            Self::SentChannelReestablish => VariableType::SentChannelReestablish,
         }
     }
 }
@@ -218,6 +221,7 @@ pub enum VariableType {
     SentRevokeAndAck,
     SentUpdateFailHtlc,
     SentUpdateFulfillHtlc,
+    SentChannelReestablish,
 }
 
 impl VariableType {
@@ -243,7 +247,8 @@ impl VariableType {
             | Self::SentCommitmentSigned
             | Self::SentRevokeAndAck
             | Self::SentUpdateFailHtlc
-            | Self::SentUpdateFulfillHtlc => true,
+            | Self::SentUpdateFulfillHtlc
+            | Self::SentChannelReestablish => true,
 
             Self::Bytes
             | Self::ChainHash

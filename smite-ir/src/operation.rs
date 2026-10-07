@@ -480,6 +480,19 @@ pub enum Operation {
     ///   2: `payment_preimage` (`Bytes`, 32 bytes; shorter inputs are
     ///                          zero-padded)
     SendUpdateFulfillHtlc,
+    /// Build and send a `channel_reestablish` message (BOLT 2, type 136).
+    /// Produces a `SentChannelReestablish` variable.
+    ///
+    /// The `your_last_per_commitment_secret` is all zeroes and the TLVs
+    /// are omitted (defaults), matching a fresh reconnection with no
+    /// history to resume.
+    ///
+    /// Inputs (4):
+    ///   0: `channel_id`                 (`ChannelId`)
+    ///   1: `next_commitment_number`     (`U32`, widened to u64)
+    ///   2: `next_revocation_number`     (`U32`, widened to u64)
+    ///   3: `my_current_per_commitment_point` (`Point`)
+    SendChannelReestablish,
 }
 
 /// A BOLT 2 compliant `upfront_shutdown_script` template.
@@ -805,6 +818,7 @@ impl fmt::Display for Operation {
             Self::RecvCommitmentSigned => write!(f, "RecvCommitmentSigned()"),
             Self::SendUpdateFailHtlc => write!(f, "SendUpdateFailHtlc"),
             Self::SendUpdateFulfillHtlc => write!(f, "SendUpdateFulfillHtlc"),
+            Self::SendChannelReestablish => write!(f, "SendChannelReestablish"),
             Self::RecvAcceptChannel => write!(f, "RecvAcceptChannel"),
             Self::RecvFundingSigned => write!(f, "RecvFundingSigned"),
             Self::RecvChannelReady => write!(f, "RecvChannelReady()"),
@@ -880,6 +894,7 @@ impl Operation {
             Self::RecvCommitmentSigned => Some(VariableType::CommitmentSigned),
             Self::SendUpdateFailHtlc => Some(VariableType::SentUpdateFailHtlc),
             Self::SendUpdateFulfillHtlc => Some(VariableType::SentUpdateFulfillHtlc),
+            Self::SendChannelReestablish => Some(VariableType::SentChannelReestablish),
             Self::RecvAcceptChannel => Some(VariableType::AcceptChannel),
         }
     }
@@ -1092,6 +1107,12 @@ impl Operation {
                 VariableType::U32,       // id (widened to u64)
                 VariableType::Bytes,     // payment_preimage (32 bytes)
             ],
+            Self::SendChannelReestablish => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U32,       // next_commitment_number (u64)
+                VariableType::U32,       // next_revocation_number (u64)
+                VariableType::Point,     // my_current_per_commitment_point
+            ],
             Self::BroadcastTransaction | Self::LookupShortChannelId => {
                 vec![VariableType::FundingTransaction]
             }
@@ -1162,6 +1183,7 @@ impl Operation {
             | Self::RecvRevokeAndAck
             | Self::SendUpdateFailHtlc
             | Self::SendUpdateFulfillHtlc
+            | Self::SendChannelReestablish
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => vec![],
@@ -1242,6 +1264,7 @@ impl Operation {
             | Self::RecvRevokeAndAck
             | Self::SendUpdateFailHtlc
             | Self::SendUpdateFulfillHtlc
+            | Self::SendChannelReestablish
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction => true,
         }
@@ -1304,7 +1327,8 @@ impl Operation {
             | Self::SendCommitmentSigned
             | Self::SendRevokeAndAck
             | Self::SendUpdateFailHtlc
-            | Self::SendUpdateFulfillHtlc => true,
+            | Self::SendUpdateFulfillHtlc
+            | Self::SendChannelReestablish => true,
             // `CreateFundingTransaction` selects coins from the wallet, whose
             // contents change as transactions are created and broadcast.
             // `SendFundingCreated` builds its message from the recorded
@@ -1403,6 +1427,7 @@ impl Operation {
             | Self::RecvRevokeAndAck
             | Self::SendUpdateFailHtlc
             | Self::SendUpdateFulfillHtlc
+            | Self::SendChannelReestablish
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => false,
         }
