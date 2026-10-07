@@ -37,6 +37,53 @@ fn assert_well_formed(program: &Program) {
     }
 }
 
+/// Mutator soak: the custom mutators must preserve program validity by
+/// construction — every mutated program still type-checks and still
+/// postcard-roundtrips. This is the harness that catches mutator/enum
+/// drift classes (e.g. an op becoming param-mutable without a mutate arm,
+/// or a generator emitting an executor-panicking shape) before a campaign
+/// pays for them.
+#[test]
+fn mutator_soak_preserves_program_validity() {
+    let op_param = OperationParamMutator;
+    let input_swap = InputSwapMutator;
+    let instr_delete = InstructionDeleteMutator;
+    let instr_reorder = InstructionReorderMutator;
+
+    for seed in 0..25u32 {
+        let mut rng = SmallRng::seed_from_u64(u64::from(seed));
+        let generator = AnyGenerator::ALL[(seed as usize) % AnyGenerator::ALL.len()];
+        let mut builder = ProgramBuilder::new();
+        generator.generate(&mut builder, &mut rng);
+        let mut program = builder.build();
+
+        for _ in 0..200 {
+            match rng.random_range(0..5) {
+                0 => {
+                    op_param.mutate(&mut program, &mut rng);
+                }
+                1 => {
+                    input_swap.mutate(&mut program, &mut rng);
+                }
+                2 => {
+                    instr_delete.mutate(&mut program, &mut rng);
+                }
+                3 => {
+                    instr_reorder.mutate(&mut program, &mut rng);
+                }
+                _ => {
+                    let generator = AnyGenerator::ALL[rng.random_range(0..AnyGenerator::ALL.len())];
+                    GeneratorInsertionMutator::new(generator).mutate(&mut program, &mut rng);
+                }
+            }
+            assert_well_formed(&program);
+            let bytes = postcard::to_allocvec(&program).expect("mutated program serializes");
+            let decoded: Program = postcard::from_bytes(&bytes).expect("mutated program decodes");
+            assert_eq!(decoded, program, "postcard roundtrip changed the program");
+        }
+    }
+}
+
 /// Returns the index of the first instruction in `$program` whose operation
 /// matches `$pattern`.
 ///
