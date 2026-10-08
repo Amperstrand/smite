@@ -6,6 +6,20 @@ generators including stateful live-channel flows, two stateful oracles,
 mutator soak, 1184 tests green, all gates (`clippy -D warnings`, `fmt`,
 `build --features nyx`) clean.
 
+## Gate summary (fleet sweep, 131e5bf)
+
+All local gates green at `131e5bf` (pushed): 1196 tests, 0 failures
+(`smite` 786 incl. three splice roundtrips, `smite-scenarios` 82 incl.
+four response-shape tests); `clippy --all-targets --all-features
+-D warnings` clean; `cargo fmt --all --check` clean; `build --features
+nyx` clean; `check-bolt-msg-type-order.sh` all seven blocks OK;
+seed pipeline gate 95/95 postcard roundtrips, `verify_seeds` pass,
+473 requirements / 0 drift. Splice response-shape observation landed
+(see stage 3). No further stages are executable from this container:
+stage 1 needs working docker egress, stage 2 needs KVM/Nyx hardware,
+stage 3's remaining extensions are design decisions (see below),
+stage 4 needs a VLS pointer. Standing by.
+
 ## Gate status (post stand-down re-check)
 
 - **PR #1**: OPEN, mergeable, no reviews yet. `ffa3860..` pushed.
