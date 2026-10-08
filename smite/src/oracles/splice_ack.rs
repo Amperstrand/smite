@@ -30,6 +30,16 @@ impl SpliceAckContext<'_> {
             Side::Acceptor => Some(state.commitment.acceptor.balance_msat),
         }
     }
+
+    /// The counterparty's channel balance in millisatoshis, if trackable.
+    #[must_use]
+    fn counterparty_balance_msat(&self) -> Option<u64> {
+        let state = self.channel_state?;
+        match state.holder.side {
+            Side::Opener => Some(state.commitment.acceptor.balance_msat),
+            Side::Acceptor => Some(state.commitment.opener.balance_msat),
+        }
+    }
 }
 
 /// Judges `splice_ack` messages against the splice balance rules.
@@ -37,6 +47,29 @@ pub struct SpliceAckOracle;
 
 impl Oracle<SpliceAckContext<'_>> for SpliceAckOracle {
     fn evaluate(&self, context: &SpliceAckContext<'_>) -> Result<(), Violation> {
+        // Symmetric check first: the ack's own contribution is the
+        // target's declared delta, independent of ours. Splicing out
+        // beyond its own tracked balance is an impossible negotiation on
+        // its side.
+        let ack_contribution = context.splice_ack.funding_contribution_satoshis;
+        if ack_contribution < 0
+            && let Some(counterparty_msat) = context.counterparty_balance_msat()
+            && u64::try_from(-ack_contribution)
+                .expect("negative i64 magnitude fits in u64")
+                .saturating_mul(1000)
+                > counterparty_msat
+        {
+            return Err(Violation::InvalidSpliceAck(
+                context.splice_ack.channel_id,
+                format!(
+                    "declared its own splice-out of {} msat against its balance of {counterparty_msat} msat",
+                    u64::try_from(-ack_contribution)
+                        .expect("negative i64 magnitude fits in u64")
+                        .saturating_mul(1000)
+                ),
+            ));
+        }
+
         let Some(contribution) = context.our_contribution_satoshis else {
             return Ok(());
         };

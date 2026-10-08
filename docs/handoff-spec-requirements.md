@@ -82,9 +82,18 @@ different message), and end-of-program silence (Silent, logged in the
 run summary; not judged — only acceptance is unambiguous). Rejection
 shapes drain the pending contribution instead of leaking it. Still
 open: summing `tx_add_input`/`tx_add_output` interactive-tx
-contributions into the conservation check, and adjusting
-`channel_states` balances after a completed splice so sequential
-splices are not judged against a stale balance.
+contributions into the conservation check.
+
+Update: the post-ack balance adjustment landed — an acknowledged
+contribution (positive splice-in, negative splice-out, saturating) is
+applied to the holder-side `balance_msat`, so sequential splices are
+judged against the updated balance (regression-tested: a second splice
+that only overdraws the *adjusted* balance is flagged). The oracle is
+now symmetric: an ack whose own `funding_contribution_satoshis` splices
+out beyond the target's tracked counterparty balance is itself a
+violation, judged independently of our contribution. The pipeline also
+gained a determinism pin (`emit_seed_dir_is_deterministic`): two emits
+from the checked-in BOLT source must be byte-identical.
 
 ### 4. VLS integration (needs owner input)
 No VLS code exists in this repo or its remotes. If "VLS" means Validating

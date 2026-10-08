@@ -1609,6 +1609,91 @@ fn execute_splice_ack_within_balance_accepted() {
 }
 
 #[test]
+fn execute_sequential_splice_judged_against_adjusted_balance() {
+    // First splice takes 6_000_000_000 of the 7_000_000_000 msat balance
+    // and is acked; a second 2_000_000_000 msat splice-out then only
+    // overdraws the ADJUSTED 1_000_000_000 msat balance — without the
+    // post-ack adjustment it would wrongly stand.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let first = b.append(Operation::LoadAmount((-6_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent1 = b.append(
+        Operation::SendSpliceInit,
+        &[cid, first, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent1]);
+    let second = b.append(Operation::LoadAmount((-2_000_000i64).cast_unsigned()), &[]);
+    let sent2 = b.append(
+        Operation::SendSpliceInit,
+        &[cid, second, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent2]);
+
+    let ack = Message::SpliceAck(SpliceAck {
+        channel_id,
+        funding_contribution_satoshis: 0,
+        funding_pubkey: sample_context().target_pubkey,
+        tlvs: SpliceAckTlvs::default(),
+    });
+    let mut fx = recv_funding_signed_fixture().queue(&ack).queue(&ack);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::Violation(Violation::InvalidSpliceAck(cid, _)) if cid == channel_id
+        ),
+        "expected the second splice to overdraw the adjusted balance, got {err:?}"
+    );
+}
+
+#[test]
+fn execute_splice_ack_own_contribution_judged() {
+    // Our splice is fine; the ack declares an impossible splice-out of
+    // the TARGET's own balance (3_000_000_000 msat as acceptor): the
+    // target must not offer a negotiation it cannot fund.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let small = b.append(Operation::LoadAmount(250_000), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent = b.append(
+        Operation::SendSpliceInit,
+        &[cid, small, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent]);
+
+    let ack = Message::SpliceAck(SpliceAck {
+        channel_id,
+        funding_contribution_satoshis: -9_000_000,
+        funding_pubkey: sample_context().target_pubkey,
+        tlvs: SpliceAckTlvs::default(),
+    });
+    let mut fx = recv_funding_signed_fixture().queue(&ack);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::Violation(Violation::InvalidSpliceAck(cid, _)) if cid == channel_id
+        ),
+        "expected the ack's own impossible contribution to be flagged, got {err:?}"
+    );
+}
+
+#[test]
 fn execute_quiescence_violation_detected() {
     // stfu + splice engagement establishes quiescence; a shutdown from the
     // target afterwards breaks the BOLT 2 allowed-message set.

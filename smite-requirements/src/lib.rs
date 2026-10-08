@@ -118,4 +118,39 @@ The sending node:
             emit_seed_dir(Path::new("/nonexistent/bolt.md"), Path::new("/tmp/x")).unwrap_err();
         assert!(err.contains("read"), "unexpected error: {err}");
     }
+
+    #[test]
+    fn emit_seed_dir_is_deterministic() {
+        // The whole chain (parser -> seeds -> sketches -> converter ->
+        // postcard) must be byte-stable: AFL corpora are regenerated and
+        // diffed against this output, so any nondeterminism would show up
+        // as phantom corpus drift.
+        let root = env!("CARGO_MANIFEST_DIR");
+        let md = Path::new(root).join("data/bolt02-peer-protocol.md");
+        let base = std::env::temp_dir().join(format!("smite-det-{}-a", std::process::id()));
+        let other = std::env::temp_dir().join(format!("smite-det-{}-b", std::process::id()));
+
+        let a = emit_seed_dir(&md, &base).expect("first emit");
+        let b = emit_seed_dir(&md, &other).expect("second emit");
+        assert_eq!(a, b, "emit stats differ between runs");
+
+        let names = |dir: &Path| -> Vec<String> {
+            let mut v: Vec<String> = std::fs::read_dir(dir)
+                .expect("seed dir")
+                .filter_map(|e| e.ok())
+                .map(|e| e.file_name().to_string_lossy().into_owned())
+                .collect();
+            v.sort();
+            v
+        };
+        assert_eq!(names(&base), names(&other), "file names differ");
+        for name in names(&base) {
+            let fa = std::fs::read(base.join(&name)).expect("seed a");
+            let fb = std::fs::read(other.join(&name)).expect("seed b");
+            assert_eq!(fa, fb, "{name} differs between runs");
+        }
+
+        std::fs::remove_dir_all(&base).ok();
+        std::fs::remove_dir_all(&other).ok();
+    }
 }

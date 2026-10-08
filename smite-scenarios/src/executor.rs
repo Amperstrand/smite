@@ -1126,11 +1126,37 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                         self.splice_response_shapes
                             .insert(sa.channel_id, SpliceResponseShape::Acked);
                     }
+                    let drained = self.splice_contributions.remove(&sa.channel_id);
                     SpliceAckOracle.evaluate(&SpliceAckContext {
                         splice_ack: &sa,
-                        our_contribution_satoshis: self.splice_contributions.remove(&sa.channel_id),
+                        our_contribution_satoshis: drained,
                         channel_state: self.channel_states.get(&sa.channel_id),
                     })?;
+                    if let (Some(contribution_sat), Some(state)) =
+                        (drained, self.channel_states.get_mut(&sa.channel_id))
+                    {
+                        // Post-splice balance: the acknowledged contribution
+                        // (positive splice-in, negative splice-out) lands on
+                        // the holder's side, so sequential splices are judged
+                        // against the updated balance rather than a stale one.
+                        let party = match state.holder.side {
+                            Side::Opener => &mut state.commitment.opener,
+                            Side::Acceptor => &mut state.commitment.acceptor,
+                        };
+                        party.balance_msat = if contribution_sat >= 0 {
+                            party.balance_msat.saturating_add(
+                                u64::try_from(contribution_sat)
+                                    .expect("non-negative fits in u64")
+                                    .saturating_mul(1000),
+                            )
+                        } else {
+                            party.balance_msat.saturating_sub(
+                                u64::try_from(-contribution_sat)
+                                    .expect("negative i64 magnitude fits in u64")
+                                    .saturating_mul(1000),
+                            )
+                        };
+                    }
                     Some(Variable::SpliceAck(sa))
                 }
 
