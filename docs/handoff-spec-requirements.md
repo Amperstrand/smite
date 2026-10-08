@@ -115,3 +115,36 @@ splice moments. Needs a pointer to the existing VLS work first.
   deliberately.
 - The mutator soak test must stay green: mutators preserve program
   validity by construction.
+
+## Lessons learned (this branch's arc)
+
+1. **Serialization-index freezes are invisible until they break.**
+   Inserting enum variants mid-declaration silently reinterprets every
+   persisted postcard corpus — no decode error, just different programs.
+   Append-only + a pin test (`operation_variant_discriminants_are_frozen`)
+   turned an invisible hazard into a CI failure.
+2. **A new generator can weaponize a pre-existing panic.** The executor's
+   `SendSpliceLocked [..32]` slice was harmless until
+   `SpliceFlowGenerator` began feeding it 0–256-byte payloads (~12.5% of
+   fresh programs crashed, polluting AFL with false findings). Rule: any
+   generator emitting into a fixed-width field either produces valid
+   lengths or the executor pads — belt and braces, both.
+3. **Oracle checks with early returns silently skip later checks.** The
+   symmetric splice-conservation check was dead code behind the
+   holder-side `>= 0` early return until a regression test caught it.
+   Write one violating test per oracle invariant, not one per oracle.
+4. **Test fixture encodings deserve the same skepticism as production
+   code.** `2^63 + N` is not the two's-complement encoding of `-N`; the
+   oracle's saturating multiply exposed it as `u64::MAX`.
+5. **When CI can't run, run the CI scripts yourself.** The repo's
+   `check-bolt-msg-type-order.sh` had been failing unnoticed for the
+   entire splice arc — latent only because Actions never initialized.
+6. **Shared worktrees demand file-scoped commits.** Multiple fleet
+   agents share this checkout; `git add <files>` (never `-a`), a
+   `git status` check before every commit, and leaving foreign
+   working-tree changes alone kept 40+ commits from three agents
+   cleanly separated.
+7. **Make unobservability explicit instead of guessing.** Quiescence
+   could not be observed directly (no Recv op consumes the target's
+   `stfu`), so the oracle arms on provable engagement instead —
+   documented in the op docs — rather than on a fiction.
