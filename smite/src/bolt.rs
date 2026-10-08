@@ -27,6 +27,9 @@ mod ping;
 mod pong;
 mod revoke_and_ack;
 mod shutdown;
+mod splice_ack;
+mod splice_init;
+mod splice_locked;
 mod stfu;
 mod tlv;
 mod tx_abort;
@@ -72,6 +75,9 @@ pub use ping::Ping;
 pub use pong::Pong;
 pub use revoke_and_ack::RevokeAndAck;
 pub use shutdown::{Shutdown, is_acceptable_shutdown_script, is_standard_shutdown_script};
+pub use splice_ack::{SpliceAck, SpliceAckTlvs};
+pub use splice_init::{SpliceInit, SpliceInitTlvs};
+pub use splice_locked::SpliceLocked;
 pub use stfu::Stfu;
 pub use tlv::{TlvRecord, TlvStream};
 pub use tx_abort::TxAbort;
@@ -204,6 +210,9 @@ impl MessageType {
     pub const TX_ACK_RBF: MessageType = MessageType(73);
     /// `tx_abort` message (BOLT 2).
     pub const TX_ABORT: MessageType = MessageType(74);
+    pub const SPLICE_LOCKED: MessageType = MessageType(77);
+    pub const SPLICE_INIT: MessageType = MessageType(80);
+    pub const SPLICE_ACK: MessageType = MessageType(81);
     /// `update_add_htlc` message (BOLT 2).
     pub const UPDATE_ADD_HTLC: MessageType = MessageType(128);
     /// `update_fulfill_htlc` message (BOLT 2).
@@ -270,6 +279,9 @@ impl MessageType {
             Self::TX_SIGNATURES => "tx_signatures",
             Self::TX_INIT_RBF => "tx_init_rbf",
             Self::TX_ACK_RBF => "tx_ack_rbf",
+            Self::SPLICE_LOCKED => "splice_locked",
+            Self::SPLICE_INIT => "splice_init",
+            Self::SPLICE_ACK => "splice_ack",
             Self::TX_ABORT => "tx_abort",
             Self::UPDATE_ADD_HTLC => "update_add_htlc",
             Self::UPDATE_FULFILL_HTLC => "update_fulfill_htlc",
@@ -348,6 +360,9 @@ pub enum Message {
     TxAckRbf(TxAckRbf),
     /// `tx_abort` message (type 74).
     TxAbort(TxAbort),
+    SpliceLocked(SpliceLocked),
+    SpliceInit(SpliceInit),
+    SpliceAck(SpliceAck),
     /// `update_add_htlc` message (type 128).
     UpdateAddHtlc(UpdateAddHtlc),
     /// `update_fulfill_htlc` message (type 130).
@@ -420,6 +435,9 @@ impl Message {
             Self::TxInitRbf(_) => MessageType::TX_INIT_RBF,
             Self::TxAckRbf(_) => MessageType::TX_ACK_RBF,
             Self::TxAbort(_) => MessageType::TX_ABORT,
+            Self::SpliceLocked(_) => MessageType::SPLICE_LOCKED,
+            Self::SpliceInit(_) => MessageType::SPLICE_INIT,
+            Self::SpliceAck(_) => MessageType::SPLICE_ACK,
             Self::UpdateAddHtlc(_) => MessageType::UPDATE_ADD_HTLC,
             Self::UpdateFulfillHtlc(_) => MessageType::UPDATE_FULFILL_HTLC,
             Self::UpdateFailHtlc(_) => MessageType::UPDATE_FAIL_HTLC,
@@ -467,6 +485,9 @@ impl Message {
             Self::TxInitRbf(m) => out.extend(m.encode()),
             Self::TxAckRbf(m) => out.extend(m.encode()),
             Self::TxAbort(m) => out.extend(m.encode()),
+            Self::SpliceLocked(m) => out.extend(m.encode()),
+            Self::SpliceInit(m) => out.extend(m.encode()),
+            Self::SpliceAck(m) => out.extend(m.encode()),
             Self::UpdateAddHtlc(m) => out.extend(m.encode()),
             Self::UpdateFulfillHtlc(m) => out.extend(m.encode()),
             Self::UpdateFailHtlc(m) => out.extend(m.encode()),
@@ -529,6 +550,9 @@ impl Message {
             MessageType::TX_INIT_RBF => Ok(Self::TxInitRbf(TxInitRbf::decode(cursor)?)),
             MessageType::TX_ACK_RBF => Ok(Self::TxAckRbf(TxAckRbf::decode(cursor)?)),
             MessageType::TX_ABORT => Ok(Self::TxAbort(TxAbort::decode(cursor)?)),
+            MessageType::SPLICE_LOCKED => Ok(Self::SpliceLocked(SpliceLocked::decode(cursor)?)),
+            MessageType::SPLICE_INIT => Ok(Self::SpliceInit(SpliceInit::decode(cursor)?)),
+            MessageType::SPLICE_ACK => Ok(Self::SpliceAck(SpliceAck::decode(cursor)?)),
             MessageType::UPDATE_ADD_HTLC => Ok(Self::UpdateAddHtlc(UpdateAddHtlc::decode(cursor)?)),
             MessageType::UPDATE_FULFILL_HTLC => {
                 Ok(Self::UpdateFulfillHtlc(UpdateFulfillHtlc::decode(cursor)?))
@@ -629,6 +653,9 @@ impl_from_message! {
     TxInitRbf => TX_INIT_RBF,
     TxAckRbf => TX_ACK_RBF,
     TxAbort => TX_ABORT,
+    SpliceLocked => SPLICE_LOCKED,
+    SpliceInit => SPLICE_INIT,
+    SpliceAck => SPLICE_ACK,
     UpdateAddHtlc => UPDATE_ADD_HTLC,
     UpdateFulfillHtlc => UPDATE_FULFILL_HTLC,
     UpdateFailHtlc => UPDATE_FAIL_HTLC,
@@ -1134,6 +1161,54 @@ mod tests {
         assert_eq!(decoded, Message::TxAbort(tx_abort));
     }
 
+    #[test]
+    fn message_splice_locked_roundtrip() {
+        let splice_locked = SpliceLocked {
+            channel_id: ChannelId::new([0xce; CHANNEL_ID_SIZE]),
+            splice_txid: sha256::Hash::hash(&[0xde, 0xad]),
+        };
+        let msg = Message::SpliceLocked(splice_locked.clone());
+        let encoded = msg.encode();
+        let decoded = Message::decode(&encoded).unwrap();
+        assert_eq!(decoded, Message::SpliceLocked(splice_locked));
+    }
+
+    #[test]
+    fn message_splice_init_roundtrip() {
+        let secp = Secp256k1::new();
+        let sk = SecretKey::from_slice(&[0x11; 32]).expect("valid secret");
+        let pk = PublicKey::from_secret_key(&secp, &sk);
+        let splice_init = SpliceInit {
+            channel_id: ChannelId::new([0xcf; CHANNEL_ID_SIZE]),
+            funding_contribution_satoshis: -250_000,
+            funding_feerate_perkw: 253,
+            locktime: 0,
+            funding_pubkey: pk,
+            tlvs: SpliceInitTlvs::default(),
+        };
+        let msg = Message::SpliceInit(splice_init.clone());
+        let encoded = msg.encode();
+        let decoded = Message::decode(&encoded).unwrap();
+        assert_eq!(decoded, Message::SpliceInit(splice_init));
+    }
+
+    #[test]
+    fn message_splice_ack_roundtrip() {
+        let secp = Secp256k1::new();
+        let sk = SecretKey::from_slice(&[0x11; 32]).expect("valid secret");
+        let pk = PublicKey::from_secret_key(&secp, &sk);
+        let splice_ack = SpliceAck {
+            channel_id: ChannelId::new([0xd0; CHANNEL_ID_SIZE]),
+            funding_contribution_satoshis: 0,
+            funding_pubkey: pk,
+            tlvs: SpliceAckTlvs::default(),
+        };
+        let msg = Message::SpliceAck(splice_ack.clone());
+        let encoded = msg.encode();
+        let decoded = Message::decode(&encoded).unwrap();
+        assert_eq!(decoded, Message::SpliceAck(splice_ack));
+    }
+
     /// Valid `UpdateAddHtlc` message for testing.
     fn sample_update_add_htlc() -> UpdateAddHtlc {
         UpdateAddHtlc {
@@ -1413,6 +1488,13 @@ mod tests {
         assert_eq!(decoded, msg);
     }
 
+    /// Deterministic funding pubkey for the splice message fixtures.
+    fn sample_splice_pubkey() -> PublicKey {
+        let secp = Secp256k1::new();
+        let sk = SecretKey::from_slice(&[0x11; 32]).expect("valid secret");
+        PublicKey::from_secret_key(&secp, &sk)
+    }
+
     #[allow(clippy::too_many_lines)]
     #[test]
     fn message_type_values() {
@@ -1548,6 +1630,36 @@ mod tests {
                 Message::TxAbort(TxAbort::new(ChannelId::new([0; CHANNEL_ID_SIZE]), "")),
                 "tx_abort",
                 MessageType::TX_ABORT,
+            ),
+            (
+                Message::SpliceLocked(SpliceLocked {
+                    channel_id: ChannelId::new([0; CHANNEL_ID_SIZE]),
+                    splice_txid: sha256::Hash::hash(&[]),
+                }),
+                "splice_locked",
+                MessageType::SPLICE_LOCKED,
+            ),
+            (
+                Message::SpliceInit(SpliceInit {
+                    channel_id: ChannelId::new([0; CHANNEL_ID_SIZE]),
+                    funding_contribution_satoshis: 0,
+                    funding_feerate_perkw: 253,
+                    locktime: 0,
+                    funding_pubkey: sample_splice_pubkey(),
+                    tlvs: SpliceInitTlvs::default(),
+                }),
+                "splice_init",
+                MessageType::SPLICE_INIT,
+            ),
+            (
+                Message::SpliceAck(SpliceAck {
+                    channel_id: ChannelId::new([0; CHANNEL_ID_SIZE]),
+                    funding_contribution_satoshis: 0,
+                    funding_pubkey: sample_splice_pubkey(),
+                    tlvs: SpliceAckTlvs::default(),
+                }),
+                "splice_ack",
+                MessageType::SPLICE_ACK,
             ),
             (
                 Message::UpdateAddHtlc(sample_update_add_htlc()),

@@ -55,3 +55,18 @@ jobs:
 
       - name: Run tests
         run: cargo test --verbose
+
+      - name: Spec-derived seed pipeline gate
+        run: |
+          md=smite-requirements/data/bolt02-peer-protocol.md
+          seeds=$(mktemp -d)
+          cargo run --release -p smite-requirements --bin smite-requirements -- emit "$md" "$seeds" | tee emit.log
+          # The corpus count is pinned: a converter change that alters it
+          # must update this number (and the README) deliberately.
+          expected=95
+          actual=$(sed -n 's/^emit: \([0-9]*\) seed files.*/\1/p' emit.log)
+          [ "$actual" = "$expected" ] || { echo "seed count drifted: expected $expected, got $actual"; exit 1; }
+          cargo run --release -p smite-requirements --bin verify_seeds "$seeds"
+          # Artifact drift gate: the checked-in requirements JSON must match
+          # the checked-in BOLT source.
+          cargo run --release -p smite-requirements --bin smite-requirements -- verify "$md" smite-requirements/data/bolt02-requirements.json

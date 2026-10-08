@@ -72,6 +72,50 @@ AFL_FRAMESHIFT_DISABLE=1 \
 `AFL_CUSTOM_MUTATOR_ONLY=1` disables AFL++'s built-in mutators (which would
 corrupt the postcard encoding).
 
+## Spec-Derived Seed Pipeline
+
+The `smite-requirements` crate derives IR seed corpora directly from BOLT
+specifications: BOLT markdown is parsed into requirements (`extract`),
+requirements become violation seeds (`seeds`), seeds become program sketches
+(`sketches`), sketches are checked for sketch-to-IR conversion (`programs`),
+and convertible sketches are written as postcard-encoded seed files (`emit`).
+
+The BOLT-02 peer-protocol source is checked in next to its derived artifacts
+(`smite-requirements/data/`), so the pipeline is reproducible without a
+network fetch; `smitebot seeds` (below) is the one-step form.
+
+```bash
+MD=smite-requirements/data/bolt02-peer-protocol.md
+# Extract requirements from a BOLT markdown file
+cargo run --release -p smite-requirements --bin smite-requirements -- extract "$MD"
+
+# Derive violation seeds and program sketches, check conversion
+cargo run --release -p smite-requirements --bin smite-requirements -- seeds "$MD"
+cargo run --release -p smite-requirements --bin smite-requirements -- sketches "$MD"
+cargo run --release -p smite-requirements --bin smite-requirements -- programs "$MD"
+
+# Emit postcard-encoded seed files usable as an ir scenario corpus
+cargo run --release -p smite-requirements --bin smite-requirements -- emit "$MD" /tmp/smite-seeds
+
+# Differential run: execute every seed against a target in local Docker
+# mode and classify outcomes (needs the smite-<target>-ir image built)
+scripts/diff-run-seeds.sh ldk /tmp/smite-seeds /tmp/smite-seeds-ldk.csv
+
+# Verify emitted seeds decode to executable IR programs (no Nyx needed)
+cargo run --release -p smite-requirements --bin verify_seeds /tmp/smite-seeds
+```
+
+`emit` reports postcard roundtrip counts; `verify_seeds` decodes every
+`.seed` file and validates its structure (input bounds, send presence)
+without AFL++/Nyx, exiting non-zero if any seed is invalid.
+
+Current status: 95 of 95 sketches convert to executable programs (503 IR
+operations), covering stfu, splice_init/ack/locked, the full interactive-tx
+family (tx_add_input with shared_input_txid TLV, tx_add_output, tx_complete,
+tx_abort, tx_init_rbf, tx_ack_rbf, tx_signatures),
+open_channel/channel_ready/commitment_signed, and the dual-funding variants
+via pre-encoded messages.
+
 ## Running Modes
 
 ### Nyx Mode
@@ -123,6 +167,7 @@ smitebot/           # Automation CLI for fuzzing campaign orchestration
 smite-ir/           # IR types, generators, and mutators for structured fuzzing programs
 smite-ir-mutator/   # AFL++ custom mutator cdylib for IR programs
 smite-nyx-sys/      # Nyx FFI bindings
+smite-requirements/ # BOLT requirement extraction and sketch-to-IR seed conversion (data/ holds checked-in bolt02 artifacts)
 smite-scenarios/    # Scenario implementations and target binaries
 workloads/
   lnd/              # LND fuzzing workload (Dockerfile, init script)

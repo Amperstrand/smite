@@ -1119,6 +1119,863 @@ fn execute_send_shutdown_empty_scriptpubkey() {
     assert_eq!(sd.scriptpubkey, b"");
 }
 
+// Regression: the executor previously resolved the locktime input with the
+// Timestamp resolver while `input_types` declares BlockHeight, panicking on
+// every well-typed `splice_init` program.
+#[test]
+fn execute_send_splice_init() {
+    let channel_id = ChannelId::new([0x5c; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let amount = b.append(Operation::LoadAmount(250_000), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(18), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    b.append(
+        Operation::SendSpliceInit,
+        &[channel_id_var, amount, feerate, locktime, pubkey],
+    );
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    assert_eq!(fx.sent_len(), 1);
+    let si: SpliceInit = fx.sent(0);
+    assert_eq!(si.channel_id, channel_id);
+    assert_eq!(si.funding_contribution_satoshis, 250_000);
+    assert_eq!(si.funding_feerate_perkw, 253);
+    assert_eq!(si.locktime, 18);
+    assert_eq!(si.funding_pubkey, sample_context().target_pubkey);
+    assert_eq!(si.tlvs, SpliceInitTlvs::default());
+}
+
+#[test]
+fn execute_send_tx_family() {
+    let channel_id = ChannelId::new([0x66; 32]);
+    let prevtx = vec![0xde, 0xad, 0xbe, 0xef];
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let serial_id = b.append(Operation::LoadU32(42), &[]);
+    let prevtx_var = b.append(Operation::LoadBytes(prevtx.clone()), &[]);
+    let sequence = b.append(Operation::LoadU32(0xFFFF_FFFD), &[]);
+    let sats = b.append(Operation::LoadAmount(1000), &[]);
+    let shared_txid = b.append(Operation::LoadBytes(vec![0xcc; 32]), &[]);
+    b.append(
+        Operation::SendTxAddInput {
+            include_shared_input_txid: false,
+        },
+        &[
+            channel_id_var,
+            serial_id,
+            prevtx_var,
+            sequence,
+            sequence,
+            shared_txid,
+        ],
+    );
+    b.append(
+        Operation::SendTxAddOutput,
+        &[channel_id_var, serial_id, sats, prevtx_var],
+    );
+    b.append(Operation::SendTxComplete, &[channel_id_var]);
+    b.append(Operation::SendTxAbort, &[channel_id_var, prevtx_var]);
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    assert_eq!(fx.sent_len(), 4);
+
+    let tai: TxAddInput = fx.sent(0);
+    assert_eq!(tai.channel_id, channel_id);
+    assert_eq!(tai.serial_id, 42);
+    assert_eq!(tai.prevtx, prevtx);
+    assert_eq!(tai.prevtx_vout, 0xFFFF_FFFD);
+    assert_eq!(tai.sequence, 0xFFFF_FFFD);
+    assert_eq!(tai.tlvs, TxAddInputTlvs::default());
+
+    let tao: TxAddOutput = fx.sent(1);
+    assert_eq!(tao.channel_id, channel_id);
+    assert_eq!(tao.serial_id, 42);
+    assert_eq!(tao.sats, 1000);
+    assert_eq!(tao.script, prevtx);
+
+    let tc: TxComplete = fx.sent(2);
+    assert_eq!(tc.channel_id, channel_id);
+
+    let ta: TxAbort = fx.sent(3);
+    assert_eq!(ta.channel_id, channel_id);
+    assert_eq!(ta.data, prevtx);
+}
+
+#[test]
+fn execute_send_tx_rbf_and_signatures() {
+    let channel_id = ChannelId::new([0x71; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(18), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    b.append(
+        Operation::SendTxInitRbf,
+        &[channel_id_var, locktime, feerate],
+    );
+    b.append(Operation::SendTxAckRbf, &[channel_id_var]);
+    let txid = b.append(Operation::LoadBytes(vec![0xab; 32]), &[]);
+    let witness = b.append(Operation::LoadBytes(vec![0x77; 71]), &[]);
+    b.append(
+        Operation::SendTxSignatures,
+        &[channel_id_var, txid, witness],
+    );
+    // All-0xFF is never a valid compact signature (out of scalar range), so
+    // this input exercises the executor's zero-signature fallback.
+    let bad_sig = b.append(Operation::LoadBytes(vec![0xff; 71]), &[]);
+    b.append(Operation::SendFundingSigned, &[channel_id_var, bad_sig]);
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    assert_eq!(fx.sent_len(), 4);
+
+    let tir: TxInitRbf = fx.sent(0);
+    assert_eq!(tir.channel_id, channel_id);
+    assert_eq!(tir.locktime, 18);
+    assert_eq!(tir.feerate, 253);
+    assert_eq!(tir.tlvs, TxInitRbfTlvs::default());
+
+    let tar: TxAckRbf = fx.sent(1);
+    assert_eq!(tar.channel_id, channel_id);
+    assert_eq!(tar.tlvs, TxAckRbfTlvs::default());
+
+    let ts: TxSignatures = fx.sent(2);
+    assert_eq!(ts.channel_id, channel_id);
+    assert_eq!(ts.txid.to_byte_array(), [0xab; 32]);
+    assert_eq!(ts.witnesses, vec![vec![0x77; 71]]);
+    assert_eq!(ts.tlvs, TxSignaturesTlvs::default());
+
+    let fs: FundingSigned = fx.sent(3);
+    assert_eq!(fs.channel_id, channel_id);
+    // 71 bytes is not a compact signature, so the executor falls back to
+    // the all-zero signature.
+    assert_eq!(fs.signature, Signature::from_compact(&[0u8; 64]).unwrap());
+}
+
+#[test]
+fn execute_send_tx_add_input_shared_input_tlv() {
+    let channel_id = ChannelId::new([0x66; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let serial = b.append(Operation::LoadU32(42), &[]);
+    // Empty prevtx: the valid shape for a shared input.
+    let prevtx = b.append(Operation::LoadBytes(Vec::new()), &[]);
+    let vout = b.append(Operation::LoadU32(0), &[]);
+    let sequence = b.append(Operation::LoadU32(0xFFFF_FFFD), &[]);
+    let shared_txid = b.append(Operation::LoadBytes(vec![0xcc; 32]), &[]);
+    b.append(
+        Operation::SendTxAddInput {
+            include_shared_input_txid: true,
+        },
+        &[channel_id_var, serial, prevtx, vout, sequence, shared_txid],
+    );
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    let tai: TxAddInput = fx.sent(0);
+    assert_eq!(tai.prevtx, Vec::<u8>::new());
+    assert_eq!(
+        tai.tlvs.shared_input_txid,
+        Some(Txid::from_byte_array([0xcc; 32]))
+    );
+}
+
+#[test]
+fn execute_send_splice_locked_short_txid_does_not_panic() {
+    // Regression: a mutated sub-32-byte splice_txid must reach the target
+    // zero-padded, not panic the scenario binary (false crash in AFL).
+    let channel_id = ChannelId::new([0x5c; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let short_txid = b.append(Operation::LoadBytes(vec![0xde, 0xad]), &[]);
+    b.append(Operation::SendSpliceLocked, &[channel_id_var, short_txid]);
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    let sl: SpliceLocked = fx.sent(0);
+    let mut expected = [0u8; 32];
+    expected[..2].copy_from_slice(&[0xde, 0xad]);
+    assert_eq!(sl.splice_txid.to_byte_array(), expected);
+}
+
+#[test]
+fn execute_send_tx_complete_recv_consecutive() {
+    let channel_id = ChannelId::new([0x46; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    b.append(Operation::SendTxComplete, &[channel_id_var]);
+    b.append(Operation::RecvTxComplete, &[]);
+
+    let reply = Message::TxComplete(TxComplete { channel_id });
+    let mut fx = Fixture::new().queue(&reply);
+    fx.run(&b.build());
+
+    assert_eq!(fx.sent_len(), 1);
+    assert_eq!(fx.queued_len(), 0);
+}
+
+#[test]
+fn execute_extract_tx_complete_channel_id() {
+    // The target concludes on its own channel; the extracted channel_id
+    // must carry into our reply.
+    let target_channel = ChannelId::new([0x99; 32]);
+    let our_channel = ChannelId::new([0x46; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(our_channel.0), &[]);
+    b.append(Operation::SendTxComplete, &[channel_id_var]);
+    let received = b.append(Operation::RecvTxComplete, &[]);
+    let extracted = b.append(Operation::ExtractTxCompleteChannelId, &[received]);
+    b.append(Operation::SendTxComplete, &[extracted]);
+
+    let reply = Message::TxComplete(TxComplete {
+        channel_id: target_channel,
+    });
+    let mut fx = Fixture::new().queue(&reply);
+    fx.run(&b.build());
+
+    let first: TxComplete = fx.sent(0);
+    let second: TxComplete = fx.sent(1);
+    assert_eq!(first.channel_id, our_channel);
+    assert_eq!(second.channel_id, target_channel);
+}
+
+#[test]
+fn execute_send_commitment_family() {
+    let channel_id = ChannelId::new([0x84; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let htlc_id = b.append(Operation::LoadU32(7), &[]);
+    let amount = b.append(Operation::LoadAmount(50_000), &[]);
+    // 2-byte hash and 5-byte onion: both must reach the wire zero-padded.
+    let payment_hash = b.append(Operation::LoadBytes(vec![0xde, 0xad]), &[]);
+    let cltv = b.append(Operation::LoadBlockHeight(800_020), &[]);
+    let onion = b.append(Operation::LoadBytes(vec![1, 2, 3, 4, 5]), &[]);
+    b.append(
+        Operation::SendUpdateAddHtlc,
+        &[channel_id_var, htlc_id, amount, payment_hash, cltv, onion],
+    );
+    // All-0xFF never parses as a compact signature: exercises the
+    // zero-signature fallback.
+    let bad_sig = b.append(Operation::LoadBytes(vec![0xff; 71]), &[]);
+    b.append(Operation::SendCommitmentSigned, &[channel_id_var, bad_sig]);
+    let secret = b.append(Operation::LoadBytes(vec![0x5e, 0xed]), &[]);
+    let point = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    b.append(
+        Operation::SendRevokeAndAck,
+        &[channel_id_var, secret, point],
+    );
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    assert_eq!(fx.sent_len(), 3);
+
+    let uah: UpdateAddHtlc = fx.sent(0);
+    assert_eq!(uah.channel_id, channel_id);
+    assert_eq!(uah.id, 7);
+    assert_eq!(uah.amount_msat, 50_000);
+    let mut expected_hash = [0u8; 32];
+    expected_hash[..2].copy_from_slice(&[0xde, 0xad]);
+    assert_eq!(uah.payment_hash, expected_hash);
+    assert_eq!(uah.cltv_expiry, 800_020);
+    let mut expected_onion = [0u8; 1366];
+    expected_onion[..5].copy_from_slice(&[1, 2, 3, 4, 5]);
+    assert_eq!(uah.onion_routing_packet, expected_onion);
+
+    let cs: CommitmentSigned = fx.sent(1);
+    assert_eq!(cs.channel_id, channel_id);
+    assert_eq!(cs.htlc_signatures.len(), 0);
+    assert_eq!(cs.signature, Signature::from_compact(&[0u8; 64]).unwrap());
+
+    let raa: RevokeAndAck = fx.sent(2);
+    assert_eq!(raa.channel_id, channel_id);
+    let mut expected_secret = [0u8; 32];
+    expected_secret[..2].copy_from_slice(&[0x5e, 0xed]);
+    assert_eq!(raa.per_commitment_secret, expected_secret);
+    assert_eq!(
+        raa.next_per_commitment_point,
+        sample_context().target_pubkey
+    );
+}
+
+#[test]
+fn execute_commitment_dance_recvs() {
+    // Our commitment_signed gates the target's revoke_and_ack; the
+    // target's commitment_signed is ungated (it may sign its own changes).
+    let channel_id = ChannelId::new([0x93; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let sig = b.append(Operation::LoadBytes(vec![0x00; 64]), &[]);
+    let sent_cs = b.append(Operation::SendCommitmentSigned, &[channel_id_var, sig]);
+    b.append(Operation::RecvRevokeAndAck, &[sent_cs]);
+    b.append(Operation::RecvCommitmentSigned, &[]);
+
+    let raa = Message::RevokeAndAck(RevokeAndAck {
+        channel_id,
+        per_commitment_secret: [0x11; 32],
+        next_per_commitment_point: sample_context().target_pubkey,
+    });
+    let cs = Message::CommitmentSigned(CommitmentSigned {
+        channel_id,
+        signature: Signature::from_compact(&[0u8; 64]).unwrap(),
+        htlc_signatures: Vec::new(),
+        tlvs: CommitmentSignedTlvs::default(),
+    });
+    let mut fx = Fixture::new().queue(&raa).queue(&cs);
+    fx.run(&b.build());
+
+    // Both receives succeeded and drained the queue; only the
+    // commitment_signed was sent.
+    assert_eq!(fx.queued_len(), 0);
+    assert_eq!(fx.sent_len(), 1);
+}
+
+#[test]
+fn execute_send_htlc_fail_fulfill() {
+    let channel_id = ChannelId::new([0x83; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let htlc_id = b.append(Operation::LoadU32(9), &[]);
+    let reason = b.append(Operation::LoadBytes(vec![0xaa, 0xbb]), &[]);
+    b.append(
+        Operation::SendUpdateFailHtlc,
+        &[channel_id_var, htlc_id, reason],
+    );
+    let htlc_id2 = b.append(Operation::LoadU32(10), &[]);
+    // 3-byte preimage must reach the wire zero-padded.
+    let preimage = b.append(Operation::LoadBytes(vec![1, 2, 3]), &[]);
+    b.append(
+        Operation::SendUpdateFulfillHtlc,
+        &[channel_id_var, htlc_id2, preimage],
+    );
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    let fail: UpdateFailHtlc = fx.sent(0);
+    assert_eq!(fail.id, 9);
+    assert_eq!(fail.reason, vec![0xaa, 0xbb]);
+
+    let fulfill: UpdateFulfillHtlc = fx.sent(1);
+    assert_eq!(fulfill.id, 10);
+    let mut expected = [0u8; 32];
+    expected[..3].copy_from_slice(&[1, 2, 3]);
+    assert_eq!(fulfill.payment_preimage, expected);
+}
+
+#[test]
+fn execute_send_channel_reestablish() {
+    let channel_id = ChannelId::new([0x87; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let next_commitment = b.append(Operation::LoadU32(1), &[]);
+    let next_revocation = b.append(Operation::LoadU32(0), &[]);
+    let point = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    b.append(
+        Operation::SendChannelReestablish,
+        &[channel_id_var, next_commitment, next_revocation, point],
+    );
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    let cr: ChannelReestablish = fx.sent(0);
+    assert_eq!(cr.channel_id, channel_id);
+    assert_eq!(cr.next_commitment_number, 1);
+    assert_eq!(cr.next_revocation_number, 0);
+    assert_eq!(cr.your_last_per_commitment_secret, [0u8; 32]);
+    assert_eq!(
+        cr.my_current_per_commitment_point,
+        sample_context().target_pubkey
+    );
+    assert_eq!(cr.tlvs, ChannelReestablishTlvs::default());
+}
+
+#[test]
+fn execute_send_update_fail_malformed_htlc() {
+    let channel_id = ChannelId::new([0x8b; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let htlc_id = b.append(Operation::LoadU32(4), &[]);
+    // 2-byte onion hash must reach the wire zero-padded.
+    let onion_hash = b.append(Operation::LoadBytes(vec![0xce, 0x11]), &[]);
+    let failure_code = b.append(Operation::LoadU16(0x4000), &[]);
+    b.append(
+        Operation::SendUpdateFailMalformedHtlc,
+        &[channel_id_var, htlc_id, onion_hash, failure_code],
+    );
+
+    let mut fx = Fixture::new();
+    fx.run(&b.build());
+
+    let fail: UpdateFailMalformedHtlc = fx.sent(0);
+    assert_eq!(fail.id, 4);
+    let mut expected = [0u8; 32];
+    expected[..2].copy_from_slice(&[0xce, 0x11]);
+    assert_eq!(fail.sha256_of_onion.to_byte_array(), expected);
+    assert_eq!(fail.failure_code, 0x4000);
+}
+
+#[test]
+fn execute_splice_ack_balance_violation_detected() {
+    // Funding flow to a tracked channel (opener balance
+    // 10_000_000_000 - 3_000_000_000 = 7_000_000_000 msat), then a
+    // splice_init splicing out 8_000_000_000 msat: the target MUST reject
+    // it, so a splice_ack acknowledging the negotiation is a violation.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    // The u64 two's-complement encoding of the i64 contribution
+    // -8_000_000 satoshis = -8_000_000_000 msat.
+    let overdraw = b.append(Operation::LoadAmount((-8_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent_init = b.append(
+        Operation::SendSpliceInit,
+        &[cid, overdraw, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent_init]);
+
+    let ack = Message::SpliceAck(SpliceAck {
+        channel_id,
+        funding_contribution_satoshis: 0,
+        funding_pubkey: sample_context().target_pubkey,
+        tlvs: SpliceAckTlvs::default(),
+    });
+    let mut fx = recv_funding_signed_fixture().queue(&ack);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::Violation(Violation::InvalidSpliceAck(cid, _)) if cid == channel_id
+        ),
+        "expected splice balance violation, got {err:?}"
+    );
+}
+
+#[test]
+fn execute_splice_ack_within_balance_accepted() {
+    // Same flow with a 1_000_000_000 msat splice-out (well within the
+    // 7_000_000_000 msat balance): the ack must stand.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let splice_out = b.append(Operation::LoadAmount((-1_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent_init = b.append(
+        Operation::SendSpliceInit,
+        &[cid, splice_out, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent_init]);
+
+    let ack = Message::SpliceAck(SpliceAck {
+        channel_id,
+        funding_contribution_satoshis: 0,
+        funding_pubkey: sample_context().target_pubkey,
+        tlvs: SpliceAckTlvs::default(),
+    });
+    let mut fx = recv_funding_signed_fixture().queue(&ack);
+    fx.run(&b.build());
+    assert_eq!(fx.queued_len(), 0);
+}
+
+#[test]
+fn execute_sequential_splice_judged_against_adjusted_balance() {
+    // First splice takes 6_000_000_000 of the 7_000_000_000 msat balance
+    // and is acked; a second 2_000_000_000 msat splice-out then only
+    // overdraws the ADJUSTED 1_000_000_000 msat balance — without the
+    // post-ack adjustment it would wrongly stand.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let first = b.append(Operation::LoadAmount((-6_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent1 = b.append(
+        Operation::SendSpliceInit,
+        &[cid, first, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent1]);
+    let second = b.append(Operation::LoadAmount((-2_000_000i64).cast_unsigned()), &[]);
+    let sent2 = b.append(
+        Operation::SendSpliceInit,
+        &[cid, second, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent2]);
+
+    let ack = Message::SpliceAck(SpliceAck {
+        channel_id,
+        funding_contribution_satoshis: 0,
+        funding_pubkey: sample_context().target_pubkey,
+        tlvs: SpliceAckTlvs::default(),
+    });
+    let mut fx = recv_funding_signed_fixture().queue(&ack).queue(&ack);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::Violation(Violation::InvalidSpliceAck(cid, _)) if cid == channel_id
+        ),
+        "expected the second splice to overdraw the adjusted balance, got {err:?}"
+    );
+}
+
+#[test]
+fn execute_splice_ack_own_contribution_judged() {
+    // Our splice is fine; the ack declares an impossible splice-out of
+    // the TARGET's own balance (3_000_000_000 msat as acceptor): the
+    // target must not offer a negotiation it cannot fund.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let small = b.append(Operation::LoadAmount(250_000), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent = b.append(
+        Operation::SendSpliceInit,
+        &[cid, small, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent]);
+
+    let ack = Message::SpliceAck(SpliceAck {
+        channel_id,
+        funding_contribution_satoshis: -9_000_000,
+        funding_pubkey: sample_context().target_pubkey,
+        tlvs: SpliceAckTlvs::default(),
+    });
+    let mut fx = recv_funding_signed_fixture().queue(&ack);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::Violation(Violation::InvalidSpliceAck(cid, _)) if cid == channel_id
+        ),
+        "expected the ack's own impossible contribution to be flagged, got {err:?}"
+    );
+}
+
+#[test]
+fn execute_quiescence_violation_detected() {
+    // stfu + splice engagement establishes quiescence; a shutdown from the
+    // target afterwards breaks the BOLT 2 allowed-message set.
+    let channel_id = ChannelId::new([0x51; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let initiator = b.append(Operation::LoadU8(1), &[]);
+    b.append(Operation::SendStfu, &[channel_id_var, initiator]);
+    let amount = b.append(Operation::LoadAmount(250_000), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent_init = b.append(
+        Operation::SendSpliceInit,
+        &[channel_id_var, amount, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent_init]);
+    b.append(Operation::RecvTxComplete, &[]);
+
+    let ack = Message::SpliceAck(SpliceAck {
+        channel_id,
+        funding_contribution_satoshis: 0,
+        funding_pubkey: sample_context().target_pubkey,
+        tlvs: SpliceAckTlvs::default(),
+    });
+    let stray = Message::Shutdown(Shutdown {
+        channel_id,
+        scriptpubkey: vec![],
+    });
+    let mut fx = Fixture::new().queue(&ack).queue(&stray);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::Violation(Violation::QuiescenceBroken(cid, _)) if cid == channel_id
+        ),
+        "expected quiescence violation, got {err:?}"
+    );
+}
+
+#[test]
+fn execute_missing_tx_abort_echo_detected() {
+    // We abort, keep listening (the tx_complete receive), and the target
+    // never echoes: the end-of-program sweep must flag it.
+    let channel_id = ChannelId::new([0x52; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let reason = b.append(Operation::LoadBytes(b"bye".to_vec()), &[]);
+    b.append(Operation::SendTxAbort, &[channel_id_var, reason]);
+    b.append(Operation::RecvTxComplete, &[]);
+
+    let reply = Message::TxComplete(TxComplete { channel_id });
+    let mut fx = Fixture::new().queue(&reply);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::Violation(Violation::MissingTxAbortEcho(cid)) if cid == channel_id
+        ),
+        "expected missing echo violation, got {err:?}"
+    );
+}
+
+#[test]
+fn execute_send_tx_abort_recv_echo() {
+    let channel_id = ChannelId::new([0x66; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let reason = b.append(
+        Operation::LoadBytes(b"smite: negotiation failed".to_vec()),
+        &[],
+    );
+    b.append(Operation::SendTxAbort, &[channel_id_var, reason]);
+    b.append(Operation::RecvTxAbort, &[]);
+
+    let echo = Message::TxAbort(TxAbort::new(channel_id, "echo"));
+    let mut fx = Fixture::new().queue(&echo);
+    fx.run(&b.build());
+
+    assert_eq!(fx.sent_len(), 1);
+    assert_eq!(fx.queued_len(), 0);
+    let sent: TxAbort = fx.sent(0);
+    assert_eq!(sent.channel_id, channel_id);
+}
+
+#[test]
+fn execute_recv_tx_abort_after_bad_tx_add_input() {
+    let channel_id = ChannelId::new([0x66; 32]);
+
+    let mut b = ProgramBuilder::new();
+    let channel_id_var = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    // Odd serial from the initiator violates the BOLT 2 parity rule.
+    let serial = b.append(Operation::LoadU32(43), &[]);
+    let prevtx = b.append(Operation::LoadBytes(vec![0xde, 0xad]), &[]);
+    let sequence = b.append(Operation::LoadU32(0xFFFF_FFFF), &[]);
+    let shared_txid = b.append(Operation::LoadBytes(vec![0xcc; 32]), &[]);
+    b.append(
+        Operation::SendTxAddInput {
+            include_shared_input_txid: false,
+        },
+        &[
+            channel_id_var,
+            serial,
+            prevtx,
+            sequence,
+            sequence,
+            shared_txid,
+        ],
+    );
+    b.append(Operation::RecvTxAbort, &[]);
+
+    let abort = Message::TxAbort(TxAbort::new(channel_id, "bad serial"));
+    let mut fx = Fixture::new().queue(&abort);
+    fx.run(&b.build());
+
+    assert_eq!(fx.queued_len(), 0);
+}
+
+#[test]
+fn execute_out_of_band_splice_ack_balance_violation_detected() {
+    // Overdrawn splice-out answered by a splice_ack while the program waits
+    // for tx_complete: the ack arrives out of band but must still be judged
+    // by the balance oracle.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    // The u64 two's-complement encoding of -8_000_000 satoshis, a
+    // 8_000_000_000 msat splice-out against a 7_000_000_000 msat balance.
+    let overdraw = b.append(Operation::LoadAmount((-8_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    b.append(
+        Operation::SendSpliceInit,
+        &[cid, overdraw, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvTxComplete, &[]);
+
+    let ack = Message::SpliceAck(SpliceAck {
+        channel_id,
+        funding_contribution_satoshis: 0,
+        funding_pubkey: sample_context().target_pubkey,
+        tlvs: SpliceAckTlvs::default(),
+    });
+    let mut fx = recv_funding_signed_fixture().queue(&ack);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::Violation(Violation::InvalidSpliceAck(c, _)) if c == channel_id
+        ),
+        "expected out-of-band splice balance violation, got {err:?}"
+    );
+    assert_eq!(
+        fx.splice_response_shape(&channel_id),
+        Some(SpliceResponseShape::Acked)
+    );
+}
+
+#[test]
+fn execute_splice_init_answered_by_tx_abort_is_unexpected_not_violation() {
+    // Overdrawn splice-out answered by tx_abort while the program waits for
+    // splice_ack: the rejection is correct target behavior, so the run fails
+    // on the mismatched expectation only and the shape is recorded as
+    // Aborted.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let overdraw = b.append(Operation::LoadAmount((-8_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent_init = b.append(
+        Operation::SendSpliceInit,
+        &[cid, overdraw, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent_init]);
+
+    let abort = Message::TxAbort(TxAbort::new(channel_id, "overdrawn splice"));
+    let mut fx = recv_funding_signed_fixture().queue(&abort);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(
+            err,
+            ExecuteError::UnexpectedMessage {
+                expected: MessageType::SPLICE_ACK,
+                got: MessageType::TX_ABORT,
+            }
+        ),
+        "expected unexpected-message, got {err:?}"
+    );
+    assert!(!matches!(err, ExecuteError::Violation(_)));
+    assert_eq!(
+        fx.splice_response_shape(&channel_id),
+        Some(SpliceResponseShape::Aborted)
+    );
+}
+
+#[test]
+fn execute_splice_init_answered_by_error_is_peer_error_not_violation() {
+    // Overdrawn splice-out answered by a BOLT error for the channel: a
+    // valid rejection, so the PeerError surfaces unchanged and the shape is
+    // recorded as Errored.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let overdraw = b.append(Operation::LoadAmount((-8_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    let sent_init = b.append(
+        Operation::SendSpliceInit,
+        &[cid, overdraw, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvSpliceAck, &[sent_init]);
+
+    let error = Message::Error(smite::bolt::Error::for_channel(
+        channel_id,
+        "overdrawn splice",
+    ));
+    let mut fx = recv_funding_signed_fixture().queue(&error);
+    let err = fx.run_err(&b.build());
+
+    assert!(
+        matches!(&err, ExecuteError::PeerError(e) if e.channel_id == channel_id),
+        "expected peer error, got {err:?}"
+    );
+    assert!(!matches!(err, ExecuteError::Violation(_)));
+    assert_eq!(
+        fx.splice_response_shape(&channel_id),
+        Some(SpliceResponseShape::Errored)
+    );
+}
+
+#[test]
+fn execute_splice_init_silence_records_silent_shape() {
+    // Overdrawn splice-out the target never answers: the program's actual
+    // expectation (tx_complete) is met and the run succeeds, with the
+    // contribution swept as Silent. Silence is not judged — only
+    // acceptance is unambiguous.
+    let channel_id = funding_channel_id();
+
+    let mut b = ProgramBuilder::new();
+    let funding_created = send_funding_created(&mut b);
+    b.append(Operation::RecvFundingSigned, &[funding_created.sent]);
+    let cid = b.append(Operation::LoadChannelId(channel_id.0), &[]);
+    let overdraw = b.append(Operation::LoadAmount((-8_000_000i64).cast_unsigned()), &[]);
+    let feerate = b.append(Operation::LoadFeeratePerKw(253), &[]);
+    let locktime = b.append(Operation::LoadBlockHeight(0), &[]);
+    let pubkey = b.append(Operation::LoadTargetPubkeyFromContext, &[]);
+    b.append(
+        Operation::SendSpliceInit,
+        &[cid, overdraw, feerate, locktime, pubkey],
+    );
+    b.append(Operation::RecvTxComplete, &[]);
+
+    let done = Message::TxComplete(TxComplete { channel_id });
+    let mut fx = recv_funding_signed_fixture().queue(&done);
+    fx.run(&b.build());
+
+    assert_eq!(
+        fx.splice_response_shape(&channel_id),
+        Some(SpliceResponseShape::Silent)
+    );
+}
+
 #[test]
 fn execute_recv_channel_ready_invalid_funding_outpoint_is_noop() {
     // Corrupt the negotiated acceptor funding pubkey so the broadcast funding

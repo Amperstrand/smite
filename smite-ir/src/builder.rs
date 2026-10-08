@@ -191,6 +191,7 @@ impl ProgramBuilder {
             }
             VariableType::U16 => self.append(Operation::LoadU16(rng.random()), &[]),
             VariableType::U8 => self.append(Operation::LoadU8(rng.random()), &[]),
+            VariableType::U32 => self.append(Operation::LoadU32(rng.random()), &[]),
             VariableType::Bytes => {
                 let len = rng.random_range(0..=256);
                 let mut bytes = vec![0u8; len];
@@ -222,6 +223,14 @@ impl ProgramBuilder {
             VariableType::AcceptChannel => {
                 panic!("cannot generate fresh AcceptChannel: requires protocol interaction")
             }
+            VariableType::SpliceAck
+            | VariableType::SpliceLocked
+            | VariableType::TxAbort
+            | VariableType::TxComplete
+            | VariableType::CommitmentSigned
+            | VariableType::RevokeAndAck => {
+                panic!("cannot generate fresh protocol response: requires protocol interaction")
+            }
             VariableType::FundingTransaction => {
                 panic!("cannot generate fresh FundingTransaction: requires composed inputs")
             }
@@ -231,8 +240,27 @@ impl ProgramBuilder {
             VariableType::SentFundingCreated => {
                 panic!("cannot generate fresh SentFundingCreated: affine type")
             }
-            VariableType::SentShutdown => {
-                panic!("cannot generate fresh SentShutdown: affine type")
+            VariableType::SentShutdown
+            | VariableType::SentStfu
+            | VariableType::SentSpliceInit
+            | VariableType::SentSpliceAck
+            | VariableType::SentSpliceLocked
+            | VariableType::SentTxAddInput
+            | VariableType::SentTxAddOutput
+            | VariableType::SentTxComplete
+            | VariableType::SentTxAbort
+            | VariableType::SentTxInitRbf
+            | VariableType::SentTxAckRbf
+            | VariableType::SentTxSignatures
+            | VariableType::SentFundingSigned
+            | VariableType::SentUpdateAddHtlc
+            | VariableType::SentCommitmentSigned
+            | VariableType::SentRevokeAndAck
+            | VariableType::SentUpdateFailHtlc
+            | VariableType::SentUpdateFulfillHtlc
+            | VariableType::SentChannelReestablish
+            | VariableType::SentUpdateFailMalformedHtlc => {
+                panic!("cannot generate fresh affine type")
             }
         }
     }

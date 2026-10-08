@@ -7,6 +7,7 @@ members = [
   "smite-ir-mutator",
   "smite-nyx-sys",
   "smite-scenarios",
+  "smite-requirements",
 ]
 exclude = ["workloads/ldk"]
 

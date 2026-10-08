@@ -1,0 +1,5255 @@
+[
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:1",
+    "message": "tx_add_input",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST add all sent inputs to the transaction",
+    "source": "02-peer-protocol",
+    "line": 220
+  },
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:2",
+    "message": "tx_add_input",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST use a unique `serial_id` for each input currently added to the",
+    "source": "02-peer-protocol",
+    "line": 221
+  },
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:3",
+    "message": "tx_add_input",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST set `sequence` to be less than or equal to 4294967293 (`0xFFFFFFFD`)",
+    "source": "02-peer-protocol",
+    "line": 223
+  },
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:4",
+    "message": "tx_add_input",
+    "role": "The sending node",
+    "modality": "must_not",
+    "text": "MUST NOT re-transmit inputs it has received from the peer",
+    "source": "02-peer-protocol",
+    "line": 224
+  },
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:5",
+    "message": "tx_add_input",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if is the *initiator*:"
+    ],
+    "text": "MUST send even `serial_id`s",
+    "source": "02-peer-protocol",
+    "line": 226
+  },
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:6",
+    "message": "tx_add_input",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if is the *non-initiator*:"
+    ],
+    "text": "MUST send odd `serial_id`s",
+    "source": "02-peer-protocol",
+    "line": 228
+  },
+  {
+    "id": "bolt02:tx_add_input:the-receiving-node:1",
+    "message": "tx_add_input",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST add all received inputs to the transaction",
+    "source": "02-peer-protocol",
+    "line": 231
+  },
+  {
+    "id": "bolt02:tx_add_input:the-receiving-node:2",
+    "message": "tx_add_input",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST fail the negotiation if:",
+    "source": "02-peer-protocol",
+    "line": 232
+  },
+  {
+    "id": "bolt02:tx_add_output:either-node:1",
+    "message": "tx_add_output",
+    "role": "Either node",
+    "modality": "may",
+    "text": "MAY omit this message",
+    "source": "02-peer-protocol",
+    "line": 304
+  },
+  {
+    "id": "bolt02:tx_add_output:the-sending-node:1",
+    "message": "tx_add_output",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST add all sent outputs to the transaction",
+    "source": "02-peer-protocol",
+    "line": 307
+  },
+  {
+    "id": "bolt02:tx_add_output:the-sending-node:2",
+    "message": "tx_add_output",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if is the *initiator*:"
+    ],
+    "text": "MUST send even `serial_id`s",
+    "source": "02-peer-protocol",
+    "line": 309
+  },
+  {
+    "id": "bolt02:tx_add_output:the-sending-node:3",
+    "message": "tx_add_output",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if is the *non-initiator*:"
+    ],
+    "text": "MUST send odd `serial_id`s",
+    "source": "02-peer-protocol",
+    "line": 311
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:1",
+    "message": "tx_add_output",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST add all received outputs to the transaction",
+    "source": "02-peer-protocol",
+    "line": 314
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:2",
+    "message": "tx_add_output",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST accept P2WSH, P2WPKH, P2TR `script`s",
+    "source": "02-peer-protocol",
+    "line": 315
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:3",
+    "message": "tx_add_output",
+    "role": "The receiving node",
+    "modality": "may",
+    "text": "MAY fail the negotiation if `script` is non-standard",
+    "source": "02-peer-protocol",
+    "line": 316
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:4",
+    "message": "tx_add_output",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST fail the negotiation if:",
+    "source": "02-peer-protocol",
+    "line": 317
+  },
+  {
+    "id": "bolt02:tx_add_output:the-sending-node:4",
+    "message": "tx_add_output",
+    "role": "The sending node",
+    "modality": "must_not",
+    "text": "MUST NOT send a `tx_remove` with a `serial_id` it did not add",
+    "source": "02-peer-protocol",
+    "line": 357
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:5",
+    "message": "tx_add_output",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST remove the indicated input or output from the transaction",
+    "source": "02-peer-protocol",
+    "line": 361
+  },
+  {
+    "id": "bolt02:tx_add_output:the-receiving-node:6",
+    "message": "tx_add_output",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST fail the negotiation if:",
+    "source": "02-peer-protocol",
+    "line": 362
+  },
+  {
+    "id": "bolt02:tx_complete:the-nodes:1",
+    "message": "tx_complete",
+    "role": "The nodes",
+    "modality": "must",
+    "text": "MUST send this message in succession to conclude this protocol",
+    "source": "02-peer-protocol",
+    "line": 379
+  },
+  {
+    "id": "bolt02:tx_complete:the-receiving-node:1",
+    "message": "tx_complete",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST use the negotiated inputs and outputs to construct a transaction",
+    "source": "02-peer-protocol",
+    "line": 382
+  },
+  {
+    "id": "bolt02:tx_complete:the-receiving-node:2",
+    "message": "tx_complete",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST fail the negotiation if:",
+    "source": "02-peer-protocol",
+    "line": 383
+  },
+  {
+    "id": "bolt02:tx_signatures:but-it-has-the-lowest-nodeid-sorted-lexicographically:1",
+    "message": "tx_signatures",
+    "role": "but it has the lowest `node_id` (sorted lexicographically)",
+    "modality": "must",
+    "text": "MUST transmit their `tx_signatures` first",
+    "source": "02-peer-protocol",
+    "line": 435
+  },
+  {
+    "id": "bolt02:tx_signatures:but-it-has-the-lowest-nodeid-sorted-lexicographically:2",
+    "message": "tx_signatures",
+    "role": "but it has the lowest `node_id` (sorted lexicographically)",
+    "modality": "must",
+    "text": "MUST order the `witnesses` by the `serial_id` of the input they",
+    "source": "02-peer-protocol",
+    "line": 436
+  },
+  {
+    "id": "bolt02:tx_signatures:but-it-has-the-lowest-nodeid-sorted-lexicographically:3",
+    "message": "tx_signatures",
+    "role": "but it has the lowest `node_id` (sorted lexicographically)",
+    "modality": "must",
+    "text": "MUST use the `SIGHASH_ALL` (0x01) flag on each signature",
+    "source": "02-peer-protocol",
+    "line": 439
+  },
+  {
+    "id": "bolt02:tx_signatures:the-receiving-node:1",
+    "message": "tx_signatures",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST fail the negotiation if:",
+    "source": "02-peer-protocol",
+    "line": 442
+  },
+  {
+    "id": "bolt02:tx_signatures:the-receiving-node:2",
+    "message": "tx_signatures",
+    "role": "The receiving node",
+    "modality": "should",
+    "text": "SHOULD apply the `witnesses` to the transaction and broadcast it",
+    "source": "02-peer-protocol",
+    "line": 449
+  },
+  {
+    "id": "bolt02:tx_signatures:the-receiving-node:3",
+    "message": "tx_signatures",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST reply with their `tx_signatures` if not already transmitted",
+    "source": "02-peer-protocol",
+    "line": 450
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sender:1",
+    "message": "tx_init_rbf",
+    "role": "The sender",
+    "modality": "must",
+    "text": "MUST set `feerate` greater than or equal to the maximum of:",
+    "source": "02-peer-protocol",
+    "line": 488
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sender:2",
+    "message": "tx_init_rbf",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "If it contributes to the transaction's funding output:"
+    ],
+    "text": "MUST set `funding_output_contribution`",
+    "source": "02-peer-protocol",
+    "line": 494
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sender:3",
+    "message": "tx_init_rbf",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "If it requires the receiving node to only use confirmed inputs:"
+    ],
+    "text": "MUST set `require_confirmed_inputs`",
+    "source": "02-peer-protocol",
+    "line": 496
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sender:4",
+    "message": "tx_init_rbf",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "If it contributed to previous transactions:"
+    ],
+    "text": "MUST ensure that the new transaction double-spends all other attempts,",
+    "source": "02-peer-protocol",
+    "line": 498
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-recipient:1",
+    "message": "tx_init_rbf",
+    "role": "The recipient",
+    "modality": "must",
+    "text": "MUST respond either with `tx_abort` or with `tx_ack_rbf`",
+    "source": "02-peer-protocol",
+    "line": 503
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-recipient:2",
+    "message": "tx_init_rbf",
+    "role": "The recipient",
+    "modality": "must",
+    "text": "MUST respond with `tx_abort` if:",
+    "source": "02-peer-protocol",
+    "line": 504
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-recipient:3",
+    "message": "tx_init_rbf",
+    "role": "The recipient",
+    "modality": "may",
+    "conditions": [
+      "the `feerate` is not greater than or equal to the maximum of:"
+    ],
+    "text": "MAY send `tx_abort` for any reason",
+    "source": "02-peer-protocol",
+    "line": 510
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-recipient:4",
+    "message": "tx_init_rbf",
+    "role": "The recipient",
+    "modality": "must",
+    "conditions": [
+      "the `feerate` is not greater than or equal to the maximum of:"
+    ],
+    "text": "MUST fail the negotiation if:",
+    "source": "02-peer-protocol",
+    "line": 511
+  },
+  {
+    "id": "bolt02:tx_ack_rbf:the-sender:1",
+    "message": "tx_ack_rbf",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "If it contributes to the transaction's funding output:"
+    ],
+    "text": "MUST set `funding_output_contribution`",
+    "source": "02-peer-protocol",
+    "line": 556
+  },
+  {
+    "id": "bolt02:tx_ack_rbf:the-sender:2",
+    "message": "tx_ack_rbf",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "If it requires the receiving node to only use confirmed inputs:"
+    ],
+    "text": "MUST set `require_confirmed_inputs`",
+    "source": "02-peer-protocol",
+    "line": 558
+  },
+  {
+    "id": "bolt02:tx_ack_rbf:the-sender:3",
+    "message": "tx_ack_rbf",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "If it contributed to previous transactions:"
+    ],
+    "text": "MUST ensure that the new transaction double-spends all other attempts,",
+    "source": "02-peer-protocol",
+    "line": 560
+  },
+  {
+    "id": "bolt02:tx_ack_rbf:the-recipient:1",
+    "message": "tx_ack_rbf",
+    "role": "The recipient",
+    "modality": "must",
+    "text": "MUST respond with `tx_abort` or with a `tx_add_input` message,",
+    "source": "02-peer-protocol",
+    "line": 565
+  },
+  {
+    "id": "bolt02:tx_ack_rbf:the-recipient:2",
+    "message": "tx_ack_rbf",
+    "role": "The recipient",
+    "modality": "must",
+    "text": "MUST fail the negotiation if:",
+    "source": "02-peer-protocol",
+    "line": 567
+  },
+  {
+    "id": "bolt02:tx_abort:a-sending-node:1",
+    "message": "tx_abort",
+    "role": "A sending node",
+    "modality": "must_not",
+    "text": "MUST NOT have already transmitted `tx_signatures`",
+    "source": "02-peer-protocol",
+    "line": 594
+  },
+  {
+    "id": "bolt02:tx_abort:a-sending-node:2",
+    "message": "tx_abort",
+    "role": "A sending node",
+    "modality": "should",
+    "text": "SHOULD forget the current negotiation and reset their state.",
+    "source": "02-peer-protocol",
+    "line": 595
+  },
+  {
+    "id": "bolt02:tx_abort:a-sending-node:3",
+    "message": "tx_abort",
+    "role": "A sending node",
+    "modality": "may",
+    "text": "MAY send an empty `data` field.",
+    "source": "02-peer-protocol",
+    "line": 596
+  },
+  {
+    "id": "bolt02:tx_abort:a-sending-node:4",
+    "message": "tx_abort",
+    "role": "A sending node",
+    "modality": "should",
+    "conditions": [
+      "when failure was caused by an invalid signature check:"
+    ],
+    "text": "SHOULD include the raw, hex-encoded transaction in reply to a",
+    "source": "02-peer-protocol",
+    "line": 598
+  },
+  {
+    "id": "bolt02:tx_abort:a-receiving-node:1",
+    "message": "tx_abort",
+    "role": "A receiving node",
+    "modality": "must_not",
+    "conditions": [
+      "if they have already sent `tx_signatures` to the peer:"
+    ],
+    "text": "MUST NOT forget the channel until any inputs to the negotiated tx",
+    "source": "02-peer-protocol",
+    "line": 603
+  },
+  {
+    "id": "bolt02:tx_abort:a-receiving-node:2",
+    "message": "tx_abort",
+    "role": "A receiving node",
+    "modality": "should",
+    "conditions": [
+      "if they have not sent `tx_signatures`:"
+    ],
+    "text": "SHOULD forget the current negotiation and reset their state.",
+    "source": "02-peer-protocol",
+    "line": 606
+  },
+  {
+    "id": "bolt02:tx_abort:a-receiving-node:3",
+    "message": "tx_abort",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "if they have not sent `tx_abort`:"
+    ],
+    "text": "MUST echo back `tx_abort`",
+    "source": "02-peer-protocol",
+    "line": 608
+  },
+  {
+    "id": "bolt02:tx_abort:126-inclusive:1",
+    "message": "tx_abort",
+    "role": "126, inclusive)",
+    "modality": "should_not",
+    "text": "SHOULD NOT print out `data` verbatim.",
+    "source": "02-peer-protocol",
+    "line": 612
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:1",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST ensure the `chain_hash` value identifies the chain it wishes to open the channel within.",
+    "source": "02-peer-protocol",
+    "line": 802
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:2",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST ensure `temporary_channel_id` is unique from any other channel ID with the same peer.",
+    "source": "02-peer-protocol",
+    "line": 803
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:3",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "may",
+    "conditions": [
+      "if both nodes advertised `option_support_large_channel`:"
+    ],
+    "text": "MAY set `funding_satoshis` greater than or equal to 2^24 satoshi.",
+    "source": "02-peer-protocol",
+    "line": 805
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:4",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST set `funding_satoshis` to less than 2^24 satoshi.",
+    "source": "02-peer-protocol",
+    "line": 807
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:5",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST set `push_msat` to equal or less than 1000 * `funding_satoshis`.",
+    "source": "02-peer-protocol",
+    "line": 808
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:6",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST set `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, and `delayed_payment_basepoint` to valid secp256k1 pubkeys in compressed format.",
+    "source": "02-peer-protocol",
+    "line": 809
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:7",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST set `first_per_commitment_point` to the per-commitment point to be used for the initial commitment transaction, derived as specified in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).",
+    "source": "02-peer-protocol",
+    "line": 810
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:8",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis`.",
+    "source": "02-peer-protocol",
+    "line": 811
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:9",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST set undefined bits in `channel_flags` to 0.",
+    "source": "02-peer-protocol",
+    "line": 812
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:10",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if both nodes advertised the `option_upfront_shutdown_script` feature:"
+    ],
+    "text": "MUST include `upfront_shutdown_script` with either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey` (ie. `0x0000`).",
+    "source": "02-peer-protocol",
+    "line": 814
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:11",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "may",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MAY include `upfront_shutdown_script`.",
+    "source": "02-peer-protocol",
+    "line": 816
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:12",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if it includes `open_channel_tlvs`:"
+    ],
+    "text": "MUST include `upfront_shutdown_script`.",
+    "source": "02-peer-protocol",
+    "line": 818
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:13",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if it includes `open_channel_tlvs`:"
+    ],
+    "text": "MUST set `channel_type`:",
+    "source": "02-peer-protocol",
+    "line": 819
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:14",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if it includes `open_channel_tlvs`:"
+    ],
+    "text": "MUST set it to a defined type representing the type it wants.",
+    "source": "02-peer-protocol",
+    "line": 820
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:15",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if it includes `open_channel_tlvs`:"
+    ],
+    "text": "MUST use the smallest bitmap possible to represent the channel type.",
+    "source": "02-peer-protocol",
+    "line": 821
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:16",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "should_not",
+    "conditions": [
+      "if it includes `open_channel_tlvs`:"
+    ],
+    "text": "SHOULD NOT set it to a type containing a feature which was not negotiated.",
+    "source": "02-peer-protocol",
+    "line": 822
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:17",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if it includes `open_channel_tlvs`:",
+      "if `channel_type` includes `zero_fee_commitments`:"
+    ],
+    "text": "MUST set `feerate_per_kw` to `0`.",
+    "source": "02-peer-protocol",
+    "line": 824
+  },
+  {
+    "id": "bolt02:open_channel:the-sending-node:18",
+    "message": "open_channel",
+    "role": "The sending node",
+    "modality": "must_not",
+    "conditions": [
+      "if it includes `open_channel_tlvs`:",
+      "if `announce_channel` is `true` (not `0`):"
+    ],
+    "text": "MUST NOT send `channel_type` with the `option_scid_alias` bit set.",
+    "source": "02-peer-protocol",
+    "line": 826
+  },
+  {
+    "id": "bolt02:accept_channel:the-sender:1",
+    "message": "accept_channel",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "if `channel_type` includes `option_zeroconf`:"
+    ],
+    "text": "MUST set `minimum_depth` to zero.",
+    "source": "02-peer-protocol",
+    "line": 947
+  },
+  {
+    "id": "bolt02:accept_channel:the-sender:2",
+    "message": "accept_channel",
+    "role": "The sender",
+    "modality": "should",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "SHOULD set `minimum_depth` to a number of blocks it considers reasonable to avoid double-spending of the funding transaction.",
+    "source": "02-peer-protocol",
+    "line": 949
+  },
+  {
+    "id": "bolt02:accept_channel:the-sender:3",
+    "message": "accept_channel",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel` message.",
+    "source": "02-peer-protocol",
+    "line": 950
+  },
+  {
+    "id": "bolt02:accept_channel:the-sender:4",
+    "message": "accept_channel",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST set `dust_limit_satoshis` less than or equal to `channel_reserve_satoshis` from the `open_channel` message.",
+    "source": "02-peer-protocol",
+    "line": 951
+  },
+  {
+    "id": "bolt02:accept_channel:the-sender:5",
+    "message": "accept_channel",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST set `channel_type` to the `channel_type` from `open_channel`.",
+    "source": "02-peer-protocol",
+    "line": 952
+  },
+  {
+    "id": "bolt02:accept_channel:the-receiver:1",
+    "message": "accept_channel",
+    "role": "The receiver",
+    "modality": "may",
+    "conditions": [
+      "if `minimum_depth` is unreasonably large:"
+    ],
+    "text": "MAY fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 956
+  },
+  {
+    "id": "bolt02:accept_channel:the-receiver:2",
+    "message": "accept_channel",
+    "role": "The receiver",
+    "modality": "must",
+    "conditions": [
+      "if `channel_reserve_satoshis` is less than `dust_limit_satoshis` within the `open_channel` message:"
+    ],
+    "text": "MUST fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 958
+  },
+  {
+    "id": "bolt02:accept_channel:the-receiver:3",
+    "message": "accept_channel",
+    "role": "The receiver",
+    "modality": "must",
+    "conditions": [
+      "if `channel_reserve_satoshis` from the `open_channel` message is less than `dust_limit_satoshis`:"
+    ],
+    "text": "MUST fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 960
+  },
+  {
+    "id": "bolt02:accept_channel:the-receiver:4",
+    "message": "accept_channel",
+    "role": "The receiver",
+    "modality": "must",
+    "conditions": [
+      "if the message doesn't include a `channel_type`:"
+    ],
+    "text": "MUST fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 962
+  },
+  {
+    "id": "bolt02:accept_channel:the-receiver:5",
+    "message": "accept_channel",
+    "role": "The receiver",
+    "modality": "must",
+    "conditions": [
+      "if `channel_type` does not match the `channel_type` from `open_channel`:"
+    ],
+    "text": "MUST fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 964
+  },
+  {
+    "id": "bolt02:funding_created:the-sender:1",
+    "message": "funding_created",
+    "role": "The sender",
+    "modality": "should",
+    "conditions": [
+      "when creating the funding transaction:"
+    ],
+    "text": "SHOULD use only BIP141 (Segregated Witness) inputs.",
+    "source": "02-peer-protocol",
+    "line": 992
+  },
+  {
+    "id": "bolt02:funding_created:the-sender:2",
+    "message": "funding_created",
+    "role": "The sender",
+    "modality": "should",
+    "conditions": [
+      "when creating the funding transaction:"
+    ],
+    "text": "SHOULD ensure the funding transaction confirms in the next 2016 blocks.",
+    "source": "02-peer-protocol",
+    "line": 993
+  },
+  {
+    "id": "bolt02:funding_created:the-recipient:1",
+    "message": "funding_created",
+    "role": "The recipient",
+    "modality": "must",
+    "conditions": [
+      "if `signature` is incorrect OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:"
+    ],
+    "text": "MUST send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 997
+  },
+  {
+    "id": "bolt02:funding_signed:both-peers:1",
+    "message": "funding_signed",
+    "role": "Both peers",
+    "modality": "must",
+    "text": "MUST use the negotiated `channel_type` for all commitment transactions.",
+    "source": "02-peer-protocol",
+    "line": 1025
+  },
+  {
+    "id": "bolt02:funding_signed:the-recipient:1",
+    "message": "funding_signed",
+    "role": "The recipient",
+    "modality": "must",
+    "conditions": [
+      "if `signature` is incorrect OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:"
+    ],
+    "text": "MUST send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 1033
+  },
+  {
+    "id": "bolt02:funding_signed:the-recipient:2",
+    "message": "funding_signed",
+    "role": "The recipient",
+    "modality": "must_not",
+    "conditions": [
+      "if `signature` is incorrect OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:"
+    ],
+    "text": "MUST NOT broadcast the funding transaction before receipt of a valid `funding_signed`.",
+    "source": "02-peer-protocol",
+    "line": 1035
+  },
+  {
+    "id": "bolt02:funding_signed:the-recipient:3",
+    "message": "funding_signed",
+    "role": "The recipient",
+    "modality": "should",
+    "conditions": [
+      "on receipt of a valid `funding_signed`:"
+    ],
+    "text": "SHOULD broadcast the funding transaction.",
+    "source": "02-peer-protocol",
+    "line": 1037
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:1",
+    "message": "channel_ready",
+    "role": "The sender",
+    "modality": "must_not",
+    "text": "MUST NOT send `channel_ready` unless outpoint of given by `funding_txid` and",
+    "source": "02-peer-protocol",
+    "line": 1068
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:2",
+    "message": "channel_ready",
+    "role": "The sender",
+    "modality": "should",
+    "conditions": [
+      "if it is not the node opening the channel:"
+    ],
+    "text": "SHOULD wait until the funding transaction has reached `minimum_depth` before",
+    "source": "02-peer-protocol",
+    "line": 1071
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:3",
+    "message": "channel_ready",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "if it is not the node opening the channel:"
+    ],
+    "text": "MUST wait for at least 100 blocks if the funding transaction is the coinbase transaction.",
+    "source": "02-peer-protocol",
+    "line": 1073
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:4",
+    "message": "channel_ready",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "if it is not the node opening the channel:"
+    ],
+    "text": "MUST set `second_per_commitment_point` to the per-commitment point to be used",
+    "source": "02-peer-protocol",
+    "line": 1074
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:5",
+    "message": "channel_ready",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "if `option_scid_alias` was negotiated:"
+    ],
+    "text": "MUST set `short_channel_id` `alias`.",
+    "source": "02-peer-protocol",
+    "line": 1078
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:6",
+    "message": "channel_ready",
+    "role": "The sender",
+    "modality": "may",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MAY set `short_channel_id` `alias`.",
+    "source": "02-peer-protocol",
+    "line": 1080
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:7",
+    "message": "channel_ready",
+    "role": "The sender",
+    "modality": "should",
+    "conditions": [
+      "if it sets `alias`:",
+      "if the `announce_channel` bit was set in `open_channel`:"
+    ],
+    "text": "SHOULD initially set `alias` to value not related to the real `short_channel_id`.",
+    "source": "02-peer-protocol",
+    "line": 1083
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:8",
+    "message": "channel_ready",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "if it sets `alias`:",
+      "otherwise:"
+    ],
+    "text": "MUST set `alias` to a value not related to the real `short_channel_id`.",
+    "source": "02-peer-protocol",
+    "line": 1085
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:9",
+    "message": "channel_ready",
+    "role": "The sender",
+    "modality": "must_not",
+    "conditions": [
+      "if it sets `alias`:",
+      "otherwise:"
+    ],
+    "text": "MUST NOT send the same `alias` for multiple peers or use an alias which",
+    "source": "02-peer-protocol",
+    "line": 1086
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:10",
+    "message": "channel_ready",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "if it sets `alias`:",
+      "otherwise:"
+    ],
+    "text": "MUST always recognize the `alias` as a `short_channel_id` for incoming HTLCs to this channel.",
+    "source": "02-peer-protocol",
+    "line": 1088
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:11",
+    "message": "channel_ready",
+    "role": "The sender",
+    "modality": "must_not",
+    "conditions": [
+      "if it sets `alias`:",
+      "if `channel_type` has `option_scid_alias` set:"
+    ],
+    "text": "MUST NOT allow incoming HTLCs to this channel using the real `short_channel_id`",
+    "source": "02-peer-protocol",
+    "line": 1090
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:12",
+    "message": "channel_ready",
+    "role": "The sender",
+    "modality": "may",
+    "conditions": [
+      "if it sets `alias`:",
+      "if `channel_type` has `option_scid_alias` set:"
+    ],
+    "text": "MAY send multiple `channel_ready` messages to the same peer with different `alias` values.",
+    "source": "02-peer-protocol",
+    "line": 1091
+  },
+  {
+    "id": "bolt02:channel_ready:the-sender:13",
+    "message": "channel_ready",
+    "role": "The sender",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST wait until the funding transaction has reached `minimum_depth` before sending this message.",
+    "source": "02-peer-protocol",
+    "line": 1093
+  },
+  {
+    "id": "bolt02:channel_ready:a-non-funding-node-fundee:1",
+    "message": "channel_ready",
+    "role": "A non-funding node (fundee)",
+    "modality": "should",
+    "text": "SHOULD forget the channel if it does not see the correct funding",
+    "source": "02-peer-protocol",
+    "line": 1099
+  },
+  {
+    "id": "bolt02:channel_ready:the-receiver:1",
+    "message": "channel_ready",
+    "role": "The receiver",
+    "modality": "may",
+    "text": "MAY use any of the `alias` it received, in BOLT 11 `r` fields.",
+    "source": "02-peer-protocol",
+    "line": 1103
+  },
+  {
+    "id": "bolt02:channel_ready:the-receiver:2",
+    "message": "channel_ready",
+    "role": "The receiver",
+    "modality": "must_not",
+    "conditions": [
+      "if `channel_type` has `option_scid_alias` set:"
+    ],
+    "text": "MUST NOT use the real `short_channel_id` in BOLT 11 `r` fields.",
+    "source": "02-peer-protocol",
+    "line": 1105
+  },
+  {
+    "id": "bolt02:open_channel2:if-nodes-have-negotiated-optiondualfund:1",
+    "message": "open_channel2",
+    "role": "If nodes have negotiated `option_dual_fund`",
+    "modality": "must_not",
+    "conditions": [
+      "the opening node:"
+    ],
+    "text": "MUST NOT send `open_channel`",
+    "source": "02-peer-protocol",
+    "line": 1218
+  },
+  {
+    "id": "bolt02:open_channel2:the-sending-node:1",
+    "message": "open_channel2",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST set `channel_type`",
+    "source": "02-peer-protocol",
+    "line": 1221
+  },
+  {
+    "id": "bolt02:open_channel2:the-sending-node:2",
+    "message": "open_channel2",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST set `funding_feerate_perkw` to the feerate for this transaction",
+    "source": "02-peer-protocol",
+    "line": 1222
+  },
+  {
+    "id": "bolt02:open_channel2:the-sending-node:3",
+    "message": "open_channel2",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if `channel_type` includes `zero_fee_commitments`:"
+    ],
+    "text": "MUST set `commitment_feerate_perkw` to `0`.",
+    "source": "02-peer-protocol",
+    "line": 1224
+  },
+  {
+    "id": "bolt02:open_channel2:the-sending-node:4",
+    "message": "open_channel2",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "If it requires the receiving node to only use confirmed inputs:"
+    ],
+    "text": "MUST set `require_confirmed_inputs`",
+    "source": "02-peer-protocol",
+    "line": 1226
+  },
+  {
+    "id": "bolt02:open_channel2:the-receiving-node:1",
+    "message": "open_channel2",
+    "role": "The receiving node",
+    "modality": "may",
+    "text": "MAY fail the negotiation if:",
+    "source": "02-peer-protocol",
+    "line": 1229
+  },
+  {
+    "id": "bolt02:open_channel2:the-receiving-node:2",
+    "message": "open_channel2",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST fail the negotiation if:",
+    "source": "02-peer-protocol",
+    "line": 1232
+  },
+  {
+    "id": "bolt02:accept_channel2:the-accepting-node:1",
+    "message": "accept_channel2",
+    "role": "The accepting node",
+    "modality": "must",
+    "text": "MUST use the `temporary_channel_id` of the `open_channel2` message.",
+    "source": "02-peer-protocol",
+    "line": 1310
+  },
+  {
+    "id": "bolt02:accept_channel2:the-accepting-node:2",
+    "message": "accept_channel2",
+    "role": "The accepting node",
+    "modality": "must",
+    "text": "MUST set `channel_type` to the `channel_type` from `open_channel2`.",
+    "source": "02-peer-protocol",
+    "line": 1311
+  },
+  {
+    "id": "bolt02:accept_channel2:the-accepting-node:3",
+    "message": "accept_channel2",
+    "role": "The accepting node",
+    "modality": "may",
+    "text": "MAY respond with a `funding_satoshis` value of zero.",
+    "source": "02-peer-protocol",
+    "line": 1312
+  },
+  {
+    "id": "bolt02:accept_channel2:the-accepting-node:4",
+    "message": "accept_channel2",
+    "role": "The accepting node",
+    "modality": "must",
+    "conditions": [
+      "If it requires the opening node to only use confirmed inputs:"
+    ],
+    "text": "MUST set `require_confirmed_inputs`.",
+    "source": "02-peer-protocol",
+    "line": 1314
+  },
+  {
+    "id": "bolt02:accept_channel2:the-receiving-node:1",
+    "message": "accept_channel2",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST fail the negotiation if:",
+    "source": "02-peer-protocol",
+    "line": 1317
+  },
+  {
+    "id": "bolt02:tx_add_input:acceptchannel2-txinitrbf-or-txackrbf:1",
+    "message": "tx_add_input",
+    "role": "`accept_channel2`, `tx_init_rbf` or `tx_ack_rbf`",
+    "modality": "must_not",
+    "text": "MUST NOT send a `tx_add_input` that contains an unconfirmed input",
+    "source": "02-peer-protocol",
+    "line": 1345
+  },
+  {
+    "id": "bolt02:tx_add_output:the-sending-node:5",
+    "message": "tx_add_output",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if is the *opener*:"
+    ],
+    "text": "MUST send at least one `tx_add_output`, which contains the",
+    "source": "02-peer-protocol",
+    "line": 1353
+  },
+  {
+    "id": "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:1",
+    "message": "tx_complete",
+    "role": "Upon receipt of consecutive `tx_complete`s, the receiving node",
+    "modality": "must",
+    "conditions": [
+      "if is the *accepter*:"
+    ],
+    "text": "MUST fail the negotiation if:",
+    "source": "02-peer-protocol",
+    "line": 1364
+  },
+  {
+    "id": "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:2",
+    "message": "tx_complete",
+    "role": "Upon receipt of consecutive `tx_complete`s, the receiving node",
+    "modality": "must",
+    "conditions": [
+      "if this is an RBF attempt:"
+    ],
+    "text": "MUST fail the negotiation if:",
+    "source": "02-peer-protocol",
+    "line": 1371
+  },
+  {
+    "id": "bolt02:tx_complete:acceptchannel2-txinitrbf-or-txackrbf:1",
+    "message": "tx_complete",
+    "role": "`accept_channel2`, `tx_init_rbf` or `tx_ack_rbf`",
+    "modality": "must",
+    "text": "MUST fail the negotiation if:",
+    "source": "02-peer-protocol",
+    "line": 1378
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sending-node:1",
+    "message": "commitment_signed",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST send zero HTLCs.",
+    "source": "02-peer-protocol",
+    "line": 1393
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sending-node:2",
+    "message": "commitment_signed",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST remember the details of this funding transaction.",
+    "source": "02-peer-protocol",
+    "line": 1394
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:1",
+    "message": "commitment_signed",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "if the message has one or more HTLCs:"
+    ],
+    "text": "MUST fail the negotiation",
+    "source": "02-peer-protocol",
+    "line": 1398
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:2",
+    "message": "commitment_signed",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "if it has not already transmitted its `commitment_signed`:"
+    ],
+    "text": "MUST send `commitment_signed`",
+    "source": "02-peer-protocol",
+    "line": 1400
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:3",
+    "message": "commitment_signed",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "Otherwise:"
+    ],
+    "text": "MUST send `tx_signatures` if it should sign first, as specified",
+    "source": "02-peer-protocol",
+    "line": 1402
+  },
+  {
+    "id": "bolt02:commitment_signed:from-the-peer-and-a-commitmentsigned-has-been-sent-a-peer:1",
+    "message": "commitment_signed",
+    "role": "from the peer and a `commitment_signed` has been sent, a peer",
+    "modality": "must",
+    "text": "MUST transmit `tx_signatures` with their signatures for the funding",
+    "source": "02-peer-protocol",
+    "line": 1417
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sending-node:3",
+    "message": "commitment_signed",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST verify it has received a valid commitment signature from its peer",
+    "source": "02-peer-protocol",
+    "line": 1424
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sending-node:4",
+    "message": "commitment_signed",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST remember the details of this funding transaction",
+    "source": "02-peer-protocol",
+    "line": 1425
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sending-node:5",
+    "message": "commitment_signed",
+    "role": "The sending node",
+    "modality": "must_not",
+    "conditions": [
+      "if it has NOT received a valid `commitment_signed` message:"
+    ],
+    "text": "MUST NOT send a `tx_signatures` message",
+    "source": "02-peer-protocol",
+    "line": 1427
+  },
+  {
+    "id": "bolt02:commitment_signed:channel:1",
+    "message": "commitment_signed",
+    "role": "channel",
+    "modality": "must",
+    "text": "MUST ignore this message",
+    "source": "02-peer-protocol",
+    "line": 1432
+  },
+  {
+    "id": "bolt02:commitment_signed:getting-the-transaction-confirmed-in-a-timely-manner:1",
+    "message": "commitment_signed",
+    "role": "getting the transaction confirmed in a timely manner",
+    "modality": "should",
+    "text": "SHOULD broadcast their commitment transaction, closing the channel",
+    "source": "02-peer-protocol",
+    "line": 1437
+  },
+  {
+    "id": "bolt02:commitment_signed:getting-the-transaction-confirmed-in-a-timely-manner:2",
+    "message": "commitment_signed",
+    "role": "getting the transaction confirmed in a timely manner",
+    "modality": "should",
+    "text": "SHOULD double-spend their channel inputs when there is a productive",
+    "source": "02-peer-protocol",
+    "line": 1438
+  },
+  {
+    "id": "bolt02:commitment_signed:getting-the-transaction-confirmed-in-a-timely-manner:3",
+    "message": "commitment_signed",
+    "role": "getting the transaction confirmed in a timely manner",
+    "modality": "should",
+    "text": "SHOULD apply `witnesses` to the funding transaction and broadcast it",
+    "source": "02-peer-protocol",
+    "line": 1440
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sender-of-txinitrbf:1",
+    "message": "commitment_signed",
+    "role": "The sender of `tx_init_rbf`",
+    "modality": "may",
+    "text": "MAY be either the *initiator* or the *accepter*",
+    "source": "02-peer-protocol",
+    "line": 1461
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sender-of-txinitrbf:2",
+    "message": "commitment_signed",
+    "role": "The sender of `tx_init_rbf`",
+    "modality": "must",
+    "conditions": [
+      "If the sender is the accepter, it becomes the initiator of the `interactive-tx` session and thus:"
+    ],
+    "text": "MUST send `tx_add_output` for the channel output",
+    "source": "02-peer-protocol",
+    "line": 1463
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sender-of-txinitrbf:3",
+    "message": "commitment_signed",
+    "role": "The sender of `tx_init_rbf`",
+    "modality": "must",
+    "conditions": [
+      "If the sender is the accepter, it becomes the initiator of the `interactive-tx` session and thus:"
+    ],
+    "text": "MUST pay the fees for the shared transaction fields",
+    "source": "02-peer-protocol",
+    "line": 1464
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sender-of-txinitrbf:4",
+    "message": "commitment_signed",
+    "role": "The sender of `tx_init_rbf`",
+    "modality": "must_not",
+    "conditions": [
+      "If the sender is the accepter, it becomes the initiator of the `interactive-tx` session and thus:"
+    ],
+    "text": "MUST NOT have sent or received a `channel_ready` message.",
+    "source": "02-peer-protocol",
+    "line": 1465
+  },
+  {
+    "id": "bolt02:commitment_signed:the-recipient:1",
+    "message": "commitment_signed",
+    "role": "The recipient",
+    "modality": "must",
+    "text": "MUST fail the negotiation if they have already sent or received",
+    "source": "02-peer-protocol",
+    "line": 1468
+  },
+  {
+    "id": "bolt02:commitment_signed:the-recipient:2",
+    "message": "commitment_signed",
+    "role": "The recipient",
+    "modality": "may",
+    "text": "MAY fail the negotiation for any reason",
+    "source": "02-peer-protocol",
+    "line": 1470
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:1",
+    "message": "stfu",
+    "role": "The sender of `stfu`",
+    "modality": "must_not",
+    "text": "MUST NOT send `stfu` unless `option_quiesce` is negotiated.",
+    "source": "02-peer-protocol",
+    "line": 1508
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:2",
+    "message": "stfu",
+    "role": "The sender of `stfu`",
+    "modality": "must_not",
+    "text": "MUST NOT send `stfu` if any of the sender's htlc additions, htlc removals",
+    "source": "02-peer-protocol",
+    "line": 1509
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:3",
+    "message": "stfu",
+    "role": "The sender of `stfu`",
+    "modality": "must_not",
+    "text": "MUST NOT send `stfu` twice.",
+    "source": "02-peer-protocol",
+    "line": 1511
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:4",
+    "message": "stfu",
+    "role": "The sender of `stfu`",
+    "modality": "must",
+    "conditions": [
+      "if it is replying to an `stfu`:"
+    ],
+    "text": "MUST set `initiator` to 0",
+    "source": "02-peer-protocol",
+    "line": 1513
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:5",
+    "message": "stfu",
+    "role": "The sender of `stfu`",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST set `initiator` to 1",
+    "source": "02-peer-protocol",
+    "line": 1515
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:6",
+    "message": "stfu",
+    "role": "The sender of `stfu`",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST set `channel_id` to the id of the channel to quiesce.",
+    "source": "02-peer-protocol",
+    "line": 1516
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:7",
+    "message": "stfu",
+    "role": "The sender of `stfu`",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST now consider the channel to be quiescing.",
+    "source": "02-peer-protocol",
+    "line": 1517
+  },
+  {
+    "id": "bolt02:stfu:the-sender-of-stfu:8",
+    "message": "stfu",
+    "role": "The sender of `stfu`",
+    "modality": "must_not",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST NOT send an update message after `stfu`.",
+    "source": "02-peer-protocol",
+    "line": 1518
+  },
+  {
+    "id": "bolt02:stfu:the-receiver-of-stfu:1",
+    "message": "stfu",
+    "role": "The receiver of `stfu`",
+    "modality": "must",
+    "conditions": [
+      "if it has sent `stfu` then:"
+    ],
+    "text": "MUST now consider the channel to be quiescent",
+    "source": "02-peer-protocol",
+    "line": 1522
+  },
+  {
+    "id": "bolt02:stfu:the-receiver-of-stfu:2",
+    "message": "stfu",
+    "role": "The receiver of `stfu`",
+    "modality": "should_not",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "SHOULD NOT send any more update messages.",
+    "source": "02-peer-protocol",
+    "line": 1524
+  },
+  {
+    "id": "bolt02:stfu:the-receiver-of-stfu:3",
+    "message": "stfu",
+    "role": "The receiver of `stfu`",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST reply with `stfu` once it can do so.",
+    "source": "02-peer-protocol",
+    "line": 1525
+  },
+  {
+    "id": "bolt02:stfu:both-nodes:1",
+    "message": "stfu",
+    "role": "Both nodes",
+    "modality": "must",
+    "text": "MUST disconnect after 60 seconds of quiescence if the HTLCs are pending.",
+    "source": "02-peer-protocol",
+    "line": 1528
+  },
+  {
+    "id": "bolt02:stfu:dependent-protocols:1",
+    "message": "stfu",
+    "role": "Dependent Protocols",
+    "modality": "must",
+    "text": "MUST specify all states that terminate quiescence.",
+    "source": "02-peer-protocol",
+    "line": 1534
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:1",
+    "message": "splice_init",
+    "role": "The sending node",
+    "modality": "must_not",
+    "text": "MUST NOT send `splice_init` if the channel is not quiescent.",
+    "source": "02-peer-protocol",
+    "line": 1668
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:2",
+    "message": "splice_init",
+    "role": "The sending node",
+    "modality": "must_not",
+    "text": "MUST NOT send `splice_init` if it is not the quiescence initiator.",
+    "source": "02-peer-protocol",
+    "line": 1669
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:3",
+    "message": "splice_init",
+    "role": "The sending node",
+    "modality": "must_not",
+    "text": "MUST NOT send `splice_init` before sending and receiving `channel_ready`.",
+    "source": "02-peer-protocol",
+    "line": 1670
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:4",
+    "message": "splice_init",
+    "role": "The sending node",
+    "modality": "must_not",
+    "text": "MUST NOT send `splice_init` while another splice is being negotiated.",
+    "source": "02-peer-protocol",
+    "line": 1671
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:5",
+    "message": "splice_init",
+    "role": "The sending node",
+    "modality": "must_not",
+    "text": "MUST NOT send `splice_init` if another splice has been negotiated but",
+    "source": "02-peer-protocol",
+    "line": 1672
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:6",
+    "message": "splice_init",
+    "role": "The sending node",
+    "modality": "must_not",
+    "text": "MUST NOT send `splice_init` if it has previously sent `shutdown`.",
+    "source": "02-peer-protocol",
+    "line": 1674
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:7",
+    "message": "splice_init",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST set `funding_feerate_perkw` to the feerate for the splice transaction.",
+    "source": "02-peer-protocol",
+    "line": 1675
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:8",
+    "message": "splice_init",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "If it is splicing funds out of the channel:"
+    ],
+    "text": "MUST set `funding_contribution_satoshis` to a negative value matching",
+    "source": "02-peer-protocol",
+    "line": 1677
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:9",
+    "message": "splice_init",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "If it is splicing funds into the channel:"
+    ],
+    "text": "MUST set `funding_contribution_satoshis` to a positive value matching",
+    "source": "02-peer-protocol",
+    "line": 1680
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:10",
+    "message": "splice_init",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "If it requires the receiving node to only use confirmed inputs:"
+    ],
+    "text": "MUST set `require_confirmed_inputs`.",
+    "source": "02-peer-protocol",
+    "line": 1683
+  },
+  {
+    "id": "bolt02:splice_init:the-sending-node:11",
+    "message": "splice_init",
+    "role": "The sending node",
+    "modality": "should",
+    "conditions": [
+      "If it requires the receiving node to only use confirmed inputs:"
+    ],
+    "text": "SHOULD use a different `funding_pubkey` than the one used for the",
+    "source": "02-peer-protocol",
+    "line": 1684
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:1",
+    "message": "splice_init",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If the channel is not quiescent:"
+    ],
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1689
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:2",
+    "message": "splice_init",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If the sending node is not the quiescence initiator:"
+    ],
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1692
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:3",
+    "message": "splice_init",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If another splice is already being negotiated:"
+    ],
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1695
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:4",
+    "message": "splice_init",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If another splice has been negotiated but isn't locked yet:"
+    ],
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1698
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:5",
+    "message": "splice_init",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If it has received `shutdown`:"
+    ],
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1701
+  },
+  {
+    "id": "bolt02:splice_init:the-receiving-node:6",
+    "message": "splice_init",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If the `funding_feerate_perkw` is unacceptable:"
+    ],
+    "text": "MUST respond with `tx_abort`.",
+    "source": "02-peer-protocol",
+    "line": 1704
+  },
+  {
+    "id": "bolt02:splice_init:greater-than-the-sending-nodes-current-channel-balance:1",
+    "message": "splice_init",
+    "role": "greater than the sending node's current channel balance",
+    "modality": "must",
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1707
+  },
+  {
+    "id": "bolt02:splice_init:greater-than-the-sending-nodes-current-channel-balance:2",
+    "message": "splice_init",
+    "role": "greater than the sending node's current channel balance",
+    "modality": "must",
+    "conditions": [
+      "If it accepts the splice attempt:"
+    ],
+    "text": "MUST respond with `splice_ack`.",
+    "source": "02-peer-protocol",
+    "line": 1710
+  },
+  {
+    "id": "bolt02:splice_init:greater-than-the-sending-nodes-current-channel-balance:3",
+    "message": "splice_init",
+    "role": "greater than the sending node's current channel balance",
+    "modality": "must",
+    "conditions": [
+      "Otherwise (it rejects the splice):"
+    ],
+    "text": "MUST respond with `tx_abort`.",
+    "source": "02-peer-protocol",
+    "line": 1712
+  },
+  {
+    "id": "bolt02:splice_ack:the-sending-node:1",
+    "message": "splice_ack",
+    "role": "The sending node",
+    "modality": "should",
+    "text": "SHOULD use a different `funding_pubkey` than the one used for the",
+    "source": "02-peer-protocol",
+    "line": 1730
+  },
+  {
+    "id": "bolt02:splice_ack:the-sending-node:2",
+    "message": "splice_ack",
+    "role": "The sending node",
+    "modality": "may",
+    "text": "MAY set `funding_contribution_satoshis` to `0` if they don't want",
+    "source": "02-peer-protocol",
+    "line": 1732
+  },
+  {
+    "id": "bolt02:splice_ack:the-sending-node:3",
+    "message": "splice_ack",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "If it requires the receiving node to only use confirmed inputs:"
+    ],
+    "text": "MUST set `require_confirmed_inputs`.",
+    "source": "02-peer-protocol",
+    "line": 1735
+  },
+  {
+    "id": "bolt02:splice_ack:greater-than-the-sending-nodes-current-channel-balance:1",
+    "message": "splice_ack",
+    "role": "greater than the sending node's current channel balance",
+    "modality": "must",
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1741
+  },
+  {
+    "id": "bolt02:splice_ack:greater-than-the-sending-nodes-current-channel-balance:2",
+    "message": "splice_ack",
+    "role": "greater than the sending node's current channel balance",
+    "modality": "must",
+    "conditions": [
+      "If it accepts the splice attempt:"
+    ],
+    "text": "MUST start an `interactive-tx` session to create the splice transaction.",
+    "source": "02-peer-protocol",
+    "line": 1744
+  },
+  {
+    "id": "bolt02:splice_ack:greater-than-the-sending-nodes-current-channel-balance:3",
+    "message": "splice_ack",
+    "role": "greater than the sending node's current channel balance",
+    "modality": "must",
+    "conditions": [
+      "If it accepts the splice attempt:",
+      "Otherwise:"
+    ],
+    "text": "MUST reject the splice attempt by sending `tx_abort`.",
+    "source": "02-peer-protocol",
+    "line": 1746
+  },
+  {
+    "id": "bolt02:splice_ack:greater-than-the-sending-nodes-current-channel-balance:4",
+    "message": "splice_ack",
+    "role": "greater than the sending node's current channel balance",
+    "modality": "must",
+    "conditions": [
+      "Otherwise (it has not sent `splice_init`):"
+    ],
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1748
+  },
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:7",
+    "message": "tx_add_input",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "If it is the splice initiator:"
+    ],
+    "text": "MUST add the current channel input to the splice transaction by",
+    "source": "02-peer-protocol",
+    "line": 1763
+  },
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:8",
+    "message": "tx_add_input",
+    "role": "The sending node",
+    "modality": "must_not",
+    "conditions": [
+      "If it is the splice initiator:"
+    ],
+    "text": "MUST NOT include `prevtx` for that shared input.",
+    "source": "02-peer-protocol",
+    "line": 1766
+  },
+  {
+    "id": "bolt02:tx_add_input:the-sending-node:9",
+    "message": "tx_add_input",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "If it is the splice initiator:"
+    ],
+    "text": "MUST set `prevtx_vout` to the previous funding output index.",
+    "source": "02-peer-protocol",
+    "line": 1767
+  },
+  {
+    "id": "bolt02:tx_add_input:spliceack-txinitrbf-or-txackrbf:1",
+    "message": "tx_add_input",
+    "role": "`splice_ack`, `tx_init_rbf` or `tx_ack_rbf`",
+    "modality": "must_not",
+    "text": "MUST NOT send a `tx_add_input` that contains an unconfirmed input.",
+    "source": "02-peer-protocol",
+    "line": 1770
+  },
+  {
+    "id": "bolt02:tx_add_input:the-receiving-node:3",
+    "message": "tx_add_input",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If `shared_input_txid` is set:",
+      "If it doesn't match the `txid` of the previous funding transaction:"
+    ],
+    "text": "MUST fail the negotiation by sending `tx_abort`.",
+    "source": "02-peer-protocol",
+    "line": 1775
+  },
+  {
+    "id": "bolt02:tx_add_input:the-receiving-node:4",
+    "message": "tx_add_input",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If `shared_input_txid` is set:",
+      "If `prevtx_vout` doesn't match the previous funding output index:"
+    ],
+    "text": "MUST fail the negotiation by sending `tx_abort`.",
+    "source": "02-peer-protocol",
+    "line": 1777
+  },
+  {
+    "id": "bolt02:tx_add_output:the-sending-node:6",
+    "message": "tx_add_output",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "If it is the splice initiator:"
+    ],
+    "text": "MUST send at least one `tx_add_output`, which contains the new",
+    "source": "02-peer-protocol",
+    "line": 1794
+  },
+  {
+    "id": "bolt02:tx_add_output:the-sending-node:7",
+    "message": "tx_add_output",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "If it is the splice initiator:"
+    ],
+    "text": "MUST set the amount of that `tx_add_output` to the previous",
+    "source": "02-peer-protocol",
+    "line": 1797
+  },
+  {
+    "id": "bolt02:tx_complete:the-receiving-node:3",
+    "message": "tx_complete",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST compute the channel balance for each side by adding their respective",
+    "source": "02-peer-protocol",
+    "line": 1811
+  },
+  {
+    "id": "bolt02:tx_complete:the-receiving-node:4",
+    "message": "tx_complete",
+    "role": "The receiving node",
+    "modality": "must",
+    "text": "MUST fail the negotiation by sending `tx_abort` if:",
+    "source": "02-peer-protocol",
+    "line": 1813
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sending-node:6",
+    "message": "commitment_signed",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST create a commitment transaction that spends the splice funding output and:",
+    "source": "02-peer-protocol",
+    "line": 1843
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sending-node:7",
+    "message": "commitment_signed",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST send signatures for pending HTLCs.",
+    "source": "02-peer-protocol",
+    "line": 1848
+  },
+  {
+    "id": "bolt02:commitment_signed:the-sending-node:8",
+    "message": "commitment_signed",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST remember the details of this splice transaction.",
+    "source": "02-peer-protocol",
+    "line": 1849
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:4",
+    "message": "commitment_signed",
+    "role": "The receiving node",
+    "modality": "must_not",
+    "text": "MUST NOT respond with `revoke_and_ack`.",
+    "source": "02-peer-protocol",
+    "line": 1852
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:5",
+    "message": "commitment_signed",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If it has not already transmitted its `commitment_signed`:"
+    ],
+    "text": "MUST send `commitment_signed`.",
+    "source": "02-peer-protocol",
+    "line": 1854
+  },
+  {
+    "id": "bolt02:commitment_signed:the-receiving-node:6",
+    "message": "commitment_signed",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If it should sign first, as specified in the [`tx_signatures` requirements](#the-tx_signatures-message):"
+    ],
+    "text": "MUST send `tx_signatures`.",
+    "source": "02-peer-protocol",
+    "line": 1856
+  },
+  {
+    "id": "bolt02:commitment_signed:on-reconnection:1",
+    "message": "commitment_signed",
+    "role": "On reconnection",
+    "modality": "must",
+    "conditions": [
+      "If `next_funding` matches the splice transaction:"
+    ],
+    "text": "MUST retransmit `commitment_signed`.",
+    "source": "02-peer-protocol",
+    "line": 1864
+  },
+  {
+    "id": "bolt02:tx_signatures:the-sending-node:1",
+    "message": "tx_signatures",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST set `shared_input_signature` to a valid ECDSA signature for the",
+    "source": "02-peer-protocol",
+    "line": 1877
+  },
+  {
+    "id": "bolt02:tx_signatures:the-receiving-node:4",
+    "message": "tx_signatures",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If `shared_input_signature` is not set:"
+    ],
+    "text": "MUST send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 1883
+  },
+  {
+    "id": "bolt02:tx_signatures:low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:1",
+    "message": "tx_signatures",
+    "role": "LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "must",
+    "text": "MUST send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 1886
+  },
+  {
+    "id": "bolt02:tx_signatures:low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:2",
+    "message": "tx_signatures",
+    "role": "LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "must",
+    "text": "MUST consider the channel no longer quiescent.",
+    "source": "02-peer-protocol",
+    "line": 1887
+  },
+  {
+    "id": "bolt02:tx_signatures:on-reconnection:1",
+    "message": "tx_signatures",
+    "role": "On reconnection",
+    "modality": "must",
+    "conditions": [
+      "If `next_funding` matches the splice transaction:"
+    ],
+    "text": "MUST retransmit `tx_signatures`.",
+    "source": "02-peer-protocol",
+    "line": 1891
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:1",
+    "message": "tx_init_rbf",
+    "role": "The sending node",
+    "modality": "must_not",
+    "text": "MUST NOT send `tx_init_rbf` if the channel is not quiescent.",
+    "source": "02-peer-protocol",
+    "line": 1909
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:2",
+    "message": "tx_init_rbf",
+    "role": "The sending node",
+    "modality": "must_not",
+    "text": "MUST NOT send `tx_init_rbf` if it is not the quiescence initiator.",
+    "source": "02-peer-protocol",
+    "line": 1910
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:3",
+    "message": "tx_init_rbf",
+    "role": "The sending node",
+    "modality": "may",
+    "text": "MAY send `tx_init_rbf` even if it is not the splice initiator.",
+    "source": "02-peer-protocol",
+    "line": 1911
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:4",
+    "message": "tx_init_rbf",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "If there are more than 10 pending RBF attempts:"
+    ],
+    "text": "MUST set a high enough `feerate` to ensure quick confirmation.",
+    "source": "02-peer-protocol",
+    "line": 1913
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:5",
+    "message": "tx_init_rbf",
+    "role": "The sending node",
+    "modality": "must_not",
+    "conditions": [
+      "If there are more than 10 pending RBF attempts:"
+    ],
+    "text": "MUST NOT send `tx_init_rbf` if it has previously sent `splice_locked`.",
+    "source": "02-peer-protocol",
+    "line": 1914
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:6",
+    "message": "tx_init_rbf",
+    "role": "The sending node",
+    "modality": "must_not",
+    "conditions": [
+      "If there are more than 10 pending RBF attempts:"
+    ],
+    "text": "MUST NOT send `tx_init_rbf` if `option_zeroconf` has been negotiated.",
+    "source": "02-peer-protocol",
+    "line": 1915
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-sending-node:7",
+    "message": "tx_init_rbf",
+    "role": "The sending node",
+    "modality": "may",
+    "conditions": [
+      "If there are more than 10 pending RBF attempts:"
+    ],
+    "text": "MAY set `funding_output_contribution` to a different value than the",
+    "source": "02-peer-protocol",
+    "line": 1916
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-receiving-node:1",
+    "message": "tx_init_rbf",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If the channel is not quiescent:"
+    ],
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1922
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-receiving-node:2",
+    "message": "tx_init_rbf",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If the sending node is not the quiescence initiator:"
+    ],
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1925
+  },
+  {
+    "id": "bolt02:tx_init_rbf:the-receiving-node:3",
+    "message": "tx_init_rbf",
+    "role": "The receiving node",
+    "modality": "should",
+    "conditions": [
+      "If another RBF attempt has been created recently:"
+    ],
+    "text": "SHOULD send `tx_abort` to reject this RBF attempt and wait for the",
+    "source": "02-peer-protocol",
+    "line": 1928
+  },
+  {
+    "id": "bolt02:tx_init_rbf:high-enough-to-ensure-quick-confirmation:1",
+    "message": "tx_init_rbf",
+    "role": "high enough to ensure quick confirmation",
+    "modality": "should",
+    "text": "SHOULD send `tx_abort` to reject the RBF attempt.",
+    "source": "02-peer-protocol",
+    "line": 1932
+  },
+  {
+    "id": "bolt02:tx_init_rbf:high-enough-to-ensure-quick-confirmation:2",
+    "message": "tx_init_rbf",
+    "role": "high enough to ensure quick confirmation",
+    "modality": "must",
+    "conditions": [
+      "If the sender previously sent `splice_locked`:"
+    ],
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1934
+  },
+  {
+    "id": "bolt02:tx_init_rbf:high-enough-to-ensure-quick-confirmation:3",
+    "message": "tx_init_rbf",
+    "role": "high enough to ensure quick confirmation",
+    "modality": "must",
+    "conditions": [
+      "If `option_zeroconf` has been negotiated:"
+    ],
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1937
+  },
+  {
+    "id": "bolt02:tx_init_rbf:greater-than-the-sending-nodes-current-channel-balance:1",
+    "message": "tx_init_rbf",
+    "role": "greater than the sending node's current channel balance",
+    "modality": "must",
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1941
+  },
+  {
+    "id": "bolt02:tx_ack_rbf:the-sending-node:1",
+    "message": "tx_ack_rbf",
+    "role": "The sending node",
+    "modality": "may",
+    "text": "MAY set `funding_output_contribution` to a different value than the",
+    "source": "02-peer-protocol",
+    "line": 1967
+  },
+  {
+    "id": "bolt02:tx_ack_rbf:greater-than-the-sending-nodes-current-channel-balance:1",
+    "message": "tx_ack_rbf",
+    "role": "greater than the sending node's current channel balance",
+    "modality": "must",
+    "text": "MUST send a `warning` and close the connection or send an `error`",
+    "source": "02-peer-protocol",
+    "line": 1974
+  },
+  {
+    "id": "bolt02:splice_locked:each-node:1",
+    "message": "splice_locked",
+    "role": "Each node",
+    "modality": "must",
+    "conditions": [
+      "If any splice transaction reaches acceptable depth:"
+    ],
+    "text": "MUST send `splice_locked` with the `txid` of that transaction.",
+    "source": "02-peer-protocol",
+    "line": 2016
+  },
+  {
+    "id": "bolt02:splice_locked:each-node:2",
+    "message": "splice_locked",
+    "role": "Each node",
+    "modality": "should",
+    "conditions": [
+      "If `option_zeroconf` has been negotiated:"
+    ],
+    "text": "SHOULD send `splice_locked` immediately after exchanging `tx_signatures`.",
+    "source": "02-peer-protocol",
+    "line": 2018
+  },
+  {
+    "id": "bolt02:splice_locked:the-receiving-node:1",
+    "message": "splice_locked",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "If `splice_txid` doesn't match any of its pending splice transactions:"
+    ],
+    "text": "MUST send a `warning` and close the connection, or send an `error` and",
+    "source": "02-peer-protocol",
+    "line": 2022
+  },
+  {
+    "id": "bolt02:splice_locked:once-a-node-has-sent-and-received-splicelocked:1",
+    "message": "splice_locked",
+    "role": "Once a node has sent and received `splice_locked`",
+    "modality": "must",
+    "conditions": [
+      "If the `splice_txid`s match:"
+    ],
+    "text": "MUST stop sending `commitment_signed` for RBF attempts and ancestors",
+    "source": "02-peer-protocol",
+    "line": 2027
+  },
+  {
+    "id": "bolt02:splice_locked:once-a-node-has-sent-and-received-splicelocked:2",
+    "message": "splice_locked",
+    "role": "Once a node has sent and received `splice_locked`",
+    "modality": "may",
+    "conditions": [
+      "If the `splice_txid`s match:"
+    ],
+    "text": "MAY discard RBF attempts and ancestor transactions.",
+    "source": "02-peer-protocol",
+    "line": 2029
+  },
+  {
+    "id": "bolt02:splice_locked:once-a-node-has-sent-and-received-splicelocked:3",
+    "message": "splice_locked",
+    "role": "Once a node has sent and received `splice_locked`",
+    "modality": "must",
+    "conditions": [
+      "If the `splice_txid`s match:",
+      "If `announce_channel` is set for this channel:"
+    ],
+    "text": "MUST send `announcement_signatures` with `short_channel_id` matching",
+    "source": "02-peer-protocol",
+    "line": 2031
+  },
+  {
+    "id": "bolt02:splice_locked:once-a-node-has-sent-and-received-splicelocked:4",
+    "message": "splice_locked",
+    "role": "Once a node has sent and received `splice_locked`",
+    "modality": "should",
+    "conditions": [
+      "If the `splice_txid`s are for different RBF candidates:"
+    ],
+    "text": "SHOULD ignore the message.",
+    "source": "02-peer-protocol",
+    "line": 2034
+  },
+  {
+    "id": "bolt02:splice_locked:once-a-node-has-sent-and-received-splicelocked:5",
+    "message": "splice_locked",
+    "role": "Once a node has sent and received `splice_locked`",
+    "modality": "may",
+    "conditions": [
+      "If the `splice_txid`s are for different RBF candidates:"
+    ],
+    "text": "MAY send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 2035
+  },
+  {
+    "id": "bolt02:general:a-sending-node:1",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must_not",
+    "conditions": [
+      "if it hasn't sent a `funding_created` (if it is a funder) or a `funding_signed` (if it is a fundee):"
+    ],
+    "text": "MUST NOT send a `shutdown`",
+    "source": "02-peer-protocol",
+    "line": 2151
+  },
+  {
+    "id": "bolt02:general:a-sending-node:2",
+    "message": "",
+    "role": "A sending node",
+    "modality": "may",
+    "conditions": [
+      "if it hasn't sent a `funding_created` (if it is a funder) or a `funding_signed` (if it is a fundee):"
+    ],
+    "text": "MAY send a `shutdown` before a `channel_ready`, i.e. before the funding transaction has reached `minimum_depth`.",
+    "source": "02-peer-protocol",
+    "line": 2152
+  },
+  {
+    "id": "bolt02:general:a-sending-node:3",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must_not",
+    "conditions": [
+      "if there are updates pending on the receiving node's commitment transaction:"
+    ],
+    "text": "MUST NOT send a `shutdown`.",
+    "source": "02-peer-protocol",
+    "line": 2154
+  },
+  {
+    "id": "bolt02:general:a-sending-node:4",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must_not",
+    "conditions": [
+      "if there are updates pending on the receiving node's commitment transaction:"
+    ],
+    "text": "MUST NOT send multiple `shutdown` messages.",
+    "source": "02-peer-protocol",
+    "line": 2155
+  },
+  {
+    "id": "bolt02:general:a-sending-node:5",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must_not",
+    "conditions": [
+      "if there are updates pending on the receiving node's commitment transaction:"
+    ],
+    "text": "MUST NOT send `shutdown` if there is a splice transaction that isn't locked yet.",
+    "source": "02-peer-protocol",
+    "line": 2156
+  },
+  {
+    "id": "bolt02:general:a-sending-node:6",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must_not",
+    "conditions": [
+      "if there are updates pending on the receiving node's commitment transaction:"
+    ],
+    "text": "MUST NOT send an `update_add_htlc` after a `shutdown`.",
+    "source": "02-peer-protocol",
+    "line": 2157
+  },
+  {
+    "id": "bolt02:general:and-neither-side-has-a-pending-revokeandack-to-send:1",
+    "message": "",
+    "role": "and neither side has a pending `revoke_and_ack` to send",
+    "modality": "must_not",
+    "text": "MUST NOT send any `update` message after that point.",
+    "source": "02-peer-protocol",
+    "line": 2160
+  },
+  {
+    "id": "bolt02:general:and-neither-side-has-a-pending-revokeandack-to-send:2",
+    "message": "",
+    "role": "and neither side has a pending `revoke_and_ack` to send",
+    "modality": "should",
+    "text": "SHOULD fail to route any HTLC added after it has sent `shutdown`.",
+    "source": "02-peer-protocol",
+    "line": 2161
+  },
+  {
+    "id": "bolt02:general:and-neither-side-has-a-pending-revokeandack-to-send:3",
+    "message": "",
+    "role": "and neither side has a pending `revoke_and_ack` to send",
+    "modality": "must",
+    "conditions": [
+      "if it sent a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`:"
+    ],
+    "text": "MUST send the same value in `scriptpubkey`.",
+    "source": "02-peer-protocol",
+    "line": 2163
+  },
+  {
+    "id": "bolt02:general:and-neither-side-has-a-pending-revokeandack-to-send:4",
+    "message": "",
+    "role": "and neither side has a pending `revoke_and_ack` to send",
+    "modality": "must",
+    "conditions": [
+      "if it sent a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`:"
+    ],
+    "text": "MUST set `scriptpubkey` in one of the following forms:",
+    "source": "02-peer-protocol",
+    "line": 2164
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:1",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "should",
+    "conditions": [
+      "if it hasn't received a `funding_signed` (if it is a funder) or a `funding_created` (if it is a fundee):"
+    ],
+    "text": "SHOULD send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 2178
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:2",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "should",
+    "conditions": [
+      "if the `scriptpubkey` is not in one of the above forms:"
+    ],
+    "text": "SHOULD send a `warning`.",
+    "source": "02-peer-protocol",
+    "line": 2180
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:3",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "may",
+    "conditions": [
+      "if it hasn't sent a `channel_ready` yet:"
+    ],
+    "text": "MAY reply to a `shutdown` message with a `shutdown`",
+    "source": "02-peer-protocol",
+    "line": 2182
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:4",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "once there are no outstanding updates on the peer, UNLESS it has already sent a `shutdown`:"
+    ],
+    "text": "MUST reply to a `shutdown` message with a `shutdown`",
+    "source": "02-peer-protocol",
+    "line": 2184
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:5",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "may",
+    "conditions": [
+      "if both nodes advertised the `option_upfront_shutdown_script` feature, and the receiving node received a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`, and that `shutdown_scriptpubkey` is not equal to `scriptpubkey`:"
+    ],
+    "text": "MAY send a `warning`.",
+    "source": "02-peer-protocol",
+    "line": 2186
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:6",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "if both nodes advertised the `option_upfront_shutdown_script` feature, and the receiving node received a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`, and that `shutdown_scriptpubkey` is not equal to `scriptpubkey`:"
+    ],
+    "text": "MUST fail the connection.",
+    "source": "02-peer-protocol",
+    "line": 2187
+  },
+  {
+    "id": "bolt02:general:both-nodes:1",
+    "message": "",
+    "role": "Both nodes",
+    "modality": "should",
+    "conditions": [
+      "After a `shutdown` has been sent and received, AND no HTLCs remain in either commitment transaction:"
+    ],
+    "text": "SHOULD send a `closing_complete` message.",
+    "source": "02-peer-protocol",
+    "line": 2292
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:1",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must",
+    "text": "MUST set `fee_satoshis` to a fee less than or equal to its outstanding balance, rounded down to whole satoshis.",
+    "source": "02-peer-protocol",
+    "line": 2295
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:2",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must",
+    "text": "MUST set `fee_satoshis` so that at least one output is not dust.",
+    "source": "02-peer-protocol",
+    "line": 2296
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:3",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must",
+    "text": "MUST set `closer_scriptpubkey` to its desired output script.",
+    "source": "02-peer-protocol",
+    "line": 2297
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:4",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must",
+    "text": "MUST set `closee_scriptpubkey` to the last script it received from its peer (from `closing_complete` or from the initial `shutdown`).",
+    "source": "02-peer-protocol",
+    "line": 2298
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:5",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must",
+    "text": "MUST set `locktime` to the desired `nLockTime` of the closing transaction.",
+    "source": "02-peer-protocol",
+    "line": 2299
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:6",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must_not",
+    "conditions": [
+      "If the local outstanding balance (in millisatoshi) is less than the remote outstanding balance:"
+    ],
+    "text": "MUST NOT set `closer_output_only`.",
+    "source": "02-peer-protocol",
+    "line": 2301
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:7",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must",
+    "conditions": [
+      "If the local outstanding balance (in millisatoshi) is less than the remote outstanding balance:"
+    ],
+    "text": "MUST set `closee_output_only` if the local output amount is dust.",
+    "source": "02-peer-protocol",
+    "line": 2302
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:8",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "may",
+    "conditions": [
+      "If the local outstanding balance (in millisatoshi) is less than the remote outstanding balance:"
+    ],
+    "text": "MAY set `closee_output_only` if it considers the local output amount uneconomical AND its `closer_scriptpubkey` is not `OP_RETURN`.",
+    "source": "02-peer-protocol",
+    "line": 2303
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:9",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must_not",
+    "conditions": [
+      "Otherwise (not lesser amount, cannot remove its own output):"
+    ],
+    "text": "MUST NOT set `closee_output_only`.",
+    "source": "02-peer-protocol",
+    "line": 2305
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:10",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "may",
+    "conditions": [
+      "Otherwise (not lesser amount, cannot remove its own output):",
+      "If it considers the local output amount uneconomical:"
+    ],
+    "text": "MAY send a `closer_scriptpubkey` that is a valid `OP_RETURN` script.",
+    "source": "02-peer-protocol",
+    "line": 2307
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:11",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must",
+    "conditions": [
+      "Otherwise (not lesser amount, cannot remove its own output):",
+      "If the closee's output amount is dust:"
+    ],
+    "text": "MUST set `closer_output_only`.",
+    "source": "02-peer-protocol",
+    "line": 2310
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:12",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must_not",
+    "conditions": [
+      "Otherwise (not lesser amount, cannot remove its own output):",
+      "If the closee's output amount is dust:"
+    ],
+    "text": "MUST NOT set `closer_and_closee_outputs`.",
+    "source": "02-peer-protocol",
+    "line": 2311
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:13",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must",
+    "conditions": [
+      "Otherwise (not lesser amount, cannot remove its own output):",
+      "Otherwise:"
+    ],
+    "text": "MUST set both `closer_output_only` and `closer_and_closee_outputs`.",
+    "source": "02-peer-protocol",
+    "line": 2313
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:14",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must",
+    "conditions": [
+      "Otherwise (not lesser amount, cannot remove its own output):",
+      "Otherwise:"
+    ],
+    "text": "MUST generate its closing transaction as specified in [BOLT #3](03-transactions.md#closing-transaction).",
+    "source": "02-peer-protocol",
+    "line": 2314
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:15",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must",
+    "conditions": [
+      "Otherwise (not lesser amount, cannot remove its own output):",
+      "Otherwise:"
+    ],
+    "text": "MUST set `signature` fields as valid signature using its `funding_pubkey` of:",
+    "source": "02-peer-protocol",
+    "line": 2315
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:16",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "must",
+    "conditions": [
+      "If it wants to send another `closing_complete` (e.g. with a different `fee_satoshis` or `closer_scriptpubkey`):"
+    ],
+    "text": "MUST wait until it has received `closing_sig` first.",
+    "source": "02-peer-protocol",
+    "line": 2320
+  },
+  {
+    "id": "bolt02:general:the-sender-of-closingcomplete-aka-the-closer:17",
+    "message": "",
+    "role": "The sender of `closing_complete` (aka. \"the closer\")",
+    "modality": "should",
+    "conditions": [
+      "If it wants to send another `closing_complete` (e.g. with a different `fee_satoshis` or `closer_scriptpubkey`):"
+    ],
+    "text": "SHOULD close the connection if it doesn't receive `closing_sig`.",
+    "source": "02-peer-protocol",
+    "line": 2321
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:1",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "must",
+    "conditions": [
+      "If `fee_satoshis` is greater than the closer's outstanding balance:"
+    ],
+    "text": "MUST either send a `warning` and close the connection, or send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 2325
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:2",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "should",
+    "conditions": [
+      "If `closee_scriptpubkey` does not match the last script it sent (from `closing_complete` or from the initial `shutdown`):"
+    ],
+    "text": "SHOULD ignore `closing_complete`.",
+    "source": "02-peer-protocol",
+    "line": 2327
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:3",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "should",
+    "conditions": [
+      "If `closee_scriptpubkey` does not match the last script it sent (from `closing_complete` or from the initial `shutdown`):"
+    ],
+    "text": "SHOULD send a `warning`.",
+    "source": "02-peer-protocol",
+    "line": 2328
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:4",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "should",
+    "conditions": [
+      "If `closee_scriptpubkey` does not match the last script it sent (from `closing_complete` or from the initial `shutdown`):"
+    ],
+    "text": "SHOULD close the connection.",
+    "source": "02-peer-protocol",
+    "line": 2329
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:5",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "should",
+    "conditions": [
+      "If `closer_scriptpubkey` is invalid (as detailed in the [`shutdown` requirements](#closing-initiation-shutdown)):"
+    ],
+    "text": "SHOULD ignore `closing_complete`.",
+    "source": "02-peer-protocol",
+    "line": 2331
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:6",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "should",
+    "conditions": [
+      "If `closer_scriptpubkey` is invalid (as detailed in the [`shutdown` requirements](#closing-initiation-shutdown)):"
+    ],
+    "text": "SHOULD send a `warning`.",
+    "source": "02-peer-protocol",
+    "line": 2332
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:7",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "should",
+    "conditions": [
+      "If `closer_scriptpubkey` is invalid (as detailed in the [`shutdown` requirements](#closing-initiation-shutdown)):"
+    ],
+    "text": "SHOULD close the connection.",
+    "source": "02-peer-protocol",
+    "line": 2333
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:8",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "must",
+    "conditions": [
+      "If `closer_scriptpubkey` is a valid `OP_RETURN` script:"
+    ],
+    "text": "MUST set the closer's output amount to zero so that all funds go to fees, as specified in [BOLT #3](03-transactions.md#closing-transaction).",
+    "source": "02-peer-protocol",
+    "line": 2335
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:9",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "must",
+    "conditions": [
+      "If `closer_scriptpubkey` is a valid `OP_RETURN` script:"
+    ],
+    "text": "MUST generate the remote closing transaction as specified in [BOLT #3](03-transactions.md#closing-transaction).",
+    "source": "02-peer-protocol",
+    "line": 2336
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:10",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "must",
+    "conditions": [
+      "Select a signature for validation:",
+      "If the local output amount is dust:"
+    ],
+    "text": "MUST use `closer_output_only`.",
+    "source": "02-peer-protocol",
+    "line": 2339
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:11",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "must",
+    "conditions": [
+      "Select a signature for validation:",
+      "Otherwise, if it considers the local output amount uneconomical AND its `closee_scriptpubkey` is not `OP_RETURN`:"
+    ],
+    "text": "MUST use `closer_output_only`.",
+    "source": "02-peer-protocol",
+    "line": 2341
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:12",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "must",
+    "conditions": [
+      "Select a signature for validation:",
+      "Otherwise, if `closer_and_closee_outputs` is present:"
+    ],
+    "text": "MUST use `closer_and_closee_outputs`.",
+    "source": "02-peer-protocol",
+    "line": 2343
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:13",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "must",
+    "conditions": [
+      "Select a signature for validation:",
+      "Otherwise:"
+    ],
+    "text": "MUST use `closee_output_only`.",
+    "source": "02-peer-protocol",
+    "line": 2345
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:14",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "must",
+    "conditions": [
+      "If the selected signature field does not exist:"
+    ],
+    "text": "MUST either send a `warning` and close the connection, or send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 2347
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:15",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "must",
+    "conditions": [
+      "If the signature field is not valid for the corresponding closing transaction specified in [BOLT #3](03-transactions.md#closing-transaction):"
+    ],
+    "text": "MUST either send a `warning` and close the connection, or send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 2349
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:16",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "must",
+    "conditions": [
+      "If the signature field is non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:"
+    ],
+    "text": "MUST either send a `warning` and close the connection, or send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 2351
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:17",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "must",
+    "conditions": [
+      "If the signature field is non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:"
+    ],
+    "text": "MUST sign and broadcast the corresponding closing transaction.",
+    "source": "02-peer-protocol",
+    "line": 2352
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:18",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "must",
+    "conditions": [
+      "If the signature field is non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:"
+    ],
+    "text": "MUST send `closing_sig` with a single valid signature in the same TLV field as the `closing_complete`.",
+    "source": "02-peer-protocol",
+    "line": 2353
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingcomplete-aka-the-closee:19",
+    "message": "",
+    "role": "The receiver of `closing_complete` (aka. \"the closee\")",
+    "modality": "must",
+    "conditions": [
+      "If the signature field is non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:"
+    ],
+    "text": "MUST use `closer_scriptpubkey` for its own future `closing_complete` messages.",
+    "source": "02-peer-protocol",
+    "line": 2354
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingsig:1",
+    "message": "",
+    "role": "The receiver of `closing_sig`",
+    "modality": "must",
+    "conditions": [
+      "If `closer_scriptpubkey`, `closee_scriptpubkey`, `fee_satoshis` or `locktime` don't match what was sent in `closing_complete`:"
+    ],
+    "text": "MUST either send a `warning` and close the connection, or send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 2358
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingsig:2",
+    "message": "",
+    "role": "The receiver of `closing_sig`",
+    "modality": "must",
+    "conditions": [
+      "If `tlvs` does not contain exactly one signature:"
+    ],
+    "text": "MUST either send a `warning` and close the connection, or send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 2360
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingsig:3",
+    "message": "",
+    "role": "The receiver of `closing_sig`",
+    "modality": "must",
+    "conditions": [
+      "If `tlvs` does not contain one of the TLV fields sent in `closing_complete`:"
+    ],
+    "text": "MUST either send a `warning` and close the connection, or send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 2362
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingsig:4",
+    "message": "",
+    "role": "The receiver of `closing_sig`",
+    "modality": "must",
+    "conditions": [
+      "If the signature field is not valid for the corresponding closing transaction specified in [BOLT #3](03-transactions.md#closing-transaction):"
+    ],
+    "text": "MUST either send a `warning` and close the connection, or send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 2364
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingsig:5",
+    "message": "",
+    "role": "The receiver of `closing_sig`",
+    "modality": "must",
+    "conditions": [
+      "If the signature field is non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:"
+    ],
+    "text": "MUST either send a `warning` and close the connection, or send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 2366
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingsig:6",
+    "message": "",
+    "role": "The receiver of `closing_sig`",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST broadcast the corresponding closing transaction.",
+    "source": "02-peer-protocol",
+    "line": 2368
+  },
+  {
+    "id": "bolt02:general:the-receiver-of-closingsig:7",
+    "message": "",
+    "role": "The receiver of `closing_sig`",
+    "modality": "may",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MAY send another `closing_complete` (e.g. with a different `fee_satoshis` or `closer_scriptpubkey`).",
+    "source": "02-peer-protocol",
+    "line": 2369
+  },
+  {
+    "id": "bolt02:general:the-funding-node:1",
+    "message": "",
+    "role": "The funding node",
+    "modality": "should",
+    "conditions": [
+      "after `shutdown` has been received, AND no HTLCs remain in either commitment transaction:"
+    ],
+    "text": "SHOULD send a `closing_signed` message.",
+    "source": "02-peer-protocol",
+    "line": 2453
+  },
+  {
+    "id": "bolt02:general:the-sending-node:1",
+    "message": "",
+    "role": "The sending node",
+    "modality": "should",
+    "text": "SHOULD set the initial `fee_satoshis` according to its estimate of cost of",
+    "source": "02-peer-protocol",
+    "line": 2456
+  },
+  {
+    "id": "bolt02:general:the-sending-node:2",
+    "message": "",
+    "role": "The sending node",
+    "modality": "should",
+    "text": "SHOULD set `fee_range` according to the minimum and maximum fees it is",
+    "source": "02-peer-protocol",
+    "line": 2458
+  },
+  {
+    "id": "bolt02:general:the-sending-node:3",
+    "message": "",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if it doesn't receive a `closing_signed` response after a reasonable amount of time:"
+    ],
+    "text": "MUST fail the channel",
+    "source": "02-peer-protocol",
+    "line": 2461
+  },
+  {
+    "id": "bolt02:general:the-sending-node:4",
+    "message": "",
+    "role": "The sending node",
+    "modality": "should",
+    "conditions": [
+      "if it is not the funder:"
+    ],
+    "text": "SHOULD set `max_fee_satoshis` to at least the `max_fee_satoshis` received",
+    "source": "02-peer-protocol",
+    "line": 2463
+  },
+  {
+    "id": "bolt02:general:the-sending-node:5",
+    "message": "",
+    "role": "The sending node",
+    "modality": "should",
+    "conditions": [
+      "if it is not the funder:"
+    ],
+    "text": "SHOULD set `min_fee_satoshis` to a fairly low value",
+    "source": "02-peer-protocol",
+    "line": 2464
+  },
+  {
+    "id": "bolt02:general:the-sending-node:6",
+    "message": "",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if it is not the funder:"
+    ],
+    "text": "MUST set `signature` to the Bitcoin signature of the close transaction,",
+    "source": "02-peer-protocol",
+    "line": 2465
+  },
+  {
+    "id": "bolt02:general:specified-in-bolt-303-transactionsmdclosing-transaction-or-non-compliant-with-low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:1",
+    "message": "",
+    "role": "specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "must",
+    "text": "MUST send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 2471
+  },
+  {
+    "id": "bolt02:general:specified-in-bolt-303-transactionsmdclosing-transaction-or-non-compliant-with-low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:2",
+    "message": "",
+    "role": "specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "should",
+    "conditions": [
+      "if `fee_satoshis` is equal to its previously sent `fee_satoshis`:"
+    ],
+    "text": "SHOULD sign and broadcast the final closing transaction.",
+    "source": "02-peer-protocol",
+    "line": 2474
+  },
+  {
+    "id": "bolt02:general:specified-in-bolt-303-transactionsmdclosing-transaction-or-non-compliant-with-low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:3",
+    "message": "",
+    "role": "specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "may",
+    "conditions": [
+      "if `fee_satoshis` is equal to its previously sent `fee_satoshis`:"
+    ],
+    "text": "MAY close the connection.",
+    "source": "02-peer-protocol",
+    "line": 2475
+  },
+  {
+    "id": "bolt02:general:specified-in-bolt-303-transactionsmdclosing-transaction-or-non-compliant-with-low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:4",
+    "message": "",
+    "role": "specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "should",
+    "conditions": [
+      "if `fee_satoshis` matches its previously sent `fee_range`:"
+    ],
+    "text": "SHOULD use `fee_satoshis` to sign and broadcast the final closing transaction",
+    "source": "02-peer-protocol",
+    "line": 2477
+  },
+  {
+    "id": "bolt02:general:specified-in-bolt-303-transactionsmdclosing-transaction-or-non-compliant-with-low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:5",
+    "message": "",
+    "role": "specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "should",
+    "conditions": [
+      "if `fee_satoshis` matches its previously sent `fee_range`:"
+    ],
+    "text": "SHOULD reply with a `closing_signed` with the same `fee_satoshis` value if it is different from its previously sent `fee_satoshis`",
+    "source": "02-peer-protocol",
+    "line": 2478
+  },
+  {
+    "id": "bolt02:general:specified-in-bolt-303-transactionsmdclosing-transaction-or-non-compliant-with-low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:6",
+    "message": "",
+    "role": "specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "may",
+    "conditions": [
+      "if `fee_satoshis` matches its previously sent `fee_range`:"
+    ],
+    "text": "MAY close the connection.",
+    "source": "02-peer-protocol",
+    "line": 2479
+  },
+  {
+    "id": "bolt02:general:specified-in-bolt-303-transactionsmdclosing-transaction-or-non-compliant-with-low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:7",
+    "message": "",
+    "role": "specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "should",
+    "conditions": [
+      "if the message contains a `fee_range`:",
+      "if there is no overlap between that and its own `fee_range`:"
+    ],
+    "text": "SHOULD send a warning",
+    "source": "02-peer-protocol",
+    "line": 2482
+  },
+  {
+    "id": "bolt02:general:specified-in-bolt-303-transactionsmdclosing-transaction-or-non-compliant-with-low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:8",
+    "message": "",
+    "role": "specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "must",
+    "conditions": [
+      "if the message contains a `fee_range`:",
+      "if there is no overlap between that and its own `fee_range`:"
+    ],
+    "text": "MUST fail the channel if it doesn't receive a satisfying `fee_range` after a reasonable amount of time",
+    "source": "02-peer-protocol",
+    "line": 2483
+  },
+  {
+    "id": "bolt02:general:specified-in-bolt-303-transactionsmdclosing-transaction-or-non-compliant-with-low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:9",
+    "message": "",
+    "role": "specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "must",
+    "conditions": [
+      "if the message contains a `fee_range`:",
+      "if it is the funder:",
+      "if `fee_satoshis` is not in the overlap between the sent and received `fee_range`:"
+    ],
+    "text": "MUST fail the channel",
+    "source": "02-peer-protocol",
+    "line": 2487
+  },
+  {
+    "id": "bolt02:general:specified-in-bolt-303-transactionsmdclosing-transaction-or-non-compliant-with-low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:10",
+    "message": "",
+    "role": "specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "must",
+    "conditions": [
+      "if the message contains a `fee_range`:",
+      "if it is the funder:",
+      "otherwise:"
+    ],
+    "text": "MUST reply with the same `fee_satoshis`.",
+    "source": "02-peer-protocol",
+    "line": 2489
+  },
+  {
+    "id": "bolt02:general:specified-in-bolt-303-transactionsmdclosing-transaction-or-non-compliant-with-low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:11",
+    "message": "",
+    "role": "specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "must",
+    "conditions": [
+      "if the message contains a `fee_range`:",
+      "otherwise (it is not the funder):",
+      "if `fee_satoshis` is not the same as the value it sent:"
+    ],
+    "text": "MUST fail the channel",
+    "source": "02-peer-protocol",
+    "line": 2493
+  },
+  {
+    "id": "bolt02:general:specified-in-bolt-303-transactionsmdclosing-transaction-or-non-compliant-with-low-s-standard-rulesuplowshttps--githubcom-bitcoin-bitcoin-pull-6769-sup:12",
+    "message": "",
+    "role": "specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>",
+    "modality": "must",
+    "conditions": [
+      "if the message contains a `fee_range`:",
+      "otherwise (it is not the funder):",
+      "otherwise:"
+    ],
+    "text": "MUST propose a `fee_satoshis` in the overlap between received and (about-to-be) sent `fee_range`.",
+    "source": "02-peer-protocol",
+    "line": 2495
+  },
+  {
+    "id": "bolt02:general:and-its-previously-received-feesatoshis-unless-it-has-since-reconnected:1",
+    "message": "",
+    "role": "and its previously-received `fee_satoshis`, UNLESS it has since reconnected",
+    "modality": "should",
+    "text": "SHOULD send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 2498
+  },
+  {
+    "id": "bolt02:general:and-its-previously-received-feesatoshis-unless-it-has-since-reconnected:2",
+    "message": "",
+    "role": "and its previously-received `fee_satoshis`, UNLESS it has since reconnected",
+    "modality": "should",
+    "conditions": [
+      "otherwise, if the receiver agrees with the fee:"
+    ],
+    "text": "SHOULD reply with a `closing_signed` with the same `fee_satoshis` value.",
+    "source": "02-peer-protocol",
+    "line": 2501
+  },
+  {
+    "id": "bolt02:general:and-its-previously-received-feesatoshis-unless-it-has-since-reconnected:3",
+    "message": "",
+    "role": "and its previously-received `fee_satoshis`, UNLESS it has since reconnected",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST propose a value \"strictly between\" the received `fee_satoshis`",
+    "source": "02-peer-protocol",
+    "line": 2503
+  },
+  {
+    "id": "bolt02:general:the-receiving-node:1",
+    "message": "",
+    "role": "The receiving node",
+    "modality": "must",
+    "conditions": [
+      "if one of the outputs in the closing transaction is below the dust limit for its `scriptpubkey` (see [BOLT 3](03-transactions.md#dust-limits)):"
+    ],
+    "text": "MUST fail the channel",
+    "source": "02-peer-protocol",
+    "line": 2508
+  },
+  {
+    "id": "bolt02:general:a-node:1",
+    "message": "",
+    "role": "A node",
+    "modality": "must_not",
+    "conditions": [
+      "until an incoming HTLC has been irrevocably committed:"
+    ],
+    "text": "MUST NOT offer the corresponding outgoing HTLC (`update_add_htlc`) in response to that incoming HTLC.",
+    "source": "02-peer-protocol",
+    "line": 2592
+  },
+  {
+    "id": "bolt02:general:a-node:2",
+    "message": "",
+    "role": "A node",
+    "modality": "must_not",
+    "conditions": [
+      "until the removal of an outgoing HTLC is irrevocably committed, OR until the outgoing on-chain HTLC output has been spent via the HTLC-timeout transaction (with sufficient depth):"
+    ],
+    "text": "MUST NOT fail the incoming HTLC (`update_fail_htlc`) that corresponds",
+    "source": "02-peer-protocol",
+    "line": 2594
+  },
+  {
+    "id": "bolt02:general:a-node:3",
+    "message": "",
+    "role": "A node",
+    "modality": "must",
+    "conditions": [
+      "once the `cltv_expiry` of an incoming HTLC has been reached, OR if `cltv_expiry` minus `current_height` is less than `cltv_expiry_delta` for the corresponding outgoing HTLC:"
+    ],
+    "text": "MUST fail that incoming HTLC (`update_fail_htlc`).",
+    "source": "02-peer-protocol",
+    "line": 2597
+  },
+  {
+    "id": "bolt02:general:a-node:4",
+    "message": "",
+    "role": "A node",
+    "modality": "should",
+    "conditions": [
+      "if an incoming HTLC's `cltv_expiry` is unreasonably far in the future:"
+    ],
+    "text": "SHOULD fail that incoming HTLC (`update_fail_htlc`).",
+    "source": "02-peer-protocol",
+    "line": 2599
+  },
+  {
+    "id": "bolt02:general:a-node:5",
+    "message": "",
+    "role": "A node",
+    "modality": "must",
+    "conditions": [
+      "upon receiving an `update_fulfill_htlc` for an outgoing HTLC, OR upon discovering the `payment_preimage` from an on-chain HTLC spend:"
+    ],
+    "text": "MUST fulfill the incoming HTLC that corresponds to that outgoing HTLC.",
+    "source": "02-peer-protocol",
+    "line": 2601
+  },
+  {
+    "id": "bolt02:general:an-offering-node:1",
+    "message": "",
+    "role": "An offering node",
+    "modality": "must",
+    "text": "MUST estimate a timeout deadline for each HTLC it offers.",
+    "source": "02-peer-protocol",
+    "line": 2710
+  },
+  {
+    "id": "bolt02:general:an-offering-node:2",
+    "message": "",
+    "role": "An offering node",
+    "modality": "must_not",
+    "text": "MUST NOT offer an HTLC with a timeout deadline before its `cltv_expiry`.",
+    "source": "02-peer-protocol",
+    "line": 2711
+  },
+  {
+    "id": "bolt02:general:commitment-transaction-and-is-past-this-timeout-deadline:1",
+    "message": "",
+    "role": "commitment transaction, AND is past this timeout deadline",
+    "modality": "should",
+    "text": "SHOULD send an `error` to the receiving peer (if connected).",
+    "source": "02-peer-protocol",
+    "line": 2714
+  },
+  {
+    "id": "bolt02:general:commitment-transaction-and-is-past-this-timeout-deadline:2",
+    "message": "",
+    "role": "commitment transaction, AND is past this timeout deadline",
+    "modality": "must",
+    "text": "MUST fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 2715
+  },
+  {
+    "id": "bolt02:general:a-fulfilling-node:1",
+    "message": "",
+    "role": "A fulfilling node",
+    "modality": "must",
+    "conditions": [
+      "for each HTLC it is attempting to fulfill:"
+    ],
+    "text": "MUST estimate a fulfillment deadline.",
+    "source": "02-peer-protocol",
+    "line": 2719
+  },
+  {
+    "id": "bolt02:general:a-fulfilling-node:2",
+    "message": "",
+    "role": "A fulfilling node",
+    "modality": "must",
+    "conditions": [
+      "for each HTLC it is attempting to fulfill:"
+    ],
+    "text": "MUST fail (and not forward) an HTLC whose fulfillment deadline is already past.",
+    "source": "02-peer-protocol",
+    "line": 2720
+  },
+  {
+    "id": "bolt02:general:transaction-and-is-past-this-fulfillment-deadline:1",
+    "message": "",
+    "role": "transaction, AND is past this fulfillment deadline",
+    "modality": "should",
+    "text": "SHOULD send an `error` to the offering peer (if connected).",
+    "source": "02-peer-protocol",
+    "line": 2723
+  },
+  {
+    "id": "bolt02:general:transaction-and-is-past-this-fulfillment-deadline:2",
+    "message": "",
+    "role": "transaction, AND is past this fulfillment deadline",
+    "modality": "must",
+    "text": "MUST fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 2724
+  },
+  {
+    "id": "bolt02:general:a-node:6",
+    "message": "",
+    "role": "A node",
+    "modality": "should",
+    "conditions": [
+      "when receiving an HTLC:",
+      "if the `amount_msat` plus the dust balance of the remote transaction is greater than `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "SHOULD fail this HTLC once it's committed",
+    "source": "02-peer-protocol",
+    "line": 2749
+  },
+  {
+    "id": "bolt02:general:a-node:7",
+    "message": "",
+    "role": "A node",
+    "modality": "should_not",
+    "conditions": [
+      "when receiving an HTLC:",
+      "if the `amount_msat` plus the dust balance of the remote transaction is greater than `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "SHOULD NOT reveal a preimage for this HTLC",
+    "source": "02-peer-protocol",
+    "line": 2750
+  },
+  {
+    "id": "bolt02:general:a-node:8",
+    "message": "",
+    "role": "A node",
+    "modality": "should",
+    "conditions": [
+      "when receiving an HTLC:",
+      "if the `amount_msat` plus the dust balance of the local transaction is greater than `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "SHOULD fail this HTLC once it's committed",
+    "source": "02-peer-protocol",
+    "line": 2753
+  },
+  {
+    "id": "bolt02:general:a-node:9",
+    "message": "",
+    "role": "A node",
+    "modality": "should_not",
+    "conditions": [
+      "when receiving an HTLC:",
+      "if the `amount_msat` plus the dust balance of the local transaction is greater than `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "SHOULD NOT reveal a preimage for this HTLC",
+    "source": "02-peer-protocol",
+    "line": 2754
+  },
+  {
+    "id": "bolt02:general:a-node:10",
+    "message": "",
+    "role": "A node",
+    "modality": "should_not",
+    "conditions": [
+      "when offering an HTLC:",
+      "if the `amount_msat` plus the dust balance of the remote transaction is greater than `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "SHOULD NOT send this HTLC",
+    "source": "02-peer-protocol",
+    "line": 2758
+  },
+  {
+    "id": "bolt02:general:a-node:11",
+    "message": "",
+    "role": "A node",
+    "modality": "should",
+    "conditions": [
+      "when offering an HTLC:",
+      "if the `amount_msat` plus the dust balance of the remote transaction is greater than `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "SHOULD fail the corresponding incoming HTLC (if any)",
+    "source": "02-peer-protocol",
+    "line": 2759
+  },
+  {
+    "id": "bolt02:general:a-node:12",
+    "message": "",
+    "role": "A node",
+    "modality": "should_not",
+    "conditions": [
+      "when offering an HTLC:",
+      "if the `amount_msat` plus the dust balance of the local transaction is greater than `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "SHOULD NOT send this HTLC",
+    "source": "02-peer-protocol",
+    "line": 2762
+  },
+  {
+    "id": "bolt02:general:a-node:13",
+    "message": "",
+    "role": "A node",
+    "modality": "should",
+    "conditions": [
+      "when offering an HTLC:",
+      "if the `amount_msat` plus the dust balance of the local transaction is greater than `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "SHOULD fail the corresponding incoming HTLC (if any)",
+    "source": "02-peer-protocol",
+    "line": 2763
+  },
+  {
+    "id": "bolt02:general:a-sending-node:7",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must_not",
+    "conditions": [
+      "if `zero_fee_commitments` has not been negotiated:",
+      "if it is _responsible_ for paying the Bitcoin fee:"
+    ],
+    "text": "MUST NOT offer `amount_msat` if, after adding that HTLC to its commitment",
+    "source": "02-peer-protocol",
+    "line": 2803
+  },
+  {
+    "id": "bolt02:general:node-is-the-funder:1",
+    "message": "",
+    "role": "node is the funder",
+    "modality": "must",
+    "text": "MUST be able to additionally pay for `to_local_anchor` and",
+    "source": "02-peer-protocol",
+    "line": 2809
+  },
+  {
+    "id": "bolt02:general:node-is-the-funder:2",
+    "message": "",
+    "role": "node is the funder",
+    "modality": "should_not",
+    "text": "SHOULD NOT offer `amount_msat` if, after adding that HTLC to its commitment",
+    "source": "02-peer-protocol",
+    "line": 2811
+  },
+  {
+    "id": "bolt02:general:node-is-the-funder:3",
+    "message": "",
+    "role": "node is the funder",
+    "modality": "should_not",
+    "conditions": [
+      "if it is _not responsible_ for paying the Bitcoin fee:"
+    ],
+    "text": "SHOULD NOT offer `amount_msat` if, once the remote node adds that HTLC to",
+    "source": "02-peer-protocol",
+    "line": 2818
+  },
+  {
+    "id": "bolt02:general:node-is-the-funder:4",
+    "message": "",
+    "role": "node is the funder",
+    "modality": "must",
+    "conditions": [
+      "if it is _not responsible_ for paying the Bitcoin fee:"
+    ],
+    "text": "MUST offer `amount_msat` greater than 0.",
+    "source": "02-peer-protocol",
+    "line": 2822
+  },
+  {
+    "id": "bolt02:general:node-is-the-funder:5",
+    "message": "",
+    "role": "node is the funder",
+    "modality": "must_not",
+    "conditions": [
+      "if it is _not responsible_ for paying the Bitcoin fee:"
+    ],
+    "text": "MUST NOT offer `amount_msat` below the receiving node's `htlc_minimum_msat`",
+    "source": "02-peer-protocol",
+    "line": 2823
+  },
+  {
+    "id": "bolt02:general:node-is-the-funder:6",
+    "message": "",
+    "role": "node is the funder",
+    "modality": "must",
+    "conditions": [
+      "if it is _not responsible_ for paying the Bitcoin fee:"
+    ],
+    "text": "MUST set `cltv_expiry` less than 500000000.",
+    "source": "02-peer-protocol",
+    "line": 2824
+  },
+  {
+    "id": "bolt02:general:maxacceptedhtlcs-htlcs-in-the-remote-commitment-transaction:1",
+    "message": "",
+    "role": "`max_accepted_htlcs` HTLCs, in the remote commitment transaction",
+    "modality": "must_not",
+    "text": "MUST NOT add an HTLC.",
+    "source": "02-peer-protocol",
+    "line": 2827
+  },
+  {
+    "id": "bolt02:general:maxhtlcvalueinflightmsat:1",
+    "message": "",
+    "role": "`max_htlc_value_in_flight_msat`",
+    "modality": "must_not",
+    "text": "MUST NOT add an HTLC.",
+    "source": "02-peer-protocol",
+    "line": 2830
+  },
+  {
+    "id": "bolt02:general:maxhtlcvalueinflightmsat:2",
+    "message": "",
+    "role": "`max_htlc_value_in_flight_msat`",
+    "modality": "must",
+    "conditions": [
+      "for the first HTLC it offers:"
+    ],
+    "text": "MUST set `id` to 0.",
+    "source": "02-peer-protocol",
+    "line": 2832
+  },
+  {
+    "id": "bolt02:general:maxhtlcvalueinflightmsat:3",
+    "message": "",
+    "role": "`max_htlc_value_in_flight_msat`",
+    "modality": "must",
+    "conditions": [
+      "for the first HTLC it offers:"
+    ],
+    "text": "MUST increase the value of `id` by 1 for each successive offer.",
+    "source": "02-peer-protocol",
+    "line": 2833
+  },
+  {
+    "id": "bolt02:general:maxhtlcvalueinflightmsat:4",
+    "message": "",
+    "role": "`max_htlc_value_in_flight_msat`",
+    "modality": "must",
+    "conditions": [
+      "if it is relaying a payment inside a blinded route:"
+    ],
+    "text": "MUST set `path_key` (see [Route Blinding](04-onion-routing.md#route-blinding))",
+    "source": "02-peer-protocol",
+    "line": 2835
+  },
+  {
+    "id": "bolt02:general:maxhtlcvalueinflightmsat:5",
+    "message": "",
+    "role": "`max_htlc_value_in_flight_msat`",
+    "modality": "must",
+    "conditions": [
+      "if a splice is pending:"
+    ],
+    "text": "MUST ensure that requirements are met for all commmitment transactions.",
+    "source": "02-peer-protocol",
+    "line": 2837
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:7",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "should",
+    "conditions": [
+      "receiving an `amount_msat` equal to 0, OR less than its own `htlc_minimum_msat`:"
+    ],
+    "text": "SHOULD send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 2844
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:8",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "should",
+    "conditions": [
+      "receiving an `amount_msat` that the sending node cannot afford at the current `feerate_per_kw` (while maintaining its channel reserve and any `to_local_anchor` and `to_remote_anchor` costs):"
+    ],
+    "text": "SHOULD send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 2847
+  },
+  {
+    "id": "bolt02:general:its-local-commitment-transaction-or-adds-more-than-receiver-maxhtlcvalueinflightmsat-worth-of-offered-htlcs-to-its-local-commitment-transaction:1",
+    "message": "",
+    "role": "its local commitment transaction, OR adds more than receiver `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction",
+    "modality": "should",
+    "text": "SHOULD send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 2851
+  },
+  {
+    "id": "bolt02:general:its-local-commitment-transaction-or-adds-more-than-receiver-maxhtlcvalueinflightmsat-worth-of-offered-htlcs-to-its-local-commitment-transaction:2",
+    "message": "",
+    "role": "its local commitment transaction, OR adds more than receiver `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction",
+    "modality": "should",
+    "conditions": [
+      "if sending node sets `cltv_expiry` to greater or equal to 500000000:"
+    ],
+    "text": "SHOULD send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 2854
+  },
+  {
+    "id": "bolt02:general:its-local-commitment-transaction-or-adds-more-than-receiver-maxhtlcvalueinflightmsat-worth-of-offered-htlcs-to-its-local-commitment-transaction:3",
+    "message": "",
+    "role": "its local commitment transaction, OR adds more than receiver `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction",
+    "modality": "must",
+    "conditions": [
+      "if sending node sets `cltv_expiry` to greater or equal to 500000000:"
+    ],
+    "text": "MUST allow multiple HTLCs with the same `payment_hash`.",
+    "source": "02-peer-protocol",
+    "line": 2856
+  },
+  {
+    "id": "bolt02:general:its-local-commitment-transaction-or-adds-more-than-receiver-maxhtlcvalueinflightmsat-worth-of-offered-htlcs-to-its-local-commitment-transaction:4",
+    "message": "",
+    "role": "its local commitment transaction, OR adds more than receiver `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction",
+    "modality": "must",
+    "conditions": [
+      "if the sender did not previously acknowledge the commitment of that HTLC:"
+    ],
+    "text": "MUST ignore a repeated `id` value after a reconnection.",
+    "source": "02-peer-protocol",
+    "line": 2858
+  },
+  {
+    "id": "bolt02:general:its-local-commitment-transaction-or-adds-more-than-receiver-maxhtlcvalueinflightmsat-worth-of-offered-htlcs-to-its-local-commitment-transaction:5",
+    "message": "",
+    "role": "its local commitment transaction, OR adds more than receiver `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction",
+    "modality": "may",
+    "conditions": [
+      "if other `id` violations occur:"
+    ],
+    "text": "MAY send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 2860
+  },
+  {
+    "id": "bolt02:general:its-local-commitment-transaction-or-adds-more-than-receiver-maxhtlcvalueinflightmsat-worth-of-offered-htlcs-to-its-local-commitment-transaction:6",
+    "message": "",
+    "role": "its local commitment transaction, OR adds more than receiver `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction",
+    "modality": "must",
+    "conditions": [
+      "if other `id` violations occur:"
+    ],
+    "text": "MUST decrypt `onion_routing_packet` as described in [Onion Decryption](04-onion-routing.md#onion-decryption) to extract a `payload`.",
+    "source": "02-peer-protocol",
+    "line": 2862
+  },
+  {
+    "id": "bolt02:general:its-local-commitment-transaction-or-adds-more-than-receiver-maxhtlcvalueinflightmsat-worth-of-offered-htlcs-to-its-local-commitment-transaction:7",
+    "message": "",
+    "role": "its local commitment transaction, OR adds more than receiver `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction",
+    "modality": "must",
+    "conditions": [
+      "if other `id` violations occur:"
+    ],
+    "text": "MUST use `path_key` (if specified).",
+    "source": "02-peer-protocol",
+    "line": 2863
+  },
+  {
+    "id": "bolt02:general:its-local-commitment-transaction-or-adds-more-than-receiver-maxhtlcvalueinflightmsat-worth-of-offered-htlcs-to-its-local-commitment-transaction:8",
+    "message": "",
+    "role": "its local commitment transaction, OR adds more than receiver `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction",
+    "modality": "must",
+    "conditions": [
+      "if other `id` violations occur:"
+    ],
+    "text": "MUST use `payment_hash` as `associated_data`.",
+    "source": "02-peer-protocol",
+    "line": 2864
+  },
+  {
+    "id": "bolt02:general:its-local-commitment-transaction-or-adds-more-than-receiver-maxhtlcvalueinflightmsat-worth-of-offered-htlcs-to-its-local-commitment-transaction:9",
+    "message": "",
+    "role": "its local commitment transaction, OR adds more than receiver `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction",
+    "modality": "must",
+    "conditions": [
+      "If decryption fails, the result is not a valid `payload` TLV, or it contains unknown even types:"
+    ],
+    "text": "MUST respond with an error as detailed in [Failure Messages](04-onion-routing.md#failure-messages)",
+    "source": "02-peer-protocol",
+    "line": 2866
+  },
+  {
+    "id": "bolt02:general:its-local-commitment-transaction-or-adds-more-than-receiver-maxhtlcvalueinflightmsat-worth-of-offered-htlcs-to-its-local-commitment-transaction:10",
+    "message": "",
+    "role": "its local commitment transaction, OR adds more than receiver `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction",
+    "modality": "must",
+    "conditions": [
+      "Otherwise:"
+    ],
+    "text": "MUST follow the requirements for the reader of `payload` in [Payload Format](04-onion-routing.md#payload-format)",
+    "source": "02-peer-protocol",
+    "line": 2868
+  },
+  {
+    "id": "bolt02:general:its-local-commitment-transaction-or-adds-more-than-receiver-maxhtlcvalueinflightmsat-worth-of-offered-htlcs-to-its-local-commitment-transaction:11",
+    "message": "",
+    "role": "its local commitment transaction, OR adds more than receiver `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction",
+    "modality": "must",
+    "conditions": [
+      "If a splice is pending:"
+    ],
+    "text": "MUST ensure that requirements are met for all commmitment transactions.",
+    "source": "02-peer-protocol",
+    "line": 2870
+  },
+  {
+    "id": "bolt02:general:a-node:14",
+    "message": "",
+    "role": "A node",
+    "modality": "should",
+    "text": "SHOULD remove an HTLC as soon as it can.",
+    "source": "02-peer-protocol",
+    "line": 2975
+  },
+  {
+    "id": "bolt02:general:a-node:15",
+    "message": "",
+    "role": "A node",
+    "modality": "should",
+    "text": "SHOULD fail an HTLC which has timed out.",
+    "source": "02-peer-protocol",
+    "line": 2976
+  },
+  {
+    "id": "bolt02:general:commitment-transactions:1",
+    "message": "",
+    "role": "commitment transactions",
+    "modality": "must_not",
+    "text": "MUST NOT send an `update_fulfill_htlc`, `update_fail_htlc`, or",
+    "source": "02-peer-protocol",
+    "line": 2979
+  },
+  {
+    "id": "bolt02:general:final-node:1",
+    "message": "",
+    "role": "final node",
+    "modality": "must",
+    "text": "MUST send an `update_fail_htlc` error using the `invalid_onion_blinding`",
+    "source": "02-peer-protocol",
+    "line": 2984
+  },
+  {
+    "id": "bolt02:general:final-node:2",
+    "message": "",
+    "role": "final node",
+    "modality": "should",
+    "text": "SHOULD use the `sha256_of_onion` of the onion it received.",
+    "source": "02-peer-protocol",
+    "line": 2986
+  },
+  {
+    "id": "bolt02:general:final-node:3",
+    "message": "",
+    "role": "final node",
+    "modality": "may",
+    "text": "MAY use an all zero `sha256_of_onion`.",
+    "source": "02-peer-protocol",
+    "line": 2987
+  },
+  {
+    "id": "bolt02:general:final-node:4",
+    "message": "",
+    "role": "final node",
+    "modality": "should",
+    "text": "SHOULD add a random delay before sending `update_fail_htlc`.",
+    "source": "02-peer-protocol",
+    "line": 2988
+  },
+  {
+    "id": "bolt02:general:final-node:5",
+    "message": "",
+    "role": "final node",
+    "modality": "must",
+    "conditions": [
+      "If `path_key` is set in the incoming `update_add_htlc`:"
+    ],
+    "text": "MUST send an `update_fail_malformed_htlc` error using the",
+    "source": "02-peer-protocol",
+    "line": 2990
+  },
+  {
+    "id": "bolt02:general:final-node:6",
+    "message": "",
+    "role": "final node",
+    "modality": "should",
+    "conditions": [
+      "If `path_key` is set in the incoming `update_add_htlc`:"
+    ],
+    "text": "SHOULD use the `sha256_of_onion` of the onion it received.",
+    "source": "02-peer-protocol",
+    "line": 2992
+  },
+  {
+    "id": "bolt02:general:final-node:7",
+    "message": "",
+    "role": "final node",
+    "modality": "may",
+    "conditions": [
+      "If `path_key` is set in the incoming `update_add_htlc`:"
+    ],
+    "text": "MAY use an all zero `sha256_of_onion`.",
+    "source": "02-peer-protocol",
+    "line": 2993
+  },
+  {
+    "id": "bolt02:general:final-node:8",
+    "message": "",
+    "role": "final node",
+    "modality": "must",
+    "conditions": [
+      "When supporting `option_attribution_data`:",
+      "if `path_key` is not set in the incoming `update_add_htlc`:"
+    ],
+    "text": "MUST initialize `attribution_data` and include it in `update_fail_htlc` and `update_fulfill_htlc`. See [BOLT04](04-onion-routing.md).",
+    "source": "02-peer-protocol",
+    "line": 2996
+  },
+  {
+    "id": "bolt02:general:final-node:9",
+    "message": "",
+    "role": "final node",
+    "modality": "must",
+    "conditions": [
+      "When supporting `option_attribution_data`:",
+      "if a `fulfillment_payload` is present in the `update_fulfill_htlc` received from the downstream node:"
+    ],
+    "text": "MUST obfuscate and relay it in the outgoing `update_fulfill_htlc`, including in a blinded path. See [BOLT04](04-onion-routing.md).",
+    "source": "02-peer-protocol",
+    "line": 2998
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:9",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "if the `id` does not correspond to an HTLC in its current commitment transaction:"
+    ],
+    "text": "MUST send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 3002
+  },
+  {
+    "id": "bolt02:general:doesnt-sha256-hash-to-the-corresponding-htlc-paymenthash:1",
+    "message": "",
+    "role": "doesn't SHA256 hash to the corresponding HTLC `payment_hash`",
+    "modality": "must",
+    "text": "MUST send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 3006
+  },
+  {
+    "id": "bolt02:general:doesnt-sha256-hash-to-the-corresponding-htlc-paymenthash:2",
+    "message": "",
+    "role": "doesn't SHA256 hash to the corresponding HTLC `payment_hash`",
+    "modality": "must",
+    "conditions": [
+      "if the `fulfillment_payload` in `update_fulfill_htlc` is longer than 32768 bytes (32 KiB):"
+    ],
+    "text": "MUST send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 3009
+  },
+  {
+    "id": "bolt02:general:updatefailmalformedhtlc:1",
+    "message": "",
+    "role": "`update_fail_malformed_htlc`",
+    "modality": "must",
+    "text": "MUST send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 3012
+  },
+  {
+    "id": "bolt02:general:onion-it-sent-and-is-not-all-zero:1",
+    "message": "",
+    "role": "onion it sent and is not all zero",
+    "modality": "may",
+    "text": "MAY retry or choose an alternate error response.",
+    "source": "02-peer-protocol",
+    "line": 3016
+  },
+  {
+    "id": "bolt02:general:onion-it-sent-and-is-not-all-zero:2",
+    "message": "",
+    "role": "onion it sent and is not all zero",
+    "modality": "must",
+    "conditions": [
+      "otherwise, a receiving node which has an outgoing HTLC canceled by `update_fail_malformed_htlc`:"
+    ],
+    "text": "MUST return an error in the `update_fail_htlc` sent to the link which",
+    "source": "02-peer-protocol",
+    "line": 3018
+  },
+  {
+    "id": "bolt02:general:a-sending-node:8",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "text": "MUST set `batch_size` to a value strictly greater than 1.",
+    "source": "02-peer-protocol",
+    "line": 3062
+  },
+  {
+    "id": "bolt02:general:a-sending-node:9",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "text": "MUST set `batch_size` to a value lower than or equal to 20.",
+    "source": "02-peer-protocol",
+    "line": 3063
+  },
+  {
+    "id": "bolt02:general:a-sending-node:10",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "text": "MUST set `message_type` to `132` (`commitment_signed` message type as",
+    "source": "02-peer-protocol",
+    "line": 3064
+  },
+  {
+    "id": "bolt02:general:a-sending-node:11",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "conditions": [
+      "After sending `start_batch`:"
+    ],
+    "text": "MUST send `batch_size` `commitment_signed` messages for the same",
+    "source": "02-peer-protocol",
+    "line": 3067
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:10",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "If `batch_size` is not strictly greater than 1:"
+    ],
+    "text": "MUST ignore the `start_batch` message.",
+    "source": "02-peer-protocol",
+    "line": 3072
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:11",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "should",
+    "conditions": [
+      "If `batch_size` is not strictly greater than 1:"
+    ],
+    "text": "SHOULD send a `warning`.",
+    "source": "02-peer-protocol",
+    "line": 3073
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:12",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "If `batch_size` is strictly greater than 20:"
+    ],
+    "text": "MUST send a `warning` and close the connection, or send an `error` and",
+    "source": "02-peer-protocol",
+    "line": 3075
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:13",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "If `batch_size` is strictly greater than 20:"
+    ],
+    "text": "MUST group the next `batch_size` messages and process them together.",
+    "source": "02-peer-protocol",
+    "line": 3077
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:14",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "If one of those messages is not for the specified `channel_id`:"
+    ],
+    "text": "MUST send a `warning` and close the connection, or send an `error` and",
+    "source": "02-peer-protocol",
+    "line": 3079
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:15",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "If `message_type` is missing or not set to the type for `commitment_signed`:"
+    ],
+    "text": "MUST ignore the `start_batch` message and process the following messages",
+    "source": "02-peer-protocol",
+    "line": 3082
+  },
+  {
+    "id": "bolt02:general:a-sending-node:12",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must_not",
+    "text": "MUST NOT send a `commitment_signed` message that does not include any",
+    "source": "02-peer-protocol",
+    "line": 3120
+  },
+  {
+    "id": "bolt02:general:a-sending-node:13",
+    "message": "",
+    "role": "A sending node",
+    "modality": "may",
+    "text": "MAY send a `commitment_signed` message that only",
+    "source": "02-peer-protocol",
+    "line": 3122
+  },
+  {
+    "id": "bolt02:general:a-sending-node:14",
+    "message": "",
+    "role": "A sending node",
+    "modality": "may",
+    "text": "MAY send a `commitment_signed` message that doesn't",
+    "source": "02-peer-protocol",
+    "line": 3124
+  },
+  {
+    "id": "bolt02:general:a-sending-node:15",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "text": "MUST include one `htlc_signature` for every HTLC transaction corresponding",
+    "source": "02-peer-protocol",
+    "line": 3128
+  },
+  {
+    "id": "bolt02:general:a-sending-node:16",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "text": "MUST set `funding_txid` to the funding transaction spent by this commitment",
+    "source": "02-peer-protocol",
+    "line": 3130
+  },
+  {
+    "id": "bolt02:general:a-sending-node:17",
+    "message": "",
+    "role": "A sending node",
+    "modality": "should",
+    "conditions": [
+      "if it has not recently received a message from the remote node:"
+    ],
+    "text": "SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.",
+    "source": "02-peer-protocol",
+    "line": 3133
+  },
+  {
+    "id": "bolt02:general:a-sending-node:18",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "conditions": [
+      "If there are `N` pending splice transactions (with `N` greater than `0`):"
+    ],
+    "text": "MUST send `start_batch` first with `batch_size` set to `N + 1` and",
+    "source": "02-peer-protocol",
+    "line": 3135
+  },
+  {
+    "id": "bolt02:general:a-sending-node:19",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "conditions": [
+      "If there are `N` pending splice transactions (with `N` greater than `0`):"
+    ],
+    "text": "MUST send `commitment_signed` for the current channel funding output.",
+    "source": "02-peer-protocol",
+    "line": 3137
+  },
+  {
+    "id": "bolt02:general:a-sending-node:20",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "conditions": [
+      "If there are `N` pending splice transactions (with `N` greater than `0`):"
+    ],
+    "text": "MUST send `commitment_signed` for each of the splice transactions.",
+    "source": "02-peer-protocol",
+    "line": 3138
+  },
+  {
+    "id": "bolt02:general:a-sending-node:21",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "conditions": [
+      "If there are `N` pending splice transactions (with `N` greater than `0`):"
+    ],
+    "text": "MUST set `funding_txid` in each `commitment_signed` message to match the",
+    "source": "02-peer-protocol",
+    "line": 3139
+  },
+  {
+    "id": "bolt02:general:a-sending-node:22",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must_not",
+    "conditions": [
+      "If there are `N` pending splice transactions (with `N` greater than `0`):"
+    ],
+    "text": "MUST NOT send any other message before it has sent the batch of",
+    "source": "02-peer-protocol",
+    "line": 3141
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:16",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "once all pending updates are applied:",
+      "if `signature` is not valid for its local commitment transaction OR non-compliant with LOW-S-standard rule <sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:"
+    ],
+    "text": "MUST send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 3147
+  },
+  {
+    "id": "bolt02:general:commitment-transaction:1",
+    "message": "",
+    "role": "commitment transaction",
+    "modality": "must",
+    "text": "MUST send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 3151
+  },
+  {
+    "id": "bolt02:general:commitment-transaction:2",
+    "message": "",
+    "role": "commitment transaction",
+    "modality": "must",
+    "conditions": [
+      "if any `htlc_signature` is not valid for the corresponding HTLC transaction OR non-compliant with LOW-S-standard rule <sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:"
+    ],
+    "text": "MUST send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 3154
+  },
+  {
+    "id": "bolt02:general:send-startbatch-followed-by-a-batch-of-commitmentsigned-messages:1",
+    "message": "",
+    "role": "send `start_batch` followed by a batch of `commitment_signed` messages",
+    "modality": "must",
+    "text": "MUST send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 3158
+  },
+  {
+    "id": "bolt02:general:commitmentsigned-messages:1",
+    "message": "",
+    "role": "`commitment_signed` messages",
+    "modality": "must",
+    "conditions": [
+      "If `funding_txid` is missing in one of the `commitment_signed` messages:"
+    ],
+    "text": "MUST send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 3162
+  },
+  {
+    "id": "bolt02:general:commitmentsigned-messages:2",
+    "message": "",
+    "role": "`commitment_signed` messages",
+    "modality": "must",
+    "conditions": [
+      "If `funding_txid` is missing in one of the `commitment_signed` messages:",
+      "If there are pending splice transactions:"
+    ],
+    "text": "MUST validate each `commitment_signed` based on `funding_txid`.",
+    "source": "02-peer-protocol",
+    "line": 3164
+  },
+  {
+    "id": "bolt02:general:commitmentsigned-messages:3",
+    "message": "",
+    "role": "`commitment_signed` messages",
+    "modality": "must",
+    "conditions": [
+      "If `funding_txid` is missing in one of the `commitment_signed` messages:",
+      "If `commitment_signed` is missing for a funding transaction:"
+    ],
+    "text": "MUST send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 3166
+  },
+  {
+    "id": "bolt02:general:commitmentsigned-messages:4",
+    "message": "",
+    "role": "`commitment_signed` messages",
+    "modality": "must",
+    "conditions": [
+      "If `funding_txid` is missing in one of the `commitment_signed` messages:",
+      "Otherwise:"
+    ],
+    "text": "MUST respond with a `revoke_and_ack` message.",
+    "source": "02-peer-protocol",
+    "line": 3168
+  },
+  {
+    "id": "bolt02:general:commitmentsigned-messages:5",
+    "message": "",
+    "role": "`commitment_signed` messages",
+    "modality": "must",
+    "conditions": [
+      "If `funding_txid` is missing in one of the `commitment_signed` messages:",
+      "Otherwise (no pending splice transactions):"
+    ],
+    "text": "MUST ignore `commitment_signed` where `funding_txid` does not match",
+    "source": "02-peer-protocol",
+    "line": 3170
+  },
+  {
+    "id": "bolt02:general:commitmentsigned-messages:6",
+    "message": "",
+    "role": "`commitment_signed` messages",
+    "modality": "must",
+    "conditions": [
+      "If `funding_txid` is missing in one of the `commitment_signed` messages:",
+      "If `commitment_signed` is missing for the current funding transaction:"
+    ],
+    "text": "MUST send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 3173
+  },
+  {
+    "id": "bolt02:general:commitmentsigned-messages:7",
+    "message": "",
+    "role": "`commitment_signed` messages",
+    "modality": "must",
+    "conditions": [
+      "If `funding_txid` is missing in one of the `commitment_signed` messages:",
+      "Otherwise:"
+    ],
+    "text": "MUST respond with a `revoke_and_ack` message.",
+    "source": "02-peer-protocol",
+    "line": 3175
+  },
+  {
+    "id": "bolt02:general:commitmentsigned-messages:8",
+    "message": "",
+    "role": "`commitment_signed` messages",
+    "modality": "must",
+    "conditions": [
+      "Otherwise:"
+    ],
+    "text": "MUST respond with a `revoke_and_ack` message.",
+    "source": "02-peer-protocol",
+    "line": 3177
+  },
+  {
+    "id": "bolt02:general:a-sending-node:23",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "text": "MUST set `per_commitment_secret` to the secret used to generate keys for",
+    "source": "02-peer-protocol",
+    "line": 3229
+  },
+  {
+    "id": "bolt02:general:a-sending-node:24",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "text": "MUST set `next_per_commitment_point` to the values for its next commitment",
+    "source": "02-peer-protocol",
+    "line": 3231
+  },
+  {
+    "id": "bolt02:general:a-sending-node:25",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "text": "MUST send a single `revoke_and_ack` message, even if it is responding to",
+    "source": "02-peer-protocol",
+    "line": 3233
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:17",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "if `per_commitment_secret` is not a valid secret key or does not generate the previous `per_commitment_point`:"
+    ],
+    "text": "MUST send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 3238
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:18",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "may",
+    "conditions": [
+      "if the `per_commitment_secret` was not generated by the protocol in [BOLT #3](03-transactions.md#per-commitment-secret-requirements):"
+    ],
+    "text": "MAY send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 3240
+  },
+  {
+    "id": "bolt02:general:a-node:16",
+    "message": "",
+    "role": "A node",
+    "modality": "must_not",
+    "text": "MUST NOT broadcast old (revoked) commitment transactions,",
+    "source": "02-peer-protocol",
+    "line": 3244
+  },
+  {
+    "id": "bolt02:general:a-node:17",
+    "message": "",
+    "role": "A node",
+    "modality": "should_not",
+    "text": "SHOULD NOT sign commitment transactions, unless it's about to broadcast",
+    "source": "02-peer-protocol",
+    "line": 3246
+  },
+  {
+    "id": "bolt02:general:when-using-zerofeecommitments-nodes:1",
+    "message": "",
+    "role": "When using `zero_fee_commitments`, nodes",
+    "modality": "must_not",
+    "text": "MUST NOT send `update_fee`.",
+    "source": "02-peer-protocol",
+    "line": 3276
+  },
+  {
+    "id": "bolt02:general:the-node-responsible-for-paying-the-bitcoin-fee:1",
+    "message": "",
+    "role": "The node _responsible_ for paying the Bitcoin fee",
+    "modality": "should",
+    "text": "SHOULD send `update_fee` to ensure the current fee rate is sufficient (by a",
+    "source": "02-peer-protocol",
+    "line": 3279
+  },
+  {
+    "id": "bolt02:general:the-node-not-responsible-for-paying-the-bitcoin-fee:1",
+    "message": "",
+    "role": "The node _not responsible_ for paying the Bitcoin fee",
+    "modality": "must_not",
+    "text": "MUST NOT send `update_fee`.",
+    "source": "02-peer-protocol",
+    "line": 3283
+  },
+  {
+    "id": "bolt02:general:a-sending-node:26",
+    "message": "",
+    "role": "A sending node",
+    "modality": "may",
+    "conditions": [
+      "if `option_anchors` was not negotiated:",
+      "if the dust balance of the remote transaction at the updated `feerate_per_kw` is greater than `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "MAY NOT send `update_fee`",
+    "source": "02-peer-protocol",
+    "line": 3289
+  },
+  {
+    "id": "bolt02:general:a-sending-node:27",
+    "message": "",
+    "role": "A sending node",
+    "modality": "may",
+    "conditions": [
+      "if `option_anchors` was not negotiated:",
+      "if the dust balance of the remote transaction at the updated `feerate_per_kw` is greater than `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "MAY fail the channel",
+    "source": "02-peer-protocol",
+    "line": 3290
+  },
+  {
+    "id": "bolt02:general:a-sending-node:28",
+    "message": "",
+    "role": "A sending node",
+    "modality": "may",
+    "conditions": [
+      "if `option_anchors` was not negotiated:",
+      "if the dust balance of the local transaction at the updated `feerate_per_kw` is greater than `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "MAY NOT send `update_fee`",
+    "source": "02-peer-protocol",
+    "line": 3292
+  },
+  {
+    "id": "bolt02:general:a-sending-node:29",
+    "message": "",
+    "role": "A sending node",
+    "modality": "may",
+    "conditions": [
+      "if `option_anchors` was not negotiated:",
+      "if the dust balance of the local transaction at the updated `feerate_per_kw` is greater than `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "MAY fail the channel",
+    "source": "02-peer-protocol",
+    "line": 3293
+  },
+  {
+    "id": "bolt02:general:a-sending-node:30",
+    "message": "",
+    "role": "A sending node",
+    "modality": "must",
+    "conditions": [
+      "if a splice is pending:"
+    ],
+    "text": "MUST ensure that requirements are met for all commmitment transactions.",
+    "source": "02-peer-protocol",
+    "line": 3295
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:19",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "if `zero_fee_commitments` is used:"
+    ],
+    "text": "MUST send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 3299
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:20",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "if the `update_fee` is too low for timely processing, OR is unreasonably large:"
+    ],
+    "text": "MUST send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 3301
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:21",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "if the sender is not responsible for paying the Bitcoin fee:"
+    ],
+    "text": "MUST send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 3304
+  },
+  {
+    "id": "bolt02:general:current-commitment-transaction:1",
+    "message": "",
+    "role": "current commitment transaction",
+    "modality": "should",
+    "text": "SHOULD send a `warning` and close the connection, or send an",
+    "source": "02-peer-protocol",
+    "line": 3308
+  },
+  {
+    "id": "bolt02:general:current-commitment-transaction:2",
+    "message": "",
+    "role": "current commitment transaction",
+    "modality": "may",
+    "conditions": [
+      "if `option_anchors` was not negotiated:",
+      "if the `update_fee` increases `feerate_per_kw`:",
+      "if the dust balance of the remote transaction at the updated `feerate_per_kw` is greater then `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "MAY fail the channel",
+    "source": "02-peer-protocol",
+    "line": 3314
+  },
+  {
+    "id": "bolt02:general:current-commitment-transaction:3",
+    "message": "",
+    "role": "current commitment transaction",
+    "modality": "may",
+    "conditions": [
+      "if `option_anchors` was not negotiated:",
+      "if the dust balance of the local transaction at the updated `feerate_per_kw` is greater than `max_dust_htlc_exposure_msat`:"
+    ],
+    "text": "MAY fail the channel",
+    "source": "02-peer-protocol",
+    "line": 3316
+  },
+  {
+    "id": "bolt02:general:current-commitment-transaction:4",
+    "message": "",
+    "role": "current commitment transaction",
+    "modality": "must",
+    "conditions": [
+      "if a splice is pending:"
+    ],
+    "text": "MUST ensure that requirements are met for all commmitment transactions.",
+    "source": "02-peer-protocol",
+    "line": 3318
+  },
+  {
+    "id": "bolt02:general:a-funding-node:1",
+    "message": "",
+    "role": "A funding node",
+    "modality": "must",
+    "conditions": [
+      "upon disconnection:",
+      "if it has broadcast the funding transaction:"
+    ],
+    "text": "MUST remember the channel for reconnection.",
+    "source": "02-peer-protocol",
+    "line": 3420
+  },
+  {
+    "id": "bolt02:general:a-funding-node:2",
+    "message": "",
+    "role": "A funding node",
+    "modality": "should_not",
+    "conditions": [
+      "upon disconnection:",
+      "otherwise:"
+    ],
+    "text": "SHOULD NOT remember the channel for reconnection.",
+    "source": "02-peer-protocol",
+    "line": 3422
+  },
+  {
+    "id": "bolt02:general:a-non-funding-node:1",
+    "message": "",
+    "role": "A non-funding node",
+    "modality": "must",
+    "conditions": [
+      "upon disconnection:",
+      "if it has sent the `funding_signed` message:"
+    ],
+    "text": "MUST remember the channel for reconnection.",
+    "source": "02-peer-protocol",
+    "line": 3427
+  },
+  {
+    "id": "bolt02:general:a-non-funding-node:2",
+    "message": "",
+    "role": "A non-funding node",
+    "modality": "should_not",
+    "conditions": [
+      "upon disconnection:",
+      "otherwise:"
+    ],
+    "text": "SHOULD NOT remember the channel for reconnection.",
+    "source": "02-peer-protocol",
+    "line": 3429
+  },
+  {
+    "id": "bolt02:general:a-node:18",
+    "message": "",
+    "role": "A node",
+    "modality": "must",
+    "text": "MUST handle continuation of a previous channel on a new encrypted transport.",
+    "source": "02-peer-protocol",
+    "line": 3432
+  },
+  {
+    "id": "bolt02:general:a-node:19",
+    "message": "",
+    "role": "A node",
+    "modality": "must",
+    "conditions": [
+      "upon disconnection:"
+    ],
+    "text": "MUST reverse any uncommitted updates sent by the other side (i.e. all",
+    "source": "02-peer-protocol",
+    "line": 3434
+  },
+  {
+    "id": "bolt02:general:a-node:20",
+    "message": "",
+    "role": "A node",
+    "modality": "should",
+    "conditions": [
+      "upon reconnection:",
+      "if a channel is in an error state:"
+    ],
+    "text": "SHOULD retransmit the error packet and ignore any other packets for",
+    "source": "02-peer-protocol",
+    "line": 3442
+  },
+  {
+    "id": "bolt02:general:a-node:21",
+    "message": "",
+    "role": "A node",
+    "modality": "must",
+    "conditions": [
+      "upon reconnection:",
+      "otherwise:"
+    ],
+    "text": "MUST transmit `channel_reestablish` for each channel.",
+    "source": "02-peer-protocol",
+    "line": 3445
+  },
+  {
+    "id": "bolt02:general:a-node:22",
+    "message": "",
+    "role": "A node",
+    "modality": "must",
+    "conditions": [
+      "upon reconnection:",
+      "otherwise:"
+    ],
+    "text": "MUST wait to receive the other node's `channel_reestablish`",
+    "source": "02-peer-protocol",
+    "line": 3446
+  },
+  {
+    "id": "bolt02:general:the-sending-node:7",
+    "message": "",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST set `next_commitment_number` to the commitment number of the",
+    "source": "02-peer-protocol",
+    "line": 3450
+  },
+  {
+    "id": "bolt02:general:the-sending-node:8",
+    "message": "",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST set `next_revocation_number` to the commitment number of the",
+    "source": "02-peer-protocol",
+    "line": 3452
+  },
+  {
+    "id": "bolt02:general:the-sending-node:9",
+    "message": "",
+    "role": "The sending node",
+    "modality": "must",
+    "text": "MUST set `my_current_per_commitment_point` to a valid point.",
+    "source": "02-peer-protocol",
+    "line": 3454
+  },
+  {
+    "id": "bolt02:general:the-sending-node:10",
+    "message": "",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "if `next_revocation_number` equals 0:"
+    ],
+    "text": "MUST set `your_last_per_commitment_secret` to all zeroes",
+    "source": "02-peer-protocol",
+    "line": 3456
+  },
+  {
+    "id": "bolt02:general:the-sending-node:11",
+    "message": "",
+    "role": "The sending node",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST set `your_last_per_commitment_secret` to the last `per_commitment_secret` it received",
+    "source": "02-peer-protocol",
+    "line": 3458
+  },
+  {
+    "id": "bolt02:general:it-has-not-received-txsignatures:1",
+    "message": "",
+    "role": "it has not received `tx_signatures`",
+    "modality": "must",
+    "text": "MUST include the `next_funding` TLV.",
+    "source": "02-peer-protocol",
+    "line": 3461
+  },
+  {
+    "id": "bolt02:general:it-has-not-received-txsignatures:2",
+    "message": "",
+    "role": "it has not received `tx_signatures`",
+    "modality": "must",
+    "text": "MUST set `next_funding_txid` to the txid of that interactive transaction.",
+    "source": "02-peer-protocol",
+    "line": 3462
+  },
+  {
+    "id": "bolt02:general:it-has-not-received-txsignatures:3",
+    "message": "",
+    "role": "it has not received `tx_signatures`",
+    "modality": "must",
+    "conditions": [
+      "if it has not received `commitment_signed` for this `next_funding_txid`:"
+    ],
+    "text": "MUST set the `commitment_signed` bit in `retransmit_flags`.",
+    "source": "02-peer-protocol",
+    "line": 3464
+  },
+  {
+    "id": "bolt02:general:it-has-not-received-txsignatures:4",
+    "message": "",
+    "role": "it has not received `tx_signatures`",
+    "modality": "must_not",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST NOT include the `next_funding` TLV.",
+    "source": "02-peer-protocol",
+    "line": 3466
+  },
+  {
+    "id": "bolt02:general:it-has-not-received-txsignatures:5",
+    "message": "",
+    "role": "it has not received `tx_signatures`",
+    "modality": "must",
+    "conditions": [
+      "if `option_splice` was negotiated:",
+      "if a splice transaction reached acceptable depth while disconnected:"
+    ],
+    "text": "MUST include `my_current_funding_locked` with the txid of the latest such transaction.",
+    "source": "02-peer-protocol",
+    "line": 3469
+  },
+  {
+    "id": "bolt02:general:it-has-not-received-txsignatures:6",
+    "message": "",
+    "role": "it has not received `tx_signatures`",
+    "modality": "must",
+    "conditions": [
+      "if `option_splice` was negotiated:",
+      "otherwise, if it has already sent `splice_locked` for any transaction:"
+    ],
+    "text": "MUST include `my_current_funding_locked` with the txid of the last `splice_locked` it sent.",
+    "source": "02-peer-protocol",
+    "line": 3471
+  },
+  {
+    "id": "bolt02:general:it-has-not-received-txsignatures:7",
+    "message": "",
+    "role": "it has not received `tx_signatures`",
+    "modality": "must",
+    "conditions": [
+      "if `option_splice` was negotiated:",
+      "otherwise, if it has already sent `channel_ready`:"
+    ],
+    "text": "MUST include `my_current_funding_locked` with the txid of the channel funding transaction.",
+    "source": "02-peer-protocol",
+    "line": 3473
+  },
+  {
+    "id": "bolt02:general:it-has-not-received-txsignatures:8",
+    "message": "",
+    "role": "it has not received `tx_signatures`",
+    "modality": "must_not",
+    "conditions": [
+      "if `option_splice` was negotiated:",
+      "otherwise (it has never sent `channel_ready` or `splice_locked`):"
+    ],
+    "text": "MUST NOT include `my_current_funding_locked`.",
+    "source": "02-peer-protocol",
+    "line": 3475
+  },
+  {
+    "id": "bolt02:general:it-has-not-received-txsignatures:9",
+    "message": "",
+    "role": "it has not received `tx_signatures`",
+    "modality": "must",
+    "conditions": [
+      "if `option_splice` was negotiated:",
+      "if `announce_channel` is set for this channel:",
+      "if it has not received `announcement_signatures` for that transaction:"
+    ],
+    "text": "MUST set the `announcement_signatures` bit to `1` in `retransmit_flags`.",
+    "source": "02-peer-protocol",
+    "line": 3479
+  },
+  {
+    "id": "bolt02:general:it-has-not-received-txsignatures:10",
+    "message": "",
+    "role": "it has not received `tx_signatures`",
+    "modality": "must",
+    "conditions": [
+      "if `option_splice` was negotiated:",
+      "otherwise:"
+    ],
+    "text": "MUST set the `announcement_signatures` bit to `0` in `retransmit_flags`.",
+    "source": "02-peer-protocol",
+    "line": 3481
+  },
+  {
+    "id": "bolt02:general:a-node:23",
+    "message": "",
+    "role": "A node",
+    "modality": "must",
+    "conditions": [
+      "if `next_commitment_number` is zero:"
+    ],
+    "text": "MUST immediately fail the channel and broadcast any relevant latest commitment",
+    "source": "02-peer-protocol",
+    "line": 3485
+  },
+  {
+    "id": "bolt02:general:contain-mycurrentfundinglocked-or-nextfunding-for-a-splice-transaction:1",
+    "message": "",
+    "role": "contain `my_current_funding_locked` or `next_funding` for a splice transaction",
+    "modality": "must",
+    "text": "MUST retransmit `channel_ready`.",
+    "source": "02-peer-protocol",
+    "line": 3490
+  },
+  {
+    "id": "bolt02:general:contain-mycurrentfundinglocked-or-nextfunding-for-a-splice-transaction:2",
+    "message": "",
+    "role": "contain `my_current_funding_locked` or `next_funding` for a splice transaction",
+    "modality": "must_not",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST NOT retransmit `channel_ready`, but MAY send `channel_ready` with",
+    "source": "02-peer-protocol",
+    "line": 3492
+  },
+  {
+    "id": "bolt02:general:contain-mycurrentfundinglocked-or-nextfunding-for-a-splice-transaction:3",
+    "message": "",
+    "role": "contain `my_current_funding_locked` or `next_funding` for a splice transaction",
+    "modality": "must",
+    "conditions": [
+      "upon reconnection:"
+    ],
+    "text": "MUST ignore any redundant `channel_ready` it receives.",
+    "source": "02-peer-protocol",
+    "line": 3495
+  },
+  {
+    "id": "bolt02:general:the-last-commitmentsigned-message-the-receiving-node-has-sent:1",
+    "message": "",
+    "role": "the last `commitment_signed` message the receiving node has sent",
+    "modality": "must",
+    "text": "MUST reuse the same commitment number for its next `commitment_signed`.",
+    "source": "02-peer-protocol",
+    "line": 3498
+  },
+  {
+    "id": "bolt02:general:next-commitmentsigned-that-the-receiving-node-would-send:1",
+    "message": "",
+    "role": "next `commitment_signed` that the receiving node would send",
+    "modality": "should",
+    "text": "SHOULD send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 3502
+  },
+  {
+    "id": "bolt02:general:hasnt-already-received-a-closingsigned:1",
+    "message": "",
+    "role": "hasn't already received a `closing_signed`",
+    "modality": "must",
+    "text": "MUST re-send the `revoke_and_ack`.",
+    "source": "02-peer-protocol",
+    "line": 3506
+  },
+  {
+    "id": "bolt02:general:retransmitted:1",
+    "message": "",
+    "role": "retransmitted",
+    "modality": "must",
+    "text": "MUST retransmit `revoke_and_ack` and `commitment_signed` in the same",
+    "source": "02-peer-protocol",
+    "line": 3509
+  },
+  {
+    "id": "bolt02:general:commitment-number-of-the-last-revokeandack-the-receiving-node-has-sent:1",
+    "message": "",
+    "role": "commitment number of the last `revoke_and_ack` the receiving node has sent",
+    "modality": "should",
+    "text": "SHOULD send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 3514
+  },
+  {
+    "id": "bolt02:general:is-not-equal-to-0:1",
+    "message": "",
+    "role": "is not equal to 0",
+    "modality": "should",
+    "text": "SHOULD send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 3517
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:22",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "text": "MUST ignore `my_current_per_commitment_point`, but MAY require it to be a valid point.",
+    "source": "02-peer-protocol",
+    "line": 3520
+  },
+  {
+    "id": "bolt02:general:nextrevocationnumber-minus-1:1",
+    "message": "",
+    "role": "`next_revocation_number` minus 1",
+    "modality": "must_not",
+    "text": "MUST NOT broadcast its commitment transaction.",
+    "source": "02-peer-protocol",
+    "line": 3524
+  },
+  {
+    "id": "bolt02:general:nextrevocationnumber-minus-1:2",
+    "message": "",
+    "role": "`next_revocation_number` minus 1",
+    "modality": "should",
+    "text": "SHOULD send an `error` to request the peer to fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 3525
+  },
+  {
+    "id": "bolt02:general:nextrevocationnumber-minus-1:3",
+    "message": "",
+    "role": "`next_revocation_number` minus 1",
+    "modality": "should",
+    "conditions": [
+      "otherwise:",
+      "if `your_last_per_commitment_secret` does not match the expected values:"
+    ],
+    "text": "SHOULD send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 3528
+  },
+  {
+    "id": "bolt02:general:a-receiving-node:23",
+    "message": "",
+    "role": "A receiving node",
+    "modality": "must",
+    "conditions": [
+      "if the `next_funding` TLV is set:",
+      "if it has not received `tx_signatures` for that funding transaction:",
+      "if the `commitment_signed` bit is set in `retransmit_flags`:"
+    ],
+    "text": "MUST retransmit its `commitment_signed` for that funding transaction.",
+    "source": "02-peer-protocol",
+    "line": 3535
+  },
+  {
+    "id": "bolt02:general:as-specified-in-the-txsignatures-requirementsthe-txsignatures-message:1",
+    "message": "",
+    "role": "as specified in the [`tx_signatures` requirements](#the-tx_signatures-message)",
+    "modality": "must",
+    "text": "MUST send its `tx_signatures` for that funding transaction.",
+    "source": "02-peer-protocol",
+    "line": 3538
+  },
+  {
+    "id": "bolt02:general:as-specified-in-the-txsignatures-requirementsthe-txsignatures-message:2",
+    "message": "",
+    "role": "as specified in the [`tx_signatures` requirements](#the-tx_signatures-message)",
+    "modality": "must",
+    "conditions": [
+      "if it has already received `tx_signatures` for that funding transaction:"
+    ],
+    "text": "MUST send its `tx_signatures` for that funding transaction.",
+    "source": "02-peer-protocol",
+    "line": 3540
+  },
+  {
+    "id": "bolt02:general:values-dont-match:1",
+    "message": "",
+    "role": "values don't match",
+    "modality": "must",
+    "text": "MUST send an `error` and fail the channel.",
+    "source": "02-peer-protocol",
+    "line": 3543
+  },
+  {
+    "id": "bolt02:general:values-dont-match:2",
+    "message": "",
+    "role": "values don't match",
+    "modality": "must",
+    "conditions": [
+      "otherwise:"
+    ],
+    "text": "MUST send `tx_abort` to let the sending node know that they can forget",
+    "source": "02-peer-protocol",
+    "line": 3545
+  },
+  {
+    "id": "bolt02:general:those-splice-transactions-for-which-it-hasnt-received-splicelocked-yet:1",
+    "message": "",
+    "role": "those splice transactions, for which it hasn't received `splice_locked` yet",
+    "modality": "must",
+    "text": "MUST process `my_current_funding_locked` as if it was receiving `splice_locked`",
+    "source": "02-peer-protocol",
+    "line": 3551
+  },
+  {
+    "id": "bolt02:general:to-send-announcementsignatures-for-the-corresponding-splice-transaction:1",
+    "message": "",
+    "role": "to send `announcement_signatures` for the corresponding splice transaction",
+    "modality": "must",
+    "text": "MUST retransmit `announcement_signatures`.",
+    "source": "02-peer-protocol",
+    "line": 3557
+  },
+  {
+    "id": "bolt02:general:a-node:24",
+    "message": "",
+    "role": "A node",
+    "modality": "must_not",
+    "text": "MUST NOT assume that previously-transmitted messages were lost,",
+    "source": "02-peer-protocol",
+    "line": 3560
+  },
+  {
+    "id": "bolt02:general:a-node:25",
+    "message": "",
+    "role": "A node",
+    "modality": "must",
+    "conditions": [
+      "if it has sent a previous `commitment_signed` message:"
+    ],
+    "text": "MUST handle the case where the corresponding commitment transaction is",
+    "source": "02-peer-protocol",
+    "line": 3562
+  },
+  {
+    "id": "bolt02:general:a-node:26",
+    "message": "",
+    "role": "A node",
+    "modality": "must",
+    "conditions": [
+      "upon reconnection:",
+      "if it has sent a previous `shutdown`:"
+    ],
+    "text": "MUST retransmit `shutdown`.",
+    "source": "02-peer-protocol",
+    "line": 3568
+  }
+]

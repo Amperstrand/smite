@@ -29,6 +29,19 @@ Campaign settings are stored in a TOML file. See [`sample-campaign.toml`](sample
 
 ## Commands
 
+### smitebot seeds
+
+Generates a spec-derived seed corpus from a BOLT markdown file, so a campaign's `seed_dir` can be (re)built in one step. Runs the `smite-requirements` pipeline: requirements are extracted from the markdown, violation seeds and program sketches are derived, and every convertible sketch is written as a postcard-encoded IR program, roundtrip-verified on the way out.
+
+```bash
+smitebot seeds /tmp/bolts/02-peer-protocol.md /tmp/smite-seeds
+```
+
+- First argument: path to a BOLT markdown file (e.g. `02-peer-protocol.md`)
+- Second argument: output directory; created if missing, suitable as a campaign config's `seed_dir`
+
+Point a campaign's `seed_dir` at the output directory and `smitebot start` will calibrate against the spec-derived corpus. The command exits non-zero if no seeds could be produced or any seed fails verification.
+
 ### smitebot start
 
 Launches a fuzzing campaign. Builds the Docker image, sets up the Nyx sharedir, spawns parallel AFL++ instances inside a tmux session (one window per runner), and attaches to the session.

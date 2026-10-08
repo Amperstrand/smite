@@ -4,7 +4,10 @@
 //! The serialized program stores data only in [`Operation`] literals.
 
 use bitcoin::secp256k1::PublicKey;
-use smite::bolt::{AcceptChannel, ChannelId, OpenChannel, ShortChannelId};
+use smite::bolt::{
+    AcceptChannel, ChannelId, CommitmentSigned, OpenChannel, RevokeAndAck, ShortChannelId,
+    SpliceAck, SpliceLocked, TxAbort, TxComplete,
+};
 use smite::channel_tx::FundingTransaction;
 
 const CHAIN_HASH_SIZE: usize = 32;
@@ -42,6 +45,9 @@ pub enum Variable {
     U16(u16),
     /// Generic u8 protocol parameter (`channel_flags`, `initiator`, etc.).
     U8(u8),
+    /// Generic u32 protocol parameter (`prevtx_vout`, `sequence`,
+    /// `serial_id`, etc.).
+    U32(u32),
     /// Feature bits.
     Features(Vec<u8>),
     /// Encoded BOLT message with type prefix, ready to send.
@@ -52,6 +58,18 @@ pub enum Variable {
     AcceptChannel(AcceptChannel),
     /// Constructed funding transaction with funding output index.
     FundingTransaction(FundingTransaction),
+    /// Parsed `splice_ack` response.
+    SpliceAck(SpliceAck),
+    /// Parsed `splice_locked` message.
+    SpliceLocked(SpliceLocked),
+    /// Parsed `tx_abort` message received from the target.
+    TxAbort(TxAbort),
+    /// Parsed `tx_complete` message received from the target.
+    TxComplete(TxComplete),
+    /// Parsed `commitment_signed` message received from the target.
+    CommitmentSigned(CommitmentSigned),
+    /// Parsed `revoke_and_ack` message received from the target.
+    RevokeAndAck(RevokeAndAck),
 
     // Affine (single-use) variables
     /// `open_channel` has been sent, so `accept_channel` may now be received.
@@ -61,6 +79,44 @@ pub enum Variable {
     /// `shutdown` has been sent, so the counterparty's `shutdown` may now be
     /// received.
     SentShutdown,
+    /// `stfu` has been sent (quiescence initiated or accepted).
+    SentStfu,
+    /// `splice_init` has been sent.
+    SentSpliceInit,
+    /// `splice_ack` has been sent.
+    SentSpliceAck,
+    /// `splice_locked` has been sent.
+    SentSpliceLocked,
+    /// `tx_add_input` has been sent.
+    SentTxAddInput,
+    /// `tx_add_output` has been sent.
+    SentTxAddOutput,
+    /// `tx_complete` has been sent.
+    SentTxComplete,
+    /// `tx_abort` has been sent.
+    SentTxAbort,
+    /// `tx_init_rbf` has been sent.
+    SentTxInitRbf,
+    /// `tx_ack_rbf` has been sent.
+    SentTxAckRbf,
+    /// `tx_signatures` has been sent.
+    SentTxSignatures,
+    /// `funding_signed` has been sent.
+    SentFundingSigned,
+    /// `update_add_htlc` has been sent.
+    SentUpdateAddHtlc,
+    /// `commitment_signed` has been sent.
+    SentCommitmentSigned,
+    /// `revoke_and_ack` has been sent.
+    SentRevokeAndAck,
+    /// `update_fail_htlc` has been sent.
+    SentUpdateFailHtlc,
+    /// `update_fulfill_htlc` has been sent.
+    SentUpdateFulfillHtlc,
+    /// `channel_reestablish` has been sent.
+    SentChannelReestablish,
+    /// `update_fail_malformed_htlc` has been sent.
+    SentUpdateFailMalformedHtlc,
 }
 
 impl Variable {
@@ -81,14 +137,40 @@ impl Variable {
             Self::ForwardingFee(_) => VariableType::ForwardingFee,
             Self::U16(_) => VariableType::U16,
             Self::U8(_) => VariableType::U8,
+            Self::U32(_) => VariableType::U32,
             Self::Features(_) => VariableType::Features,
             Self::Message(_) => VariableType::Message,
             Self::OpenChannelMessage(_) => VariableType::OpenChannelMessage,
             Self::AcceptChannel(_) => VariableType::AcceptChannel,
             Self::FundingTransaction(_) => VariableType::FundingTransaction,
+            Self::SpliceAck(_) => VariableType::SpliceAck,
+            Self::SpliceLocked(_) => VariableType::SpliceLocked,
+            Self::TxAbort(_) => VariableType::TxAbort,
+            Self::TxComplete(_) => VariableType::TxComplete,
+            Self::CommitmentSigned(_) => VariableType::CommitmentSigned,
+            Self::RevokeAndAck(_) => VariableType::RevokeAndAck,
             Self::SentOpenChannel => VariableType::SentOpenChannel,
             Self::SentFundingCreated => VariableType::SentFundingCreated,
             Self::SentShutdown => VariableType::SentShutdown,
+            Self::SentStfu => VariableType::SentStfu,
+            Self::SentSpliceInit => VariableType::SentSpliceInit,
+            Self::SentSpliceAck => VariableType::SentSpliceAck,
+            Self::SentSpliceLocked => VariableType::SentSpliceLocked,
+            Self::SentTxAddInput => VariableType::SentTxAddInput,
+            Self::SentTxAddOutput => VariableType::SentTxAddOutput,
+            Self::SentTxComplete => VariableType::SentTxComplete,
+            Self::SentTxAbort => VariableType::SentTxAbort,
+            Self::SentTxInitRbf => VariableType::SentTxInitRbf,
+            Self::SentTxAckRbf => VariableType::SentTxAckRbf,
+            Self::SentTxSignatures => VariableType::SentTxSignatures,
+            Self::SentFundingSigned => VariableType::SentFundingSigned,
+            Self::SentUpdateAddHtlc => VariableType::SentUpdateAddHtlc,
+            Self::SentCommitmentSigned => VariableType::SentCommitmentSigned,
+            Self::SentRevokeAndAck => VariableType::SentRevokeAndAck,
+            Self::SentUpdateFailHtlc => VariableType::SentUpdateFailHtlc,
+            Self::SentUpdateFulfillHtlc => VariableType::SentUpdateFulfillHtlc,
+            Self::SentChannelReestablish => VariableType::SentChannelReestablish,
+            Self::SentUpdateFailMalformedHtlc => VariableType::SentUpdateFailMalformedHtlc,
         }
     }
 }
@@ -110,26 +192,79 @@ pub enum VariableType {
     ForwardingFee,
     U16,
     U8,
+    U32,
     Features,
     Message,
     OpenChannelMessage,
     AcceptChannel,
     FundingTransaction,
+    SpliceAck,
+    SpliceLocked,
+    TxAbort,
+    TxComplete,
+    CommitmentSigned,
+    RevokeAndAck,
     SentOpenChannel,
     SentFundingCreated,
     SentShutdown,
+    SentStfu,
+    SentSpliceInit,
+    SentSpliceAck,
+    SentSpliceLocked,
+    SentTxAddInput,
+    SentTxAddOutput,
+    SentTxComplete,
+    SentTxAbort,
+    SentTxInitRbf,
+    SentTxAckRbf,
+    SentTxSignatures,
+    SentFundingSigned,
+    SentUpdateAddHtlc,
+    SentCommitmentSigned,
+    SentRevokeAndAck,
+    SentUpdateFailHtlc,
+    SentUpdateFulfillHtlc,
+    SentChannelReestablish,
+    SentUpdateFailMalformedHtlc,
 }
 
 impl VariableType {
     #[must_use]
     pub fn is_affine(&self) -> bool {
         match self {
-            Self::SentOpenChannel | Self::SentFundingCreated | Self::SentShutdown => true,
+            Self::SentOpenChannel
+            | Self::SentFundingCreated
+            | Self::SentShutdown
+            | Self::SentStfu
+            | Self::SentSpliceInit
+            | Self::SentSpliceAck
+            | Self::SentSpliceLocked
+            | Self::SentTxAddInput
+            | Self::SentTxAddOutput
+            | Self::SentTxComplete
+            | Self::SentTxAbort
+            | Self::SentTxInitRbf
+            | Self::SentTxAckRbf
+            | Self::SentTxSignatures
+            | Self::SentFundingSigned
+            | Self::SentUpdateAddHtlc
+            | Self::SentCommitmentSigned
+            | Self::SentRevokeAndAck
+            | Self::SentUpdateFailHtlc
+            | Self::SentUpdateFulfillHtlc
+            | Self::SentChannelReestablish
+            | Self::SentUpdateFailMalformedHtlc => true,
 
             Self::Bytes
             | Self::ChainHash
             | Self::ChannelId
             | Self::Point
+            | Self::SpliceAck
+            | Self::SpliceLocked
+            | Self::TxAbort
+            | Self::TxComplete
+            | Self::CommitmentSigned
+            | Self::RevokeAndAck
             | Self::PrivateKey
             | Self::Amount
             | Self::FeeratePerKw
@@ -138,6 +273,7 @@ impl VariableType {
             | Self::ForwardingFee
             | Self::U16
             | Self::U8
+            | Self::U32
             | Self::Features
             | Self::Message
             | Self::OpenChannelMessage

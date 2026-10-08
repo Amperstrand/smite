@@ -8,18 +8,24 @@
 mod channel_announcement;
 mod channel_ready;
 mod channel_update;
+mod commitment;
 mod funding_created;
 mod funding_flow;
 mod node_announcement;
 mod open_channel;
+mod splice;
+mod tx;
 
 pub use channel_announcement::ChannelAnnouncementGenerator;
 pub use channel_ready::ChannelReadyGenerator;
 pub use channel_update::ChannelUpdateGenerator;
+pub use commitment::CommitmentFlowGenerator;
 pub use funding_created::FundingCreatedGenerator;
 pub use funding_flow::FundingFlowGenerator;
 pub use node_announcement::NodeAnnouncementGenerator;
 pub use open_channel::OpenChannelGenerator;
+pub use splice::{SpliceFlowGenerator, SpliceOnLiveChannelGenerator};
+pub use tx::{TxAbortEchoGenerator, TxNegotiationGenerator};
 
 use rand::Rng;
 
@@ -41,7 +47,12 @@ pub enum AnyGenerator {
     OpenChannel(OpenChannelGenerator),
     FundingCreated(FundingCreatedGenerator),
     ChannelReady(ChannelReadyGenerator),
+    CommitmentFlow(CommitmentFlowGenerator),
     FundingFlow(FundingFlowGenerator),
+    SpliceFlow(SpliceFlowGenerator),
+    SpliceOnLiveChannel(SpliceOnLiveChannelGenerator),
+    TxNegotiation(TxNegotiationGenerator),
+    TxAbortEcho(TxAbortEchoGenerator),
 }
 
 impl AnyGenerator {
@@ -53,7 +64,12 @@ impl AnyGenerator {
         Self::OpenChannel(OpenChannelGenerator),
         Self::FundingCreated(FundingCreatedGenerator),
         Self::ChannelReady(ChannelReadyGenerator),
+        Self::CommitmentFlow(CommitmentFlowGenerator),
         Self::FundingFlow(FundingFlowGenerator),
+        Self::SpliceFlow(SpliceFlowGenerator),
+        Self::SpliceOnLiveChannel(SpliceOnLiveChannelGenerator),
+        Self::TxNegotiation(TxNegotiationGenerator),
+        Self::TxAbortEcho(TxAbortEchoGenerator),
     ];
 }
 
@@ -66,7 +82,12 @@ impl Generator for AnyGenerator {
             Self::OpenChannel(generator) => generator.generate(builder, rng),
             Self::FundingCreated(generator) => generator.generate(builder, rng),
             Self::ChannelReady(generator) => generator.generate(builder, rng),
+            Self::CommitmentFlow(generator) => generator.generate(builder, rng),
             Self::FundingFlow(generator) => generator.generate(builder, rng),
+            Self::SpliceFlow(generator) => generator.generate(builder, rng),
+            Self::SpliceOnLiveChannel(generator) => generator.generate(builder, rng),
+            Self::TxNegotiation(generator) => generator.generate(builder, rng),
+            Self::TxAbortEcho(generator) => generator.generate(builder, rng),
         }
     }
 }

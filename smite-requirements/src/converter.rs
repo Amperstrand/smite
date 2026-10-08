@@ -1,0 +1,403 @@
+//! Converts program sketches into typed smite-ir `Program` instances.
+//!
+//! Each sketch maps to a `Program` that loads representative parameters,
+//! then sends the target message. The channel setup is handled by the
+//! scenario harness; the program performs the interesting violation.
+//! Values are deterministic baselines that the AFL++ custom mutator
+//! then explores around.
+
+use bitcoin::secp256k1::ecdsa::Signature;
+use smite::bolt::{
+    AcceptChannel, AcceptChannel2, AcceptChannel2Tlvs, AcceptChannelTlvs, ChannelId,
+    CommitmentSigned, CommitmentSignedTlvs, Message, OpenChannel2, OpenChannel2Tlvs,
+    TemporaryChannelId,
+};
+use smite_ir::operation::Operation;
+use smite_ir::program::Program;
+
+use crate::bridge::ProgramSketch;
+
+/// BOLT 3 dual-funding opener's P2WPKH change scriptPubKey.
+const P2WPKH_SCRIPT: [u8; 22] = [
+    0x00, 0x14, 0x1c, 0xa1, 0xcc, 0xa8, 0x85, 0x5b, 0xad, 0x6b, 0xc1, 0xea, 0x54, 0x36, 0xed, 0xd8,
+    0xcf, 0xf1, 0x0b, 0x7e, 0x44, 0x8b,
+];
+
+/// Converts a sketch into an executable IR program builder sequence.
+///
+/// Returns `None` for sketches that reference messages without IR
+/// operations yet (non-splice families).
+#[must_use]
+pub fn sketch_to_operations(sketch: &ProgramSketch) -> Option<Vec<(Operation, Vec<usize>)>> {
+    let send_target = sketch
+        .steps
+        .iter()
+        .find(|s| s.action == "send")
+        .map(|s| s.target.as_str())?;
+
+    match send_target {
+        "stfu" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadU8(1), vec![]),
+            (Operation::SendStfu, vec![0, 1]),
+        ]),
+        "splice_init" => {
+            let negative = sketch.goal.contains("negative") || sketch.goal.contains("splice-out");
+            let amount: u64 = if negative { 50_000 } else { 250_000 };
+            Some(vec![
+                (Operation::LoadChannelId([0x42; 32]), vec![]),
+                (Operation::LoadAmount(amount), vec![]),
+                (Operation::LoadFeeratePerKw(253), vec![]),
+                (Operation::LoadBlockHeight(0), vec![]),
+                (Operation::LoadTargetPubkeyFromContext, vec![]),
+                (Operation::SendSpliceInit, vec![0, 1, 2, 3, 4]),
+            ])
+        }
+        "splice_ack" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadAmount(0), vec![]),
+            (Operation::LoadTargetPubkeyFromContext, vec![]),
+            (Operation::SendSpliceAck, vec![0, 1, 2]),
+        ]),
+        "splice_locked" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadBytes(vec![0xab; 32]), vec![]),
+            (Operation::SendSpliceLocked, vec![0, 1]),
+        ]),
+        "tx_add_input" => {
+            // the-sending-node:3: sequence MUST be <= 0xFFFFFFFD; only
+            // 0xFFFFFFFE and 0xFFFFFFFF violate it.
+            let sequence = if sketch.goal.contains("sequence") {
+                0xFFFF_FFFF
+            } else {
+                0xFFFF_FFFD
+            };
+            // the-sending-node:7/8 (splice shared input): the shared input
+            // is marked by the shared_input_txid TLV and MUST NOT carry a
+            // prevtx. :7 gets the valid shape (TLV, no prevtx); :8 the
+            // violation (TLV + prevtx present).
+            let shared = sketch.goal.contains("shared input")
+                || sketch.goal.contains("current channel input");
+            let (include_shared_input_txid, prevtx) = if shared && sketch.goal.contains("NOT") {
+                (true, vec![0xde, 0xad, 0xbe, 0xef])
+            } else if shared {
+                (true, Vec::new())
+            } else {
+                (false, vec![0xde, 0xad, 0xbe, 0xef])
+            };
+            Some(vec![
+                (Operation::LoadChannelId([0x42; 32]), vec![]),
+                (Operation::LoadU32(42), vec![]),
+                (Operation::LoadBytes(prevtx), vec![]),
+                (Operation::LoadU32(0), vec![]),
+                (Operation::LoadU32(sequence), vec![]),
+                (Operation::LoadBytes(vec![0xcc; 32]), vec![]),
+                (
+                    Operation::SendTxAddInput {
+                        include_shared_input_txid,
+                    },
+                    vec![0, 1, 2, 3, 4, 5],
+                ),
+            ])
+        }
+        "tx_add_output" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadU32(42), vec![]),
+            (Operation::LoadAmount(1000), vec![]),
+            (Operation::LoadBytes(P2WPKH_SCRIPT.to_vec()), vec![]),
+            (Operation::SendTxAddOutput, vec![0, 1, 2, 3]),
+        ]),
+        "tx_complete" => {
+            // upon-receipt-of-consecutive-txcompletes: the negotiation
+            // concludes when both sides send tx_complete in succession, so
+            // those sketches wait for the target's message after ours.
+            // Match the full role slug, not a substring, so unrelated
+            // future requirements cannot pick up the recv by accident.
+            let expect_reply = sketch
+                .id
+                .contains(":upon-receipt-of-consecutive-txcompletes-");
+            let mut ops = vec![
+                (Operation::LoadChannelId([0x42; 32]), vec![]),
+                (Operation::SendTxComplete, vec![0]),
+            ];
+            if expect_reply {
+                ops.push((Operation::RecvTxComplete, vec![]));
+            }
+            Some(ops)
+        }
+        "tx_abort" => {
+            // a-receiving-node:3: the target MUST echo our `tx_abort` back,
+            // so the assert-response sketch waits for it.
+            let echo = sketch.goal.contains("echo");
+            let mut ops = vec![
+                (Operation::LoadChannelId([0x42; 32]), vec![]),
+                (
+                    Operation::LoadBytes(b"smite: negotiation failed".to_vec()),
+                    vec![],
+                ),
+                (Operation::SendTxAbort, vec![0, 1]),
+            ];
+            if echo {
+                ops.push((Operation::RecvTxAbort, vec![]));
+            }
+            Some(ops)
+        }
+        "tx_init_rbf" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadBlockHeight(0), vec![]),
+            (Operation::LoadFeeratePerKw(253), vec![]),
+            (Operation::SendTxInitRbf, vec![0, 1, 2]),
+        ]),
+        "tx_ack_rbf" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::SendTxAckRbf, vec![0]),
+        ]),
+        "tx_signatures" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadBytes(vec![0xab; 32]), vec![]),
+            (Operation::LoadBytes(vec![0x00; 64]), vec![]),
+            (Operation::SendTxSignatures, vec![0, 1, 2]),
+        ]),
+        "funding_signed" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadBytes(vec![0x00; 64]), vec![]),
+            (Operation::SendFundingSigned, vec![0, 1]),
+        ]),
+        "open_channel" => Some(vec![
+            (Operation::LoadChainHashFromContext, vec![]),
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadAmount(100_000), vec![]),
+            (Operation::LoadAmount(0), vec![]),
+            (Operation::LoadAmount(546), vec![]),
+            (Operation::LoadAmount(100_000_000), vec![]),
+            (Operation::LoadAmount(10_000), vec![]),
+            (Operation::LoadAmount(1_000), vec![]),
+            (Operation::LoadFeeratePerKw(253), vec![]),
+            (Operation::LoadU16(144), vec![]),
+            (Operation::LoadU16(483), vec![]),
+            (Operation::LoadTargetPubkeyFromContext, vec![]),
+            (Operation::LoadU8(1), vec![]),
+            (Operation::LoadBytes(Vec::new()), vec![]),
+            (Operation::LoadFeatures(Vec::new()), vec![]),
+            (
+                Operation::BuildOpenChannel,
+                vec![
+                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 11, 11, 11, 11, 11, 12, 13, 14,
+                ],
+            ),
+            (Operation::SendOpenChannel, vec![15]),
+        ]),
+        "channel_ready" => Some(vec![
+            (Operation::LoadChannelId([0x42; 32]), vec![]),
+            (Operation::LoadTargetPubkeyFromContext, vec![]),
+            (Operation::LoadShortChannelId(0), vec![]),
+            (
+                Operation::SendChannelReady {
+                    include_alias: false,
+                },
+                vec![0, 1, 2],
+            ),
+        ]),
+        "commitment_signed" => {
+            let cs = CommitmentSigned {
+                channel_id: ChannelId::new([0x42; 32]),
+                signature: Signature::from_compact(&[0u8; 64])
+                    .expect("zero bytes parse as a signature"),
+                htlc_signatures: Vec::new(),
+                tlvs: CommitmentSignedTlvs::default(),
+            };
+            let encoded = Message::CommitmentSigned(cs).encode();
+            Some(vec![
+                (Operation::LoadMessage(encoded), vec![]),
+                (Operation::SendMessage, vec![0]),
+            ])
+        }
+        "open_channel2" => {
+            let pubkey = static_pubkey();
+            let oc2 = OpenChannel2 {
+                chain_hash: [0x42; 32],
+                temporary_channel_id: TemporaryChannelId::new([0x42; 32]),
+                funding_feerate_perkw: 253,
+                commitment_feerate_perkw: 253,
+                funding_satoshis: 100_000,
+                dust_limit_satoshis: 546,
+                max_htlc_value_in_flight_msat: 100_000_000,
+                htlc_minimum_msat: 1_000,
+                to_self_delay: 144,
+                max_accepted_htlcs: 483,
+                locktime: 0,
+                funding_pubkey: pubkey,
+                revocation_basepoint: pubkey,
+                payment_basepoint: pubkey,
+                delayed_payment_basepoint: pubkey,
+                htlc_basepoint: pubkey,
+                first_per_commitment_point: pubkey,
+                second_per_commitment_point: pubkey,
+                channel_flags: 1,
+                tlvs: OpenChannel2Tlvs::default(),
+            };
+            let encoded = Message::OpenChannel2(oc2).encode();
+            Some(vec![
+                (Operation::LoadMessage(encoded), vec![]),
+                (Operation::SendMessage, vec![0]),
+            ])
+        }
+        "accept_channel" => {
+            let pubkey = static_pubkey();
+            let ac = AcceptChannel {
+                temporary_channel_id: TemporaryChannelId::new([0x42; 32]),
+                dust_limit_satoshis: 546,
+                max_htlc_value_in_flight_msat: 100_000_000,
+                channel_reserve_satoshis: 10_000,
+                htlc_minimum_msat: 1_000,
+                minimum_depth: 6,
+                to_self_delay: 144,
+                max_accepted_htlcs: 483,
+                funding_pubkey: pubkey,
+                revocation_basepoint: pubkey,
+                payment_basepoint: pubkey,
+                delayed_payment_basepoint: pubkey,
+                htlc_basepoint: pubkey,
+                first_per_commitment_point: pubkey,
+                tlvs: AcceptChannelTlvs::default(),
+            };
+            let encoded = Message::AcceptChannel(ac).encode();
+            Some(vec![
+                (Operation::LoadMessage(encoded), vec![]),
+                (Operation::SendMessage, vec![0]),
+            ])
+        }
+        "accept_channel2" => {
+            let pubkey = static_pubkey();
+            let ac2 = AcceptChannel2 {
+                temporary_channel_id: TemporaryChannelId::new([0x42; 32]),
+                funding_satoshis: 100_000,
+                dust_limit_satoshis: 546,
+                max_htlc_value_in_flight_msat: 100_000_000,
+                htlc_minimum_msat: 1_000,
+                minimum_depth: 6,
+                to_self_delay: 144,
+                max_accepted_htlcs: 483,
+                funding_pubkey: pubkey,
+                revocation_basepoint: pubkey,
+                payment_basepoint: pubkey,
+                delayed_payment_basepoint: pubkey,
+                htlc_basepoint: pubkey,
+                first_per_commitment_point: pubkey,
+                second_per_commitment_point: pubkey,
+                tlvs: AcceptChannel2Tlvs::default(),
+            };
+            let encoded = Message::AcceptChannel2(ac2).encode();
+            Some(vec![
+                (Operation::LoadMessage(encoded), vec![]),
+                (Operation::SendMessage, vec![0]),
+            ])
+        }
+        _ => None,
+    }
+}
+
+/// Builds a `Program` from a sketch via `ProgramBuilder`.
+#[must_use]
+pub fn sketch_to_program(sketch: &ProgramSketch) -> Option<Program> {
+    let ops = sketch_to_operations(sketch)?;
+    let mut builder = smite_ir::builder::ProgramBuilder::new();
+    for (op, inputs) in ops {
+        builder.append(op, &inputs);
+    }
+    Some(builder.build())
+}
+
+/// The pubkey every statically-built message carries in its basepoint
+/// fields. Matches the `verify_seeds` helper so emitted seeds and its
+/// encoding checks stay consistent.
+fn static_pubkey() -> bitcoin::secp256k1::PublicKey {
+    use bitcoin::secp256k1::{Secp256k1, SecretKey};
+    let secp = Secp256k1::new();
+    let sk = SecretKey::from_slice(&[0x02; 32]).expect("valid private key");
+    bitcoin::secp256k1::PublicKey::from_secret_key(&secp, &sk)
+}
+
+/// Summary of what the converter can handle.
+#[must_use]
+pub fn convertible_count(sketches: &[ProgramSketch]) -> (usize, usize) {
+    let convertible = sketches
+        .iter()
+        .filter(|s| sketch_to_operations(s).is_some())
+        .count();
+    (convertible, sketches.len())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bridge::SketchStep;
+
+    fn sketch(id: &str, goal: &str, target: &str) -> ProgramSketch {
+        ProgramSketch {
+            id: id.to_owned(),
+            seed_id: format!("{id}:seed"),
+            requirement_id: id.to_owned(),
+            goal: goal.to_owned(),
+            steps: vec![SketchStep {
+                action: "send".into(),
+                target: target.into(),
+                note: None,
+            }],
+        }
+    }
+
+    fn op_names(sketch: &ProgramSketch) -> Vec<String> {
+        sketch_to_operations(sketch)
+            .expect("sketch converts")
+            .into_iter()
+            .map(|(op, _)| format!("{op}"))
+            .collect()
+    }
+
+    #[test]
+    fn consecutive_tx_complete_sketch_waits_for_reply() {
+        let ops = op_names(&sketch(
+            "bolt02:tx_complete:upon-receipt-of-consecutive-txcompletes-the-receiving-node:1:seed:sketch",
+            "Exercise BOLT requirement: MUST MUST fail the negotiation if:",
+            "tx_complete",
+        ));
+        assert_eq!(
+            ops.last(),
+            Some(&"RecvTxComplete()".to_owned()),
+            "consecutive-txcompletes sketch must assert the reply: {ops:?}"
+        );
+    }
+
+    #[test]
+    fn plain_tx_complete_sketch_is_send_only() {
+        let ops = op_names(&sketch(
+            "bolt02:tx_complete:the-receiving-node:1:seed:sketch",
+            "Exercise BOLT requirement: MUST MUST add all received outputs",
+            "tx_complete",
+        ));
+        assert_eq!(ops.last(), Some(&"SendTxComplete".to_owned()));
+    }
+
+    #[test]
+    fn tx_abort_echo_sketch_waits_for_echo() {
+        let ops = op_names(&sketch(
+            "bolt02:tx_abort:a-receiving-node:3:seed:sketch",
+            "Exercise BOLT requirement: MUST MUST echo back `tx_abort`",
+            "tx_abort",
+        ));
+        assert_eq!(ops.last(), Some(&"RecvTxAbort()".to_owned()));
+    }
+
+    #[test]
+    fn unknown_send_target_does_not_convert() {
+        assert!(
+            sketch_to_operations(&sketch(
+                "bolt02:closing_sig:the-sender:1:seed:sketch",
+                "Exercise BOLT requirement: MUST MUST sign",
+                "closing_sig",
+            ))
+            .is_none()
+        );
+    }
+}

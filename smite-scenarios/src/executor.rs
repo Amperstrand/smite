@@ -3,15 +3,22 @@
 //! Executes an IR program against a target node over an established connection,
 //! producing side effects (sending/receiving messages).
 
+use bitcoin::hashes::Hash as _;
+use bitcoin::hashes::sha256;
 use bitcoin::secp256k1::ecdsa::Signature;
 use bitcoin::secp256k1::{PublicKey, Secp256k1, SecretKey};
 use bitcoin::{OutPoint, ScriptBuf, Txid};
 use smite::bitcoin::{BitcoinCli, TxBlockPosition, Utxo};
 use smite::bolt::{
     AcceptChannel, AnnouncementSignatures, ChannelAnnouncement, ChannelId, ChannelReady,
-    ChannelReadyTlvs, ChannelUpdate, Features, FromMessage, FundingCreated, FundingSigned, Message,
-    MessageType, NodeAnnouncement, OpenChannel, OpenChannelTlvs, Pong, ShortChannelId, Shutdown,
-    TemporaryChannelId,
+    ChannelReadyTlvs, ChannelReestablish, ChannelReestablishTlvs, ChannelUpdate, CommitmentSigned,
+    CommitmentSignedTlvs, Features, FromMessage, FundingCreated, FundingSigned, Message,
+    MessageType, NodeAnnouncement, OpenChannel, OpenChannelTlvs, Pong, RevokeAndAck,
+    ShortChannelId, Shutdown, SpliceAck, SpliceAckTlvs, SpliceInit, SpliceInitTlvs, SpliceLocked,
+    Stfu, TemporaryChannelId, TxAbort, TxAckRbf, TxAckRbfTlvs, TxAddInput, TxAddInputTlvs,
+    TxAddOutput, TxComplete, TxInitRbf, TxInitRbfTlvs, TxSignatures, TxSignaturesTlvs,
+    UpdateAddHtlc, UpdateAddHtlcTlvs, UpdateFailHtlc, UpdateFailHtlcTlvs, UpdateFailMalformedHtlc,
+    UpdateFulfillHtlc, UpdateFulfillHtlcTlvs,
 };
 use smite::channel_tx::{
     ChannelConfig, ChannelPartyConfig, ChannelState, FundingTransaction, HolderIdentity, Side,
@@ -20,6 +27,7 @@ use smite::channel_tx::{
 use smite::noise::{ConnectionError, NoiseConnection};
 use smite::oracles::{
     AcceptChannelContext, AcceptChannelOracle, FundingSignedContext, FundingSignedOracle, Oracle,
+    QuiescenceContext, QuiescenceOracle, SpliceAckContext, SpliceAckOracle,
 };
 use smite::pending_channel::PendingChannel;
 use smite::violation::Violation;
@@ -234,6 +242,23 @@ pub enum ExecuteError {
     Violation(#[from] Violation),
 }
 
+/// How the target answered a `splice_init` we sent, observed regardless of
+/// what message the program was expecting next.
+///
+/// Diagnostics only: no invariant is judged from the shape itself; the
+/// balance verdict still comes from [`SpliceAckOracle`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SpliceResponseShape {
+    /// The target answered `splice_ack`.
+    Acked,
+    /// The target answered `tx_abort`.
+    Aborted,
+    /// The target answered a BOLT `error`.
+    Errored,
+    /// The program ended with no observed answer.
+    Silent,
+}
+
 /// Executes IR programs against a target over an established connection.
 pub struct Executor<C, B, R> {
     /// Connection used to send and receive Lightning messages.
@@ -259,6 +284,26 @@ pub struct Executor<C, B, R> {
     /// transaction can change its raw hex, but the txid stays the same, so
     /// deduplication keys on the txid while the raw hex is what gets mined.
     private_mempool: Vec<(Txid, String)>,
+    /// Channels we sent `stfu` for, received `stfu` for, and engaged in a
+    /// splice / interactive-tx operation on. Quiescence is judged
+    /// established once we sent `stfu` and either observed the target's
+    /// `stfu` or the target demonstrably engaged the pending operation
+    /// (it does not answer splice messages pre-quiescence).
+    stfu_sent: HashSet<ChannelId>,
+    stfu_received: HashSet<ChannelId>,
+    splice_engaged: HashSet<ChannelId>,
+    /// `funding_contribution_satoshis` of each `splice_init` we sent,
+    /// consumed by the matching `splice_ack` for the balance oracle.
+    splice_contributions: HashMap<ChannelId, i64>,
+    /// How the target answered each `splice_init` we sent, keyed by
+    /// `ChannelId`. Diagnostics only; filled by the recv-time shape hooks
+    /// and summarized by the end-of-program sweep. An all-channels BOLT
+    /// `error` (`ChannelId::ALL`) matches no entry and reads as silence.
+    splice_response_shapes: HashMap<ChannelId, SpliceResponseShape>,
+    /// Channels we sent `tx_abort` for whose echo has not arrived. The
+    /// bool records whether any receive completed since, i.e. whether the
+    /// target had observable chances to echo.
+    pending_abort_echoes: HashMap<ChannelId, bool>,
     /// Transactions broadcast but not yet mined. Unlike `private_mempool`,
     /// which only holds what Bitcoin Core's mempool rejected, this tracks every
     /// broadcast.
@@ -282,7 +327,86 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
             private_mempool: Vec::new(),
             unmined_txids: HashSet::new(),
             mined_txids: HashSet::new(),
+            splice_contributions: HashMap::new(),
+            splice_response_shapes: HashMap::new(),
+            stfu_sent: HashSet::new(),
+            stfu_received: HashSet::new(),
+            splice_engaged: HashSet::new(),
+            pending_abort_echoes: HashMap::new(),
         }
+    }
+
+    /// Receives one message like [`recv_bolt`] while tracking protocol
+    /// state for the oracles: records the target's `stfu`, judges every
+    /// message against the quiescence-allowed set once quiescence is
+    /// established, and marks pending `tx_abort` echoes as having had a
+    /// chance to arrive.
+    fn recv_tracked<M: FromMessage>(&mut self, timeout: Duration) -> Result<M, ExecuteError> {
+        let msg = match recv_non_ping(&mut self.conn, timeout) {
+            Ok(msg) => msg,
+            Err(ExecuteError::PeerError(e)) => {
+                if self.splice_contributions.remove(&e.channel_id).is_some() {
+                    self.splice_response_shapes
+                        .insert(e.channel_id, SpliceResponseShape::Errored);
+                }
+                return Err(ExecuteError::PeerError(e));
+            }
+            Err(other) => return Err(other),
+        };
+        if let Message::Stfu(stfu) = &msg {
+            self.stfu_received.insert(stfu.channel_id);
+        }
+        if let Some(channel) = self.quiescent_channel() {
+            QuiescenceOracle.evaluate(&QuiescenceContext {
+                message: &msg,
+                quiescent_channel: Some(channel),
+            })?;
+        }
+        for had_chance in self.pending_abort_echoes.values_mut() {
+            *had_chance = true;
+        }
+        let got = msg.msg_type();
+        if let Message::TxAbort(ta) = &msg
+            && self.splice_contributions.remove(&ta.channel_id).is_some()
+        {
+            self.splice_response_shapes
+                .insert(ta.channel_id, SpliceResponseShape::Aborted);
+        }
+        // Out-of-band splice_ack: the program expected something else, but
+        // an answer to our splice_init must still be judged and consumed.
+        // The in-band case is left to the typed RecvSpliceAck arm.
+        if M::TYPE != SpliceAck::TYPE
+            && let Message::SpliceAck(sa) = &msg
+            && let Some(contribution) = self.splice_contributions.remove(&sa.channel_id)
+        {
+            self.splice_response_shapes
+                .insert(sa.channel_id, SpliceResponseShape::Acked);
+            SpliceAckOracle.evaluate(&SpliceAckContext {
+                splice_ack: sa,
+                our_contribution_satoshis: Some(contribution),
+                channel_state: self.channel_states.get(&sa.channel_id),
+            })?;
+        }
+        M::from_message(msg).ok_or(ExecuteError::UnexpectedMessage {
+            expected: M::TYPE,
+            got,
+        })
+    }
+
+    /// Returns a channel that is quiescent, if any: one we sent `stfu`
+    /// for and that either answered with `stfu` or engaged the pending
+    /// splice operation.
+    fn quiescent_channel(&self) -> Option<ChannelId> {
+        self.stfu_sent
+            .intersection(
+                &self
+                    .splice_engaged
+                    .union(&self.stfu_received)
+                    .copied()
+                    .collect::<HashSet<_>>(),
+            )
+            .next()
+            .copied()
     }
 
     /// Returns a mutable reference to the underlying connection.
@@ -351,7 +475,9 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                 Operation::LoadForwardingFee(v) => Some(Variable::ForwardingFee(*v)),
                 Operation::LoadU16(v) => Some(Variable::U16(*v)),
                 Operation::LoadU8(v) => Some(Variable::U8(*v)),
+                Operation::LoadU32(v) => Some(Variable::U32(*v)),
                 Operation::LoadBytes(b) => Some(Variable::Bytes(b.clone())),
+                Operation::LoadMessage(b) => Some(Variable::Message(b.clone())),
                 Operation::LoadFeatures(b) => Some(Variable::Features(b.clone())),
                 Operation::LoadPrivateKey(k) => Some(Variable::PrivateKey(*k)),
                 Operation::LoadChannelId(id) => Some(Variable::ChannelId(ChannelId::new(*id))),
@@ -375,6 +501,16 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                 Operation::ExtractAcceptChannel(field) => {
                     let ac = resolve_accept_channel(&variables, instr.inputs[0]);
                     Some(extract_field(ac, *field))
+                }
+
+                Operation::ExtractTxCompleteChannelId => {
+                    let tc = resolve_tx_complete(&variables, instr.inputs[0]);
+                    Some(Variable::ChannelId(tc.channel_id))
+                }
+
+                Operation::ExtractTxAbortChannelId => {
+                    let ta = resolve_tx_abort(&variables, instr.inputs[0]);
+                    Some(Variable::ChannelId(ta.channel_id))
                 }
 
                 Operation::CreateFundingTransaction => {
@@ -494,6 +630,471 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     Some(Variable::SentShutdown)
                 }
 
+                Operation::SendStfu => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let initiator = resolve_u8(&variables, instr.inputs[1]);
+                    self.stfu_sent.insert(channel_id);
+                    let msg = Stfu {
+                        channel_id,
+                        initiator,
+                    };
+                    let encoded = Message::Stfu(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendStfu: {} bytes (initiator={})",
+                        start.elapsed(),
+                        encoded.len(),
+                        initiator
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentStfu)
+                }
+
+                Operation::SendSpliceInit => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    self.splice_engaged.insert(channel_id);
+                    let amount = resolve_amount(&variables, instr.inputs[1]);
+                    self.splice_contributions
+                        .insert(channel_id, amount.cast_signed());
+                    let feerate = resolve_feerate(&variables, instr.inputs[2]);
+                    let locktime = resolve_block_height(&variables, instr.inputs[3]);
+                    let pubkey = resolve_pubkey(&variables, instr.inputs[4]);
+                    let msg = SpliceInit {
+                        channel_id,
+                        // Wrapping reinterpretation is intentional: amounts
+                        // >= 2^63 become negative splice-out contributions.
+                        funding_contribution_satoshis: amount.cast_signed(),
+                        funding_feerate_perkw: feerate,
+                        locktime,
+                        funding_pubkey: pubkey,
+                        tlvs: SpliceInitTlvs::default(),
+                    };
+                    let encoded = Message::SpliceInit(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendSpliceInit: {} bytes (amount={})",
+                        start.elapsed(),
+                        encoded.len(),
+                        amount
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentSpliceInit)
+                }
+
+                Operation::SendSpliceAck => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let amount = resolve_amount(&variables, instr.inputs[1]);
+                    let pubkey = resolve_pubkey(&variables, instr.inputs[2]);
+                    let msg = SpliceAck {
+                        channel_id,
+                        // Same intentional wrapping reinterpretation as
+                        // `splice_init`.
+                        funding_contribution_satoshis: amount.cast_signed(),
+                        funding_pubkey: pubkey,
+                        tlvs: SpliceAckTlvs::default(),
+                    };
+                    let encoded = Message::SpliceAck(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendSpliceAck: {} bytes (amount={})",
+                        start.elapsed(),
+                        encoded.len(),
+                        amount
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentSpliceAck)
+                }
+
+                Operation::SendSpliceLocked => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let txid_bytes = resolve_bytes(&variables, instr.inputs[1]);
+                    // Zero-padded copy: the param mutator may shrink the
+                    // input below 32 bytes, and a malformed txid is a
+                    // fuzzing outcome, not an invariant violation.
+                    let mut txid_arr = [0u8; 32];
+                    let n = txid_bytes.len().min(32);
+                    txid_arr[..n].copy_from_slice(&txid_bytes[..n]);
+                    let splice_txid = sha256::Hash::from_byte_array(txid_arr);
+                    let msg = SpliceLocked {
+                        channel_id,
+                        splice_txid,
+                    };
+                    let encoded = Message::SpliceLocked(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendSpliceLocked: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentSpliceLocked)
+                }
+
+                Operation::SendTxAddInput {
+                    include_shared_input_txid,
+                } => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    self.splice_engaged.insert(channel_id);
+                    let serial_id = u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let prevtx = resolve_bytes(&variables, instr.inputs[2]).to_vec();
+                    let prevtx_vout = resolve_u32(&variables, instr.inputs[3]);
+                    let sequence = resolve_u32(&variables, instr.inputs[4]);
+                    // Zero-padded copy: the param mutator may shrink the
+                    // input below 32 bytes, and a malformed txid is a
+                    // fuzzing outcome, not an invariant violation.
+                    let mut txid_arr = [0u8; 32];
+                    let txid_bytes = resolve_bytes(&variables, instr.inputs[5]);
+                    let n = txid_bytes.len().min(32);
+                    txid_arr[..n].copy_from_slice(&txid_bytes[..n]);
+                    let msg = TxAddInput {
+                        channel_id,
+                        serial_id,
+                        prevtx,
+                        prevtx_vout,
+                        sequence,
+                        tlvs: TxAddInputTlvs {
+                            shared_input_txid: (*include_shared_input_txid)
+                                .then(|| Txid::from_byte_array(txid_arr)),
+                        },
+                    };
+                    let encoded = Message::TxAddInput(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxAddInput: {} bytes (serial_id={}, shared_input_txid={})",
+                        start.elapsed(),
+                        encoded.len(),
+                        serial_id,
+                        include_shared_input_txid
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxAddInput)
+                }
+
+                Operation::SendTxAddOutput => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    self.splice_engaged.insert(channel_id);
+                    let serial_id = u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let sats = resolve_amount(&variables, instr.inputs[2]);
+                    let script = resolve_bytes(&variables, instr.inputs[3]).to_vec();
+                    let msg = TxAddOutput {
+                        channel_id,
+                        serial_id,
+                        sats,
+                        script,
+                    };
+                    let encoded = Message::TxAddOutput(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxAddOutput: {} bytes (serial_id={}, sats={})",
+                        start.elapsed(),
+                        encoded.len(),
+                        serial_id,
+                        sats
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxAddOutput)
+                }
+
+                Operation::SendTxComplete => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let msg = TxComplete { channel_id };
+                    let encoded = Message::TxComplete(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxComplete: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxComplete)
+                }
+
+                Operation::SendTxAbort => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    self.pending_abort_echoes.insert(channel_id, false);
+                    let data = resolve_bytes(&variables, instr.inputs[1]).to_vec();
+                    let msg = TxAbort { channel_id, data };
+                    let encoded = Message::TxAbort(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxAbort: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxAbort)
+                }
+
+                Operation::SendTxInitRbf => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let locktime = resolve_block_height(&variables, instr.inputs[1]);
+                    let feerate = resolve_feerate(&variables, instr.inputs[2]);
+                    let msg = TxInitRbf {
+                        channel_id,
+                        locktime,
+                        feerate,
+                        tlvs: TxInitRbfTlvs::default(),
+                    };
+                    let encoded = Message::TxInitRbf(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxInitRbf: {} bytes (locktime={}, feerate={})",
+                        start.elapsed(),
+                        encoded.len(),
+                        locktime,
+                        feerate
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxInitRbf)
+                }
+
+                Operation::SendTxAckRbf => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let msg = TxAckRbf {
+                        channel_id,
+                        tlvs: TxAckRbfTlvs::default(),
+                    };
+                    let encoded = Message::TxAckRbf(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxAckRbf: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxAckRbf)
+                }
+
+                Operation::SendTxSignatures => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let txid_bytes = resolve_bytes(&variables, instr.inputs[1]);
+                    // Zero-padded copy: the param mutator may shrink the
+                    // input below 32 bytes, and a malformed txid is a
+                    // fuzzing outcome, not an invariant violation.
+                    let mut txid_arr = [0u8; 32];
+                    let n = txid_bytes.len().min(32);
+                    txid_arr[..n].copy_from_slice(&txid_bytes[..n]);
+                    let witness = resolve_bytes(&variables, instr.inputs[2]).to_vec();
+                    let msg = TxSignatures {
+                        channel_id,
+                        txid: Txid::from_byte_array(txid_arr),
+                        witnesses: vec![witness],
+                        tlvs: TxSignaturesTlvs::default(),
+                    };
+                    let encoded = Message::TxSignatures(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendTxSignatures: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentTxSignatures)
+                }
+
+                Operation::SendFundingSigned => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let sig_bytes = resolve_bytes(&variables, instr.inputs[1]);
+                    // Fall back to an all-zero signature when the input is
+                    // not a parseable 64-byte compact signature; malformed
+                    // signatures are for the target to judge, not a panic.
+                    let signature = sig_bytes
+                        .first_chunk::<64>()
+                        .and_then(|chunk| Signature::from_compact(chunk).ok())
+                        .unwrap_or_else(|| {
+                            Signature::from_compact(&[0u8; 64])
+                                .expect("zero bytes parse as a signature")
+                        });
+                    let msg = FundingSigned {
+                        channel_id,
+                        signature,
+                    };
+                    let encoded = Message::FundingSigned(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendFundingSigned: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentFundingSigned)
+                }
+
+                Operation::SendUpdateAddHtlc => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let id = u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let amount_msat = resolve_amount(&variables, instr.inputs[2]);
+                    let hash_bytes = resolve_bytes(&variables, instr.inputs[3]);
+                    // Zero-padded copy: the param mutator may shrink the
+                    // input below 32 bytes, and a malformed hash is a
+                    // fuzzing outcome, not an invariant violation.
+                    let mut payment_hash = [0u8; 32];
+                    let n = hash_bytes.len().min(32);
+                    payment_hash[..n].copy_from_slice(&hash_bytes[..n]);
+                    let cltv_expiry = resolve_block_height(&variables, instr.inputs[4]);
+                    let onion_bytes = resolve_bytes(&variables, instr.inputs[5]);
+                    // The onion packet is a fixed 1366-byte field: pad or
+                    // truncate the (possibly mutated) input into it.
+                    let mut onion_routing_packet = [0u8; 1366];
+                    let n = onion_bytes.len().min(1366);
+                    onion_routing_packet[..n].copy_from_slice(&onion_bytes[..n]);
+                    let msg = UpdateAddHtlc {
+                        channel_id,
+                        id,
+                        amount_msat,
+                        payment_hash,
+                        cltv_expiry,
+                        onion_routing_packet,
+                        tlvs: UpdateAddHtlcTlvs::default(),
+                    };
+                    let encoded = Message::UpdateAddHtlc(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendUpdateAddHtlc: {} bytes (id={id}, amount_msat={amount_msat})",
+                        start.elapsed(),
+                        encoded.len(),
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentUpdateAddHtlc)
+                }
+
+                Operation::SendUpdateFailHtlc => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let id = u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let reason = resolve_bytes(&variables, instr.inputs[2]).to_vec();
+                    let msg = UpdateFailHtlc {
+                        channel_id,
+                        id,
+                        reason,
+                        tlvs: UpdateFailHtlcTlvs::default(),
+                    };
+                    let encoded = Message::UpdateFailHtlc(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendUpdateFailHtlc: {} bytes (id={id})",
+                        start.elapsed(),
+                        encoded.len(),
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentUpdateFailHtlc)
+                }
+
+                Operation::SendUpdateFulfillHtlc => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let id = u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let preimage_bytes = resolve_bytes(&variables, instr.inputs[2]);
+                    // Zero-padded copy: the param mutator may shrink the
+                    // input below 32 bytes, and a malformed preimage is a
+                    // fuzzing outcome, not an invariant violation.
+                    let mut payment_preimage = [0u8; 32];
+                    let n = preimage_bytes.len().min(32);
+                    payment_preimage[..n].copy_from_slice(&preimage_bytes[..n]);
+                    let msg = UpdateFulfillHtlc {
+                        channel_id,
+                        id,
+                        payment_preimage,
+                        tlvs: UpdateFulfillHtlcTlvs::default(),
+                    };
+                    let encoded = Message::UpdateFulfillHtlc(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendUpdateFulfillHtlc: {} bytes (id={id})",
+                        start.elapsed(),
+                        encoded.len(),
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentUpdateFulfillHtlc)
+                }
+
+                Operation::SendChannelReestablish => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let next_commitment_number =
+                        u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let next_revocation_number =
+                        u64::from(resolve_u32(&variables, instr.inputs[2]));
+                    let my_current_per_commitment_point =
+                        resolve_pubkey(&variables, instr.inputs[3]);
+                    let msg = ChannelReestablish {
+                        channel_id,
+                        next_commitment_number,
+                        next_revocation_number,
+                        your_last_per_commitment_secret: [0u8; 32],
+                        my_current_per_commitment_point,
+                        tlvs: ChannelReestablishTlvs::default(),
+                    };
+                    let encoded = Message::ChannelReestablish(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendChannelReestablish: {} bytes (next_commitment_number={next_commitment_number})",
+                        start.elapsed(),
+                        encoded.len(),
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentChannelReestablish)
+                }
+
+                Operation::SendUpdateFailMalformedHtlc => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let id = u64::from(resolve_u32(&variables, instr.inputs[1]));
+                    let onion_hash_bytes = resolve_bytes(&variables, instr.inputs[2]);
+                    // Zero-padded copy: same mutator-shrink rationale as the
+                    // other fixed-width fields.
+                    let mut sha256_of_onion = [0u8; 32];
+                    let n = onion_hash_bytes.len().min(32);
+                    sha256_of_onion[..n].copy_from_slice(&onion_hash_bytes[..n]);
+                    let failure_code = resolve_u16(&variables, instr.inputs[3]);
+                    let msg = UpdateFailMalformedHtlc {
+                        channel_id,
+                        id,
+                        sha256_of_onion: sha256::Hash::from_byte_array(sha256_of_onion),
+                        failure_code,
+                    };
+                    let encoded = Message::UpdateFailMalformedHtlc(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendUpdateFailMalformedHtlc: {} bytes (id={id}, failure_code={failure_code})",
+                        start.elapsed(),
+                        encoded.len(),
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentUpdateFailMalformedHtlc)
+                }
+
+                Operation::SendCommitmentSigned => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let sig_bytes = resolve_bytes(&variables, instr.inputs[1]);
+                    // Same zero-signature fallback as SendFundingSigned:
+                    // malformed signatures are for the target to judge.
+                    let signature = sig_bytes
+                        .first_chunk::<64>()
+                        .and_then(|chunk| Signature::from_compact(chunk).ok())
+                        .unwrap_or_else(|| {
+                            Signature::from_compact(&[0u8; 64])
+                                .expect("zero bytes parse as a signature")
+                        });
+                    let msg = CommitmentSigned {
+                        channel_id,
+                        signature,
+                        htlc_signatures: Vec::new(),
+                        tlvs: CommitmentSignedTlvs::default(),
+                    };
+                    let encoded = Message::CommitmentSigned(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendCommitmentSigned: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentCommitmentSigned)
+                }
+
+                Operation::SendRevokeAndAck => {
+                    let channel_id = resolve_channel_id(&variables, instr.inputs[0]);
+                    let secret_bytes = resolve_bytes(&variables, instr.inputs[1]);
+                    // Zero-padded copy: same mutator-shrink rationale as the
+                    // other fixed-width fields.
+                    let mut per_commitment_secret = [0u8; 32];
+                    let n = secret_bytes.len().min(32);
+                    per_commitment_secret[..n].copy_from_slice(&secret_bytes[..n]);
+                    let next_per_commitment_point = resolve_pubkey(&variables, instr.inputs[2]);
+                    let msg = RevokeAndAck {
+                        channel_id,
+                        per_commitment_secret,
+                        next_per_commitment_point,
+                    };
+                    let encoded = Message::RevokeAndAck(msg).encode();
+                    log::debug!(
+                        "[{:?}] SendRevokeAndAck: {} bytes",
+                        start.elapsed(),
+                        encoded.len()
+                    );
+                    self.conn.send_message(&encoded)?;
+                    Some(Variable::SentRevokeAndAck)
+                }
+
                 Operation::RecvAcceptChannel => {
                     consume_affine(
                         &mut variables,
@@ -501,7 +1102,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                         instr.operation.input_types()[0],
                     );
                     log::debug!("[{:?}] RecvAcceptChannel: waiting", start.elapsed());
-                    let ac: AcceptChannel = recv_bolt(&mut self.conn, RECV_IDLE_TIMEOUT)?;
+                    let ac: AcceptChannel = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
                     log::debug!("[{:?}] RecvAcceptChannel: received", start.elapsed());
                     AcceptChannelOracle.evaluate(&AcceptChannelContext {
                         accept_channel: &ac,
@@ -512,6 +1113,99 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                     Some(Variable::AcceptChannel(ac))
                 }
 
+                Operation::RecvSpliceAck => {
+                    consume_affine(
+                        &mut variables,
+                        instr.inputs[0],
+                        instr.operation.input_types()[0],
+                    );
+                    log::debug!("[{:?}] RecvSpliceAck: waiting", start.elapsed());
+                    let sa: SpliceAck = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
+                    log::debug!("[{:?}] RecvSpliceAck: received", start.elapsed());
+                    if self.splice_contributions.contains_key(&sa.channel_id) {
+                        self.splice_response_shapes
+                            .insert(sa.channel_id, SpliceResponseShape::Acked);
+                    }
+                    let drained = self.splice_contributions.remove(&sa.channel_id);
+                    SpliceAckOracle.evaluate(&SpliceAckContext {
+                        splice_ack: &sa,
+                        our_contribution_satoshis: drained,
+                        channel_state: self.channel_states.get(&sa.channel_id),
+                    })?;
+                    if let (Some(contribution_sat), Some(state)) =
+                        (drained, self.channel_states.get_mut(&sa.channel_id))
+                    {
+                        // Post-splice balance: the acknowledged contribution
+                        // (positive splice-in, negative splice-out) lands on
+                        // the holder's side, so sequential splices are judged
+                        // against the updated balance rather than a stale one.
+                        let party = match state.holder.side {
+                            Side::Opener => &mut state.commitment.opener,
+                            Side::Acceptor => &mut state.commitment.acceptor,
+                        };
+                        party.balance_msat = if contribution_sat >= 0 {
+                            party.balance_msat.saturating_add(
+                                u64::try_from(contribution_sat)
+                                    .expect("non-negative fits in u64")
+                                    .saturating_mul(1000),
+                            )
+                        } else {
+                            party.balance_msat.saturating_sub(
+                                u64::try_from(-contribution_sat)
+                                    .expect("negative i64 magnitude fits in u64")
+                                    .saturating_mul(1000),
+                            )
+                        };
+                    }
+                    Some(Variable::SpliceAck(sa))
+                }
+
+                Operation::RecvSpliceLocked => {
+                    consume_affine(
+                        &mut variables,
+                        instr.inputs[0],
+                        instr.operation.input_types()[0],
+                    );
+                    log::debug!("[{:?}] RecvSpliceLocked: waiting", start.elapsed());
+                    let sl: SpliceLocked = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
+                    log::debug!("[{:?}] RecvSpliceLocked: received", start.elapsed());
+                    Some(Variable::SpliceLocked(sl))
+                }
+
+                Operation::RecvTxAbort => {
+                    log::debug!("[{:?}] RecvTxAbort: waiting", start.elapsed());
+                    let ta: TxAbort = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
+                    log::debug!("[{:?}] RecvTxAbort: received", start.elapsed());
+                    self.pending_abort_echoes.remove(&ta.channel_id);
+                    Some(Variable::TxAbort(ta))
+                }
+
+                Operation::RecvTxComplete => {
+                    log::debug!("[{:?}] RecvTxComplete: waiting", start.elapsed());
+                    let tc: TxComplete = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
+                    log::debug!("[{:?}] RecvTxComplete: received", start.elapsed());
+                    Some(Variable::TxComplete(tc))
+                }
+
+                Operation::RecvRevokeAndAck => {
+                    consume_affine(
+                        &mut variables,
+                        instr.inputs[0],
+                        instr.operation.input_types()[0],
+                    );
+                    log::debug!("[{:?}] RecvRevokeAndAck: waiting", start.elapsed());
+                    let raa: RevokeAndAck = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
+                    log::debug!("[{:?}] RecvRevokeAndAck: received", start.elapsed());
+                    Some(Variable::RevokeAndAck(raa))
+                }
+
+                Operation::RecvCommitmentSigned => {
+                    log::debug!("[{:?}] RecvCommitmentSigned: waiting", start.elapsed());
+                    let cs: CommitmentSigned = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
+                    log::debug!("[{:?}] RecvCommitmentSigned: received", start.elapsed());
+                    Some(Variable::CommitmentSigned(cs))
+                }
+
                 Operation::RecvFundingSigned => {
                     consume_affine(
                         &mut variables,
@@ -519,7 +1213,7 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
                         instr.operation.input_types()[0],
                     );
                     log::debug!("[{:?}] RecvFundingSigned: waiting", start.elapsed());
-                    let fs: FundingSigned = recv_bolt(&mut self.conn, RECV_IDLE_TIMEOUT)?;
+                    let fs: FundingSigned = self.recv_tracked(RECV_IDLE_TIMEOUT)?;
                     log::debug!("[{:?}] RecvFundingSigned: received", start.elapsed());
                     FundingSignedOracle.evaluate(&FundingSignedContext {
                         funding_signed: &fs,
@@ -607,6 +1301,31 @@ impl<C: Connection, B: BitcoinRpc, R: TargetRpc> Executor<C, B, R> {
             variables.push(result);
         }
 
+        // tx_abort echo sweep: a completed program that kept receiving after
+        // its abort (the bool) proves the target had observable chances to
+        // echo and never did. Programs that end immediately after the abort
+        // or error out earlier are not judged — the echo window never got a
+        // fair chance.
+        if let Some(channel_id) = self
+            .pending_abort_echoes
+            .iter()
+            .find(|(_, had_chance)| **had_chance)
+            .map(|(channel_id, _)| *channel_id)
+        {
+            return Err(Violation::MissingTxAbortEcho(channel_id).into());
+        }
+
+        // splice response-shape sweep: contributions that survived to the
+        // end of the program never observed an answer — record them as
+        // silence and log the run's full shape summary. Silence is not a
+        // violation: only acceptance is unambiguous.
+        let silent: Vec<ChannelId> = self.splice_contributions.keys().copied().collect();
+        for channel_id in silent {
+            self.splice_response_shapes
+                .insert(channel_id, SpliceResponseShape::Silent);
+        }
+        log::debug!("splice response shapes: {:?}", self.splice_response_shapes);
+
         Ok(())
     }
 }
@@ -658,8 +1377,10 @@ define_resolver!(resolve_amount, Amount, u64);
 define_resolver!(resolve_feerate, FeeratePerKw, u32);
 define_resolver!(resolve_forwarding_fee, ForwardingFee, u32);
 define_resolver!(resolve_timestamp, Timestamp, u32);
+define_resolver!(resolve_block_height, BlockHeight, u32);
 define_resolver!(resolve_u16, U16, u16);
 define_resolver!(resolve_u8, U8, u8);
+define_resolver!(resolve_u32, U32, u32);
 define_resolver!(resolve_bytes, Bytes, &[u8]);
 define_resolver!(resolve_features, Features, &[u8]);
 define_resolver!(resolve_chain_hash, ChainHash, [u8; 32]);
@@ -674,6 +1395,8 @@ define_resolver!(
     &OpenChannel
 );
 define_resolver!(resolve_accept_channel, AcceptChannel, &AcceptChannel);
+define_resolver!(resolve_tx_complete, TxComplete, &TxComplete);
+define_resolver!(resolve_tx_abort, TxAbort, &TxAbort);
 define_resolver!(
     resolve_funding_transaction,
     FundingTransaction,

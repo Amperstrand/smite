@@ -9,7 +9,9 @@ use smite::bolt::{MAX_MESSAGE_SIZE, ShortChannelId};
 use super::*;
 use generators::{
     AnyGenerator, ChannelAnnouncementGenerator, ChannelReadyGenerator, ChannelUpdateGenerator,
-    FundingCreatedGenerator, FundingFlowGenerator, NodeAnnouncementGenerator, OpenChannelGenerator,
+    CommitmentFlowGenerator, FundingCreatedGenerator, FundingFlowGenerator,
+    NodeAnnouncementGenerator, OpenChannelGenerator, SpliceFlowGenerator,
+    SpliceOnLiveChannelGenerator, TxAbortEchoGenerator, TxNegotiationGenerator,
 };
 use minimizers::{CommonSubexpressionEliminator, DeadCodeEliminator, Minimizer};
 use mutators::{
@@ -32,6 +34,53 @@ fn assert_well_formed(program: &Program) {
     let mut builder = ProgramBuilder::new();
     for instr in &program.instructions {
         builder.append(instr.operation.clone(), &instr.inputs);
+    }
+}
+
+/// Mutator soak: the custom mutators must preserve program validity by
+/// construction — every mutated program still type-checks and still
+/// postcard-roundtrips. This is the harness that catches mutator/enum
+/// drift classes (e.g. an op becoming param-mutable without a mutate arm,
+/// or a generator emitting an executor-panicking shape) before a campaign
+/// pays for them.
+#[test]
+fn mutator_soak_preserves_program_validity() {
+    let op_param = OperationParamMutator;
+    let input_swap = InputSwapMutator;
+    let instr_delete = InstructionDeleteMutator;
+    let instr_reorder = InstructionReorderMutator;
+
+    for seed in 0..25u32 {
+        let mut rng = SmallRng::seed_from_u64(u64::from(seed));
+        let generator = AnyGenerator::ALL[(seed as usize) % AnyGenerator::ALL.len()];
+        let mut builder = ProgramBuilder::new();
+        generator.generate(&mut builder, &mut rng);
+        let mut program = builder.build();
+
+        for _ in 0..200 {
+            match rng.random_range(0..5) {
+                0 => {
+                    op_param.mutate(&mut program, &mut rng);
+                }
+                1 => {
+                    input_swap.mutate(&mut program, &mut rng);
+                }
+                2 => {
+                    instr_delete.mutate(&mut program, &mut rng);
+                }
+                3 => {
+                    instr_reorder.mutate(&mut program, &mut rng);
+                }
+                _ => {
+                    let generator = AnyGenerator::ALL[rng.random_range(0..AnyGenerator::ALL.len())];
+                    GeneratorInsertionMutator::new(generator).mutate(&mut program, &mut rng);
+                }
+            }
+            assert_well_formed(&program);
+            let bytes = postcard::to_allocvec(&program).expect("mutated program serializes");
+            let decoded: Program = postcard::from_bytes(&bytes).expect("mutated program decodes");
+            assert_eq!(decoded, program, "postcard roundtrip changed the program");
+        }
     }
 }
 
@@ -604,6 +653,197 @@ fn display_send_shutdown_program() {
 }
 
 #[test]
+fn display_tx_family_program() {
+    let instructions = vec![
+        Instruction {
+            operation: Operation::LoadChannelId([0xcd; 32]),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadU32(42),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadBytes(vec![0xde, 0xad]),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadU32(0xFFFF_FFFD),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadAmount(1000),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadBytes(vec![0xcc; 32]),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::SendTxAddInput {
+                include_shared_input_txid: false,
+            },
+            inputs: vec![0, 1, 2, 3, 3, 5],
+        },
+        Instruction {
+            operation: Operation::SendTxAddOutput,
+            inputs: vec![0, 1, 4, 2],
+        },
+        Instruction {
+            operation: Operation::SendTxComplete,
+            inputs: vec![0],
+        },
+        Instruction {
+            operation: Operation::SendTxAbort,
+            inputs: vec![0, 2],
+        },
+    ];
+
+    let program = Program { instructions };
+    assert_well_formed(&program);
+    let text = program.to_string();
+    let lines: Vec<&str> = text.lines().collect();
+
+    let cid_hex = "cd".repeat(32);
+    let txid_hex = "cc".repeat(32);
+    let expected: Vec<String> = vec![
+        format!("v0 = LoadChannelId(0x{cid_hex})"),
+        "v1 = LoadU32(42)".into(),
+        "v2 = LoadBytes(0xdead)".into(),
+        "v3 = LoadU32(4294967293)".into(),
+        "v4 = LoadAmount(1000)".into(),
+        format!("v5 = LoadBytes(0x{txid_hex})"),
+        "v6 = SendTxAddInput{include_shared_input_txid=false}(v0, v1, v2, v3, v3, v5)".into(),
+        "v7 = SendTxAddOutput(v0, v1, v4, v2)".into(),
+        "v8 = SendTxComplete(v0)".into(),
+        "v9 = SendTxAbort(v0, v2)".into(),
+    ];
+    assert_eq!(lines.len(), expected.len(), "line count mismatch");
+    for (i, (got, want)) in lines.iter().zip(expected.iter()).enumerate() {
+        assert_eq!(got, want, "line {i} mismatch");
+    }
+}
+
+#[test]
+fn display_tx_rbf_and_signatures_program() {
+    let instructions = vec![
+        Instruction {
+            operation: Operation::LoadChannelId([0xcd; 32]),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadBlockHeight(18),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadFeeratePerKw(253),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::SendTxInitRbf,
+            inputs: vec![0, 1, 2],
+        },
+        Instruction {
+            operation: Operation::SendTxAckRbf,
+            inputs: vec![0],
+        },
+        Instruction {
+            operation: Operation::LoadBytes(vec![0xab; 32]),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::LoadBytes(vec![0x00; 64]),
+            inputs: vec![],
+        },
+        Instruction {
+            operation: Operation::SendTxSignatures,
+            inputs: vec![0, 5, 6],
+        },
+        Instruction {
+            operation: Operation::SendFundingSigned,
+            inputs: vec![0, 6],
+        },
+        Instruction {
+            operation: Operation::RecvTxAbort,
+            inputs: vec![],
+        },
+    ];
+
+    let program = Program { instructions };
+    assert_well_formed(&program);
+    let text = program.to_string();
+    let lines: Vec<&str> = text.lines().collect();
+
+    let cid_hex = "cd".repeat(32);
+    let txid_hex = "ab".repeat(32);
+    let zeros_hex = "00".repeat(64);
+    let expected: Vec<String> = vec![
+        format!("v0 = LoadChannelId(0x{cid_hex})"),
+        "v1 = LoadBlockHeight(18)".into(),
+        "v2 = LoadFeeratePerKw(253)".into(),
+        "v3 = SendTxInitRbf(v0, v1, v2)".into(),
+        "v4 = SendTxAckRbf(v0)".into(),
+        format!("v5 = LoadBytes(0x{txid_hex})"),
+        format!("v6 = LoadBytes(0x{zeros_hex})"),
+        "v7 = SendTxSignatures(v0, v5, v6)".into(),
+        "v8 = SendFundingSigned(v0, v6)".into(),
+        "v9 = RecvTxAbort()".into(),
+    ];
+    assert_eq!(lines.len(), expected.len(), "line count mismatch");
+    for (i, (got, want)) in lines.iter().zip(expected.iter()).enumerate() {
+        assert_eq!(got, want, "line {i} mismatch");
+    }
+}
+
+// Postcard encodes `Operation` variants by declaration index. The indices
+// of every variant below PRE_SESSION_VARIANT_COUNT are frozen: AFL corpora
+// and crash files persist across rebuilds, and inserting a variant mid-enum
+// silently reinterprets them. New variants must be appended at the enum
+// tail; this test fails if the frozen prefix shifts.
+const PRE_SESSION_VARIANT_COUNT: u8 = 41;
+
+#[test]
+fn operation_variant_discriminants_are_frozen() {
+    let index = |op: &Operation| -> u8 {
+        let bytes = postcard::to_allocvec(op).expect("operation encodes");
+        bytes[0]
+    };
+    let single_byte = |op: &Operation| -> u8 {
+        let bytes = postcard::to_allocvec(op).expect("unit variants encode to one byte");
+        assert_eq!(bytes.len(), 1, "expected a fieldless variant: {op:?}");
+        bytes[0]
+    };
+
+    // Sentinels across the frozen prefix.
+    assert_eq!(single_byte(&Operation::LoadTargetPubkeyFromContext), 14);
+    assert_eq!(
+        single_byte(&Operation::LookupShortChannelId),
+        PRE_SESSION_VARIANT_COUNT - 1
+    );
+
+    // Everything appended after the freeze encodes above the frozen range.
+    for op in [
+        Operation::LoadU32(0),
+        Operation::LoadMessage(Vec::new()),
+        Operation::ExtractTxCompleteChannelId,
+        Operation::SendTxAddInput {
+            include_shared_input_txid: false,
+        },
+        Operation::RecvTxAbort,
+        Operation::SendUpdateAddHtlc,
+        Operation::SendUpdateFailHtlc,
+        Operation::SendUpdateFulfillHtlc,
+        Operation::SendUpdateFailMalformedHtlc,
+        Operation::SendChannelReestablish,
+    ] {
+        assert!(
+            index(&op) >= PRE_SESSION_VARIANT_COUNT,
+            "{op:?} must be appended after the frozen prefix"
+        );
+    }
+}
+
+#[test]
 fn postcard_roundtrip() {
     let program = Program {
         instructions: vec![
@@ -915,7 +1155,12 @@ fn any_generator_all_is_complete() {
             | AnyGenerator::OpenChannel(_)
             | AnyGenerator::FundingCreated(_)
             | AnyGenerator::ChannelReady(_)
-            | AnyGenerator::FundingFlow(_) => 7,
+            | AnyGenerator::CommitmentFlow(_)
+            | AnyGenerator::FundingFlow(_)
+            | AnyGenerator::SpliceFlow(_)
+            | AnyGenerator::SpliceOnLiveChannel(_)
+            | AnyGenerator::TxNegotiation(_)
+            | AnyGenerator::TxAbortEcho(_) => 12,
         }
     };
     assert_eq!(AnyGenerator::ALL.len(), variant_count(AnyGenerator::ALL[0]));
@@ -1084,6 +1329,145 @@ fn generate_open_channel_program(seed: u64) -> Program {
     let mut builder = ProgramBuilder::new();
     OpenChannelGenerator.generate(&mut builder, &mut rng);
     builder.build()
+}
+
+fn generate_splice_flow_program(seed: u64) -> Program {
+    let mut rng = SmallRng::seed_from_u64(seed);
+    let mut builder = ProgramBuilder::new();
+    SpliceFlowGenerator.generate(&mut builder, &mut rng);
+    builder.build()
+}
+
+fn generate_tx_negotiation_program(seed: u64) -> Program {
+    let mut rng = SmallRng::seed_from_u64(seed);
+    let mut builder = ProgramBuilder::new();
+    TxNegotiationGenerator.generate(&mut builder, &mut rng);
+    builder.build()
+}
+
+fn generate_splice_on_live_channel_program(seed: u64) -> Program {
+    let mut rng = SmallRng::seed_from_u64(seed);
+    let mut builder = ProgramBuilder::new();
+    SpliceOnLiveChannelGenerator.generate(&mut builder, &mut rng);
+    builder.build()
+}
+
+#[test]
+fn generated_splice_on_live_channel_program_is_type_correct() {
+    for seed in 0..25 {
+        let program = generate_splice_on_live_channel_program(seed);
+        assert_well_formed(&program);
+    }
+}
+
+#[test]
+fn generated_splice_on_live_channel_program_structure() {
+    let program = generate_splice_on_live_channel_program(0);
+    let ops: Vec<&Operation> = program.instructions.iter().map(|i| &i.operation).collect();
+    let has = |name: &str| ops.iter().any(|op| format!("{op}").contains(name));
+    for name in [
+        "SendStfu",
+        "SendSpliceInit",
+        "RecvSpliceAck",
+        "SendTxAddInput",
+        "SendTxComplete",
+        "RecvTxComplete",
+        "SendTxSignatures",
+    ] {
+        assert!(
+            has(name),
+            "splice-on-live-channel flow missing {name}: {ops:?}"
+        );
+    }
+    assert!(
+        matches!(ops.last(), Some(Operation::SendTxSignatures)),
+        "flow must end with signing: {ops:?}"
+    );
+}
+
+fn generate_commitment_flow_program(seed: u64) -> Program {
+    let mut rng = SmallRng::seed_from_u64(seed);
+    let mut builder = ProgramBuilder::new();
+    CommitmentFlowGenerator.generate(&mut builder, &mut rng);
+    builder.build()
+}
+
+#[test]
+fn generated_commitment_flow_program_is_type_correct() {
+    for seed in 0..25 {
+        let program = generate_commitment_flow_program(seed);
+        assert_well_formed(&program);
+    }
+}
+
+#[test]
+fn generated_commitment_flow_program_structure() {
+    let program = generate_commitment_flow_program(0);
+    let ops: Vec<&Operation> = program.instructions.iter().map(|i| &i.operation).collect();
+    let has = |name: &str| ops.iter().any(|op| format!("{op}").contains(name));
+    for name in ["SendUpdateAddHtlc", "SendCommitmentSigned"] {
+        assert!(has(name), "commitment flow missing {name}: {ops:?}");
+    }
+}
+
+fn generate_tx_abort_echo_program(seed: u64) -> Program {
+    let mut rng = SmallRng::seed_from_u64(seed);
+    let mut builder = ProgramBuilder::new();
+    TxAbortEchoGenerator.generate(&mut builder, &mut rng);
+    builder.build()
+}
+
+// If SpliceFlowGenerator completes without panicking, every instruction has
+// correct input types (enforced by ProgramBuilder::append).
+#[test]
+fn generated_splice_flow_program_is_type_correct() {
+    for seed in 0..100 {
+        let program = generate_splice_flow_program(seed);
+        assert_well_formed(&program);
+    }
+}
+
+#[test]
+fn generated_tx_negotiation_program_is_type_correct() {
+    for seed in 0..100 {
+        let program = generate_tx_negotiation_program(seed);
+        assert_well_formed(&program);
+    }
+}
+
+#[test]
+fn generated_tx_abort_echo_program_is_type_correct() {
+    for seed in 0..100 {
+        let program = generate_tx_abort_echo_program(seed);
+        assert_well_formed(&program);
+    }
+}
+
+#[test]
+fn generated_splice_flow_program_structure() {
+    let program = generate_splice_flow_program(0);
+    let ops: Vec<&Operation> = program.instructions.iter().map(|i| &i.operation).collect();
+    assert!(matches!(ops[0], Operation::LoadChannelId(_)));
+    assert!(
+        matches!(ops.last(), Some(Operation::SendSpliceLocked)),
+        "splice flow must end with SendSpliceLocked: {ops:?}"
+    );
+    let recvs = ops
+        .iter()
+        .filter(|op| matches!(op, Operation::RecvSpliceAck | Operation::RecvSpliceLocked))
+        .count();
+    assert_eq!(recvs, 2, "splice flow must receive ack and locked: {ops:?}");
+}
+
+#[test]
+fn generated_tx_negotiation_program_structure() {
+    let program = generate_tx_negotiation_program(0);
+    let has =
+        |pred: &dyn Fn(&Operation) -> bool| program.instructions.iter().any(|i| pred(&i.operation));
+    assert!(has(&|op| matches!(op, Operation::SendTxAddInput { .. })));
+    assert!(has(&|op| matches!(op, Operation::SendTxAddOutput)));
+    assert!(has(&|op| matches!(op, Operation::SendTxComplete)));
+    assert!(has(&|op| matches!(op, Operation::RecvTxComplete)));
 }
 
 // If OpenChannelGenerator completes without panicking, every instruction has

@@ -214,6 +214,46 @@ pub enum Operation {
     ///   0: `channel_id`   (`ChannelId`)
     ///   1: `scriptpubkey` (`Bytes`)
     SendShutdown,
+    /// Build and send an `stfu` message (BOLT 2, type 2).
+    /// Produces a `SentStfu` variable.
+    ///
+    /// Inputs (2):
+    ///   0: `channel_id`  (`ChannelId`)
+    ///   1: `initiator`   (`U8`) — 1 when initiating, 0 when replying
+    SendStfu,
+    /// Build and send a `splice_init` message (BOLT 2, type 80).
+    /// Produces a `SentSpliceInit` variable.
+    ///
+    /// Inputs (5):
+    ///   0: `channel_id`                    (`ChannelId`)
+    ///   1: `funding_contribution_satoshis` (`Amount`, interpreted as i64)
+    ///   2: `funding_feerate_perkw`         (`FeeratePerKw`)
+    ///   3: `locktime`                      (`BlockHeight`)
+    ///   4: `funding_pubkey`                (`Point`)
+    SendSpliceInit,
+    /// Build and send a `splice_ack` message (BOLT 2, type 81).
+    /// Produces a `SentSpliceAck` variable.
+    ///
+    /// Inputs (3):
+    ///   0: `channel_id`                    (`ChannelId`)
+    ///   1: `funding_contribution_satoshis` (`Amount`, interpreted as i64)
+    ///   2: `funding_pubkey`                (`Point`)
+    SendSpliceAck,
+    /// Build and send a `splice_locked` message (BOLT 2, type 77).
+    /// Produces a `SentSpliceLocked` variable.
+    ///
+    /// Inputs (2):
+    ///   0: `channel_id`  (`ChannelId`)
+    ///   1: `splice_txid` (`Bytes`, 32 bytes)
+    SendSpliceLocked,
+    /// Receive and parse a `splice_ack` response after sending `splice_init`.
+    /// Produces a `SpliceAck` variable.
+    /// Input: `SentSpliceInit` (affine).
+    RecvSpliceAck,
+    /// Receive and parse a `splice_locked` message after the ack exchange.
+    /// Produces a `SpliceLocked` variable.
+    /// Input: `SentSpliceAck` (affine).
+    RecvSpliceLocked,
     /// Receive and parse an `accept_channel` response.
     /// Produces an `AcceptChannel` compound variable.
     RecvAcceptChannel,
@@ -260,6 +300,209 @@ pub enum Operation {
     ///
     /// Input: `FundingTransaction`.
     LookupShortChannelId,
+
+    // -- Variants appended after the initial corpus freeze --
+    // Operation serializes as postcard variant indices, so new variants
+    // MUST be appended here (never inserted mid-enum) to keep existing
+    // AFL corpora and crash files decodable.
+    /// Load a u32 protocol parameter (e.g., `prevtx_vout`, `sequence`,
+    /// `serial_id`).
+    LoadU32(u32),
+    /// Load an encoded BOLT message (with type prefix), ready for
+    /// [`Operation::SendMessage`].
+    LoadMessage(Vec<u8>),
+    /// Extract the `channel_id` from a received `tx_complete`.
+    /// Input: `TxComplete`.
+    ExtractTxCompleteChannelId,
+    /// Extract the `channel_id` from a received `tx_abort`.
+    /// Input: `TxAbort`.
+    ExtractTxAbortChannelId,
+    /// Build and send a `tx_add_input` message (BOLT 2, type 66).
+    /// Produces a `SentTxAddInput` variable.
+    ///
+    /// The `shared_input_txid` TLV marks the current channel input in a
+    /// splice. Since `include_shared_input_txid` controls presence, the
+    /// valid shared-input shape is `true` with an empty `prevtx` (BOLT 2:
+    /// MUST NOT include `prevtx` for that shared input); `false` omits the
+    /// TLV and ignores input 5.
+    ///
+    /// Inputs (6, matching wire order):
+    ///   0: `channel_id`          (`ChannelId`)
+    ///   1: `serial_id`           (`U32`, widened to u64)
+    ///   2: `prevtx`              (`Bytes`, consensus-encoded previous
+    ///                             transaction; empty for a shared input)
+    ///   3: `prevtx_vout`         (`U32`)
+    ///   4: `sequence`            (`U32`)
+    ///   5: `shared_input_txid`   (`Bytes`, 32 bytes; shorter inputs are
+    ///                             zero-padded)
+    SendTxAddInput {
+        /// Whether to include the `shared_input_txid` TLV from input 5.
+        /// If `false`, the TLV is omitted and input 5 is ignored.
+        include_shared_input_txid: bool,
+    },
+    /// Build and send a `tx_add_output` message (BOLT 2, type 67).
+    /// Produces a `SentTxAddOutput` variable.
+    ///
+    /// Inputs (4, matching wire order):
+    ///   0: `channel_id` (`ChannelId`)
+    ///   1: `serial_id`  (`U32`, widened to u64)
+    ///   2: `sats`       (`Amount`)
+    ///   3: `script`     (`Bytes`, scriptPubKey)
+    SendTxAddOutput,
+    /// Build and send a `tx_complete` message (BOLT 2, type 70).
+    /// Produces a `SentTxComplete` variable.
+    ///
+    /// Inputs (1):
+    ///   0: `channel_id` (`ChannelId`)
+    SendTxComplete,
+    /// Build and send a `tx_abort` message (BOLT 2, type 74).
+    /// Produces a `SentTxAbort` variable.
+    ///
+    /// Inputs (2):
+    ///   0: `channel_id` (`ChannelId`)
+    ///   1: `data`       (`Bytes`, optional abort reason)
+    SendTxAbort,
+    /// Build and send a `tx_init_rbf` message (BOLT 2, type 72).
+    /// Produces a `SentTxInitRbf` variable.
+    ///
+    /// The TLVs are omitted (default TLVs).
+    ///
+    /// Inputs (3):
+    ///   0: `channel_id` (`ChannelId`)
+    ///   1: `locktime`   (`BlockHeight`)
+    ///   2: `feerate`    (`FeeratePerKw`)
+    SendTxInitRbf,
+    /// Build and send a `tx_ack_rbf` message (BOLT 2, type 73).
+    /// Produces a `SentTxAckRbf` variable.
+    ///
+    /// The TLVs are omitted (default TLVs).
+    ///
+    /// Inputs (1):
+    ///   0: `channel_id` (`ChannelId`)
+    SendTxAckRbf,
+    /// Build and send a `tx_signatures` message (BOLT 2, type 71).
+    /// Produces a `SentTxSignatures` variable.
+    ///
+    /// Sends exactly one witness entry (the IR has no variadic inputs);
+    /// the `shared_input_signature` TLV is omitted.
+    ///
+    /// Inputs (3):
+    ///   0: `channel_id` (`ChannelId`)
+    ///   1: `txid`       (`Bytes`, 32 bytes; shorter inputs are zero-padded)
+    ///   2: `witness`    (`Bytes`, one pre-encoded witness entry)
+    SendTxSignatures,
+    /// Build and send a `funding_signed` message (BOLT 2, type 35).
+    /// Produces a `SentFundingSigned` variable.
+    ///
+    /// Inputs (2):
+    ///   0: `channel_id` (`ChannelId`)
+    ///   1: `signature`  (`Bytes`, 64-byte compact; other lengths fall back
+    ///      to an all-zero signature)
+    SendFundingSigned,
+    /// Receive and parse a `tx_abort` message from the target.
+    /// Produces a `TxAbort` variable.
+    ///
+    /// Ungated (no variable inputs): the target may send `tx_abort` both as
+    /// the echo of ours (BOLT 2: upon `tx_abort`, MUST echo back) and as the
+    /// failure response to an invalid negotiation message, so this receive
+    /// may follow any send.
+    RecvTxAbort,
+    /// Receive and parse a `tx_complete` message from the target.
+    /// Produces a `TxComplete` variable.
+    ///
+    /// Ungated (no variable inputs): the negotiation concludes only once
+    /// both sides have sent `tx_complete` in succession, and either side
+    /// may send theirs first.
+    RecvTxComplete,
+    /// Build and send an `update_add_htlc` message (BOLT 2, type 128).
+    /// Produces a `SentUpdateAddHtlc` variable.
+    ///
+    /// The `blinded_path` TLV is omitted (default TLVs).
+    ///
+    /// Inputs (6, matching wire order):
+    ///   0: `channel_id`            (`ChannelId`)
+    ///   1: `id`                    (`U32`, widened to u64)
+    ///   2: `amount_msat`           (`Amount`)
+    ///   3: `payment_hash`          (`Bytes`, 32 bytes; shorter inputs are
+    ///                               zero-padded)
+    ///   4: `cltv_expiry`           (`BlockHeight`)
+    ///   5: `onion_routing_packet`  (`Bytes`, 1366 bytes; shorter inputs
+    ///                               are zero-padded, longer truncated)
+    SendUpdateAddHtlc,
+    /// Build and send a `commitment_signed` message (BOLT 2, type 132).
+    /// Produces a `SentCommitmentSigned` variable.
+    ///
+    /// Sends no HTLC signatures (the IR has no variadic inputs); the
+    /// `funding_txid` TLV is omitted.
+    ///
+    /// Inputs (2):
+    ///   0: `channel_id`  (`ChannelId`)
+    ///   1: `signature`   (`Bytes`, 64-byte compact; other lengths fall
+    ///                     back to an all-zero signature)
+    SendCommitmentSigned,
+    /// Build and send a `revoke_and_ack` message (BOLT 2, type 133).
+    /// Produces a `SentRevokeAndAck` variable.
+    ///
+    /// Inputs (3):
+    ///   0: `channel_id`               (`ChannelId`)
+    ///   1: `per_commitment_secret`    (`Bytes`, 32 bytes; shorter inputs
+    ///                                  are zero-padded)
+    ///   2: `next_per_commitment_point` (`Point`)
+    SendRevokeAndAck,
+    /// Receive and parse the target's `revoke_and_ack` for our
+    /// `commitment_signed`. Produces a `RevokeAndAck` variable.
+    /// Input: `SentCommitmentSigned` (affine).
+    RecvRevokeAndAck,
+    /// Receive and parse a `commitment_signed` message from the target.
+    /// Produces a `CommitmentSigned` variable.
+    ///
+    /// Ungated (no variable inputs): the target may sign whenever it has
+    /// pending changes, including ones it initiated.
+    RecvCommitmentSigned,
+    /// Build and send an `update_fail_htlc` message (BOLT 2, type 131).
+    /// Produces a `SentUpdateFailHtlc` variable.
+    ///
+    /// The `attribution_data` TLV is omitted (default TLVs).
+    ///
+    /// Inputs (3):
+    ///   0: `channel_id` (`ChannelId`)
+    ///   1: `id`         (`U32`, widened to u64)
+    ///   2: `reason`     (`Bytes`, encrypted failure reason)
+    SendUpdateFailHtlc,
+    /// Build and send an `update_fulfill_htlc` message (BOLT 2, type 130).
+    /// Produces a `SentUpdateFulfillHtlc` variable.
+    ///
+    /// The `attribution_data` TLV is omitted (default TLVs).
+    ///
+    /// Inputs (3):
+    ///   0: `channel_id`       (`ChannelId`)
+    ///   1: `id`               (`U32`, widened to u64)
+    ///   2: `payment_preimage` (`Bytes`, 32 bytes; shorter inputs are
+    ///                          zero-padded)
+    SendUpdateFulfillHtlc,
+    /// Build and send a `channel_reestablish` message (BOLT 2, type 136).
+    /// Produces a `SentChannelReestablish` variable.
+    ///
+    /// The `your_last_per_commitment_secret` is all zeroes and the TLVs
+    /// are omitted (defaults), matching a fresh reconnection with no
+    /// history to resume.
+    ///
+    /// Inputs (4):
+    ///   0: `channel_id`                 (`ChannelId`)
+    ///   1: `next_commitment_number`     (`U32`, widened to u64)
+    ///   2: `next_revocation_number`     (`U32`, widened to u64)
+    ///   3: `my_current_per_commitment_point` (`Point`)
+    SendChannelReestablish,
+    /// Build and send an `update_fail_malformed_htlc` message (BOLT 2,
+    /// type 135). Produces a `SentUpdateFailMalformedHtlc` variable.
+    ///
+    /// Inputs (4):
+    ///   0: `channel_id`      (`ChannelId`)
+    ///   1: `id`              (`U32`, widened to u64)
+    ///   2: `sha256_of_onion` (`Bytes`, 32 bytes; shorter inputs are
+    ///                         zero-padded)
+    ///   3: `failure_code`    (`U16`)
+    SendUpdateFailMalformedHtlc,
 }
 
 /// A BOLT 2 compliant `upfront_shutdown_script` template.
@@ -524,7 +767,9 @@ impl fmt::Display for Operation {
             Self::LoadForwardingFee(v) => write!(f, "LoadForwardingFee({v})"),
             Self::LoadU16(v) => write!(f, "LoadU16({v})"),
             Self::LoadU8(v) => write!(f, "LoadU8({v})"),
+            Self::LoadU32(v) => write!(f, "LoadU32({v})"),
             Self::LoadBytes(b) => write!(f, "LoadBytes({})", format_hex(b)),
+            Self::LoadMessage(b) => write!(f, "LoadMessage({})", format_hex(b)),
             Self::LoadFeatures(b) => write!(f, "LoadFeatures({})", format_hex(b)),
             Self::LoadPrivateKey(b) => write!(f, "LoadPrivateKey({})", format_hex(b)),
             Self::LoadChannelId(b) => write!(f, "LoadChannelId({})", format_hex(b)),
@@ -535,6 +780,8 @@ impl fmt::Display for Operation {
             // Operations with inputs: parens added by Program::Display.
             Self::DerivePoint => write!(f, "DerivePoint"),
             Self::ExtractAcceptChannel(field) => write!(f, "Extract{field}"),
+            Self::ExtractTxCompleteChannelId => write!(f, "ExtractTxCompleteChannelId"),
+            Self::ExtractTxAbortChannelId => write!(f, "ExtractTxAbortChannelId"),
             Self::CreateFundingTransaction => write!(f, "CreateFundingTransaction"),
             Self::BuildOpenChannel => write!(f, "BuildOpenChannel"),
             Self::BuildChannelAnnouncement => write!(f, "BuildChannelAnnouncement"),
@@ -552,7 +799,37 @@ impl fmt::Display for Operation {
             Self::SendChannelReady { include_alias } => {
                 write!(f, "SendChannelReady{{include_alias={include_alias}}}")
             }
+            Self::SendTxAddInput {
+                include_shared_input_txid,
+            } => write!(
+                f,
+                "SendTxAddInput{{include_shared_input_txid={include_shared_input_txid}}}"
+            ),
             Self::SendShutdown => write!(f, "SendShutdown"),
+            Self::SendStfu => write!(f, "SendStfu"),
+            Self::SendSpliceInit => write!(f, "SendSpliceInit"),
+            Self::SendSpliceAck => write!(f, "SendSpliceAck"),
+            Self::SendSpliceLocked => write!(f, "SendSpliceLocked"),
+            Self::SendTxAddOutput => write!(f, "SendTxAddOutput"),
+            Self::SendTxComplete => write!(f, "SendTxComplete"),
+            Self::SendTxAbort => write!(f, "SendTxAbort"),
+            Self::SendTxInitRbf => write!(f, "SendTxInitRbf"),
+            Self::SendTxAckRbf => write!(f, "SendTxAckRbf"),
+            Self::SendTxSignatures => write!(f, "SendTxSignatures"),
+            Self::SendFundingSigned => write!(f, "SendFundingSigned"),
+            Self::RecvSpliceAck => write!(f, "RecvSpliceAck"),
+            Self::RecvSpliceLocked => write!(f, "RecvSpliceLocked"),
+            Self::RecvTxAbort => write!(f, "RecvTxAbort()"),
+            Self::RecvTxComplete => write!(f, "RecvTxComplete()"),
+            Self::SendUpdateAddHtlc => write!(f, "SendUpdateAddHtlc"),
+            Self::SendCommitmentSigned => write!(f, "SendCommitmentSigned"),
+            Self::SendRevokeAndAck => write!(f, "SendRevokeAndAck"),
+            Self::RecvRevokeAndAck => write!(f, "RecvRevokeAndAck"),
+            Self::RecvCommitmentSigned => write!(f, "RecvCommitmentSigned()"),
+            Self::SendUpdateFailHtlc => write!(f, "SendUpdateFailHtlc"),
+            Self::SendUpdateFulfillHtlc => write!(f, "SendUpdateFulfillHtlc"),
+            Self::SendChannelReestablish => write!(f, "SendChannelReestablish"),
+            Self::SendUpdateFailMalformedHtlc => write!(f, "SendUpdateFailMalformedHtlc"),
             Self::RecvAcceptChannel => write!(f, "RecvAcceptChannel"),
             Self::RecvFundingSigned => write!(f, "RecvFundingSigned"),
             Self::RecvChannelReady => write!(f, "RecvChannelReady()"),
@@ -579,16 +856,21 @@ impl Operation {
             Self::LoadForwardingFee(_) => Some(VariableType::ForwardingFee),
             Self::LoadU16(_) => Some(VariableType::U16),
             Self::LoadU8(_) => Some(VariableType::U8),
+            Self::LoadU32(_) => Some(VariableType::U32),
             Self::LoadBytes(_) | Self::LoadShutdownScript(_) => Some(VariableType::Bytes),
             Self::LoadFeatures(_) | Self::LoadChannelType(_) => Some(VariableType::Features),
             Self::LoadPrivateKey(_) => Some(VariableType::PrivateKey),
-            Self::LoadChannelId(_) | Self::RecvFundingSigned => Some(VariableType::ChannelId),
+            Self::LoadChannelId(_)
+            | Self::RecvFundingSigned
+            | Self::ExtractTxCompleteChannelId
+            | Self::ExtractTxAbortChannelId => Some(VariableType::ChannelId),
             Self::LoadTargetPubkeyFromContext | Self::DerivePoint => Some(VariableType::Point),
             Self::LoadChainHashFromContext => Some(VariableType::ChainHash),
             Self::ExtractAcceptChannel(field) => Some(field.output_type()),
             Self::CreateFundingTransaction => Some(VariableType::FundingTransaction),
             Self::BuildOpenChannel => Some(VariableType::OpenChannelMessage),
-            Self::BuildChannelAnnouncement
+            Self::LoadMessage(_)
+            | Self::BuildChannelAnnouncement
             | Self::BuildNodeAnnouncement { .. }
             | Self::BuildChannelUpdate
             | Self::BuildAnnouncementSignatures => Some(VariableType::Message),
@@ -600,6 +882,31 @@ impl Operation {
             Self::SendOpenChannel => Some(VariableType::SentOpenChannel),
             Self::SendFundingCreated => Some(VariableType::SentFundingCreated),
             Self::SendShutdown => Some(VariableType::SentShutdown),
+            Self::SendStfu => Some(VariableType::SentStfu),
+            Self::SendSpliceInit => Some(VariableType::SentSpliceInit),
+            Self::SendSpliceAck => Some(VariableType::SentSpliceAck),
+            Self::SendSpliceLocked => Some(VariableType::SentSpliceLocked),
+            Self::SendTxAddInput { .. } => Some(VariableType::SentTxAddInput),
+            Self::SendTxAddOutput => Some(VariableType::SentTxAddOutput),
+            Self::SendTxComplete => Some(VariableType::SentTxComplete),
+            Self::SendTxAbort => Some(VariableType::SentTxAbort),
+            Self::SendTxInitRbf => Some(VariableType::SentTxInitRbf),
+            Self::SendTxAckRbf => Some(VariableType::SentTxAckRbf),
+            Self::SendTxSignatures => Some(VariableType::SentTxSignatures),
+            Self::SendFundingSigned => Some(VariableType::SentFundingSigned),
+            Self::RecvSpliceAck => Some(VariableType::SpliceAck),
+            Self::RecvSpliceLocked => Some(VariableType::SpliceLocked),
+            Self::RecvTxAbort => Some(VariableType::TxAbort),
+            Self::RecvTxComplete => Some(VariableType::TxComplete),
+            Self::SendUpdateAddHtlc => Some(VariableType::SentUpdateAddHtlc),
+            Self::SendCommitmentSigned => Some(VariableType::SentCommitmentSigned),
+            Self::SendRevokeAndAck => Some(VariableType::SentRevokeAndAck),
+            Self::RecvRevokeAndAck => Some(VariableType::RevokeAndAck),
+            Self::RecvCommitmentSigned => Some(VariableType::CommitmentSigned),
+            Self::SendUpdateFailHtlc => Some(VariableType::SentUpdateFailHtlc),
+            Self::SendUpdateFulfillHtlc => Some(VariableType::SentUpdateFulfillHtlc),
+            Self::SendChannelReestablish => Some(VariableType::SentChannelReestablish),
+            Self::SendUpdateFailMalformedHtlc => Some(VariableType::SentUpdateFailMalformedHtlc),
             Self::RecvAcceptChannel => Some(VariableType::AcceptChannel),
         }
     }
@@ -607,6 +914,9 @@ impl Operation {
     /// Returns the expected variable types for each input position.
     #[must_use]
     #[allow(clippy::too_many_lines)]
+    // One arm per operation keeps each arm's wire-order field comments
+    // attached to its operation, so identical arm bodies are intentional.
+    #[allow(clippy::match_same_arms)]
     pub fn input_types(&self) -> Vec<VariableType> {
         match self {
             Self::LoadAmount(_)
@@ -617,7 +927,9 @@ impl Operation {
             | Self::LoadForwardingFee(_)
             | Self::LoadU16(_)
             | Self::LoadU8(_)
+            | Self::LoadU32(_)
             | Self::LoadBytes(_)
+            | Self::LoadMessage(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
             | Self::LoadChannelId(_)
@@ -626,10 +938,15 @@ impl Operation {
             | Self::LoadTargetPubkeyFromContext
             | Self::LoadChainHashFromContext
             | Self::RecvChannelReady
+            | Self::RecvTxAbort
+            | Self::RecvTxComplete
+            | Self::RecvCommitmentSigned
             | Self::MineBlocks(_) => vec![],
 
             Self::DerivePoint => vec![VariableType::PrivateKey],
             Self::ExtractAcceptChannel(_) => vec![VariableType::AcceptChannel],
+            Self::ExtractTxCompleteChannelId => vec![VariableType::TxComplete],
+            Self::ExtractTxAbortChannelId => vec![VariableType::TxAbort],
             Self::CreateFundingTransaction => vec![
                 VariableType::Point,        // opener_funding_pubkey
                 VariableType::Point,        // acceptor_funding_pubkey
@@ -716,8 +1033,104 @@ impl Operation {
                 VariableType::ChannelId, // channel_id
                 VariableType::Bytes,     // scriptpubkey
             ],
+            Self::SendStfu => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U8,        // initiator
+            ],
+            Self::SendSpliceInit => vec![
+                VariableType::ChannelId,    // channel_id
+                VariableType::Amount,       // funding_contribution_satoshis (as i64)
+                VariableType::FeeratePerKw, // funding_feerate_perkw
+                VariableType::BlockHeight,  // locktime
+                VariableType::Point,        // funding_pubkey
+            ],
+            Self::SendSpliceAck => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Amount,    // funding_contribution_satoshis (as i64)
+                VariableType::Point,     // funding_pubkey
+            ],
+            Self::SendSpliceLocked => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Bytes,     // splice_txid (32 bytes)
+            ],
+            Self::SendTxAddInput { .. } => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U32,       // serial_id (widened to u64)
+                VariableType::Bytes,     // prevtx
+                VariableType::U32,       // prevtx_vout
+                VariableType::U32,       // sequence
+                VariableType::Bytes,     // shared_input_txid (32 bytes)
+            ],
+            Self::SendTxAddOutput => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U32,       // serial_id (widened to u64)
+                VariableType::Amount,    // sats
+                VariableType::Bytes,     // script (scriptPubKey)
+            ],
+            Self::SendTxComplete => vec![VariableType::ChannelId],
+            Self::SendTxAbort => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Bytes,     // data (abort reason)
+            ],
+            Self::SendTxInitRbf => vec![
+                VariableType::ChannelId,    // channel_id
+                VariableType::BlockHeight,  // locktime
+                VariableType::FeeratePerKw, // feerate
+            ],
+            Self::SendTxAckRbf => vec![VariableType::ChannelId],
+            Self::SendTxSignatures => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Bytes,     // txid (32 bytes, zero-padded)
+                VariableType::Bytes,     // witness (one pre-encoded entry)
+            ],
+            Self::SendFundingSigned => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Bytes,     // signature (64-byte compact)
+            ],
             Self::RecvAcceptChannel => vec![VariableType::SentOpenChannel],
             Self::RecvFundingSigned => vec![VariableType::SentFundingCreated],
+            Self::SendUpdateAddHtlc => vec![
+                VariableType::ChannelId,   // channel_id
+                VariableType::U32,         // id (widened to u64)
+                VariableType::Amount,      // amount_msat
+                VariableType::Bytes,       // payment_hash (32 bytes)
+                VariableType::BlockHeight, // cltv_expiry
+                VariableType::Bytes,       // onion_routing_packet (1366 bytes)
+            ],
+            Self::SendCommitmentSigned => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Bytes,     // signature (64-byte compact)
+            ],
+            Self::SendRevokeAndAck => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::Bytes,     // per_commitment_secret (32 bytes)
+                VariableType::Point,     // next_per_commitment_point
+            ],
+            Self::RecvSpliceAck => vec![VariableType::SentSpliceInit],
+            Self::RecvSpliceLocked => vec![VariableType::SentSpliceAck],
+            Self::RecvRevokeAndAck => vec![VariableType::SentCommitmentSigned],
+            Self::SendUpdateFailHtlc => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U32,       // id (widened to u64)
+                VariableType::Bytes,     // reason
+            ],
+            Self::SendUpdateFulfillHtlc => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U32,       // id (widened to u64)
+                VariableType::Bytes,     // payment_preimage (32 bytes)
+            ],
+            Self::SendChannelReestablish => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U32,       // next_commitment_number (u64)
+                VariableType::U32,       // next_revocation_number (u64)
+                VariableType::Point,     // my_current_per_commitment_point
+            ],
+            Self::SendUpdateFailMalformedHtlc => vec![
+                VariableType::ChannelId, // channel_id
+                VariableType::U32,       // id (widened to u64)
+                VariableType::Bytes,     // sha256_of_onion (32 bytes)
+                VariableType::U16,       // failure_code
+            ],
             Self::BroadcastTransaction | Self::LookupShortChannelId => {
                 vec![VariableType::FundingTransaction]
             }
@@ -740,7 +1153,9 @@ impl Operation {
             | Self::LoadForwardingFee(_)
             | Self::LoadU16(_)
             | Self::LoadU8(_)
+            | Self::LoadU32(_)
             | Self::LoadBytes(_)
+            | Self::LoadMessage(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
             | Self::LoadChannelId(_)
@@ -750,6 +1165,8 @@ impl Operation {
             | Self::LoadChainHashFromContext
             | Self::DerivePoint
             | Self::ExtractAcceptChannel(_)
+            | Self::ExtractTxCompleteChannelId
+            | Self::ExtractTxAbortChannelId
             | Self::CreateFundingTransaction
             | Self::BuildOpenChannel
             | Self::BuildChannelAnnouncement
@@ -761,8 +1178,31 @@ impl Operation {
             | Self::SendFundingCreated
             | Self::SendChannelReady { .. }
             | Self::SendShutdown
+            | Self::SendStfu
+            | Self::SendSpliceInit
+            | Self::SendSpliceAck
+            | Self::SendSpliceLocked
+            | Self::SendTxAddInput { .. }
+            | Self::SendTxAddOutput
+            | Self::SendTxComplete
+            | Self::SendTxAbort
+            | Self::SendTxInitRbf
+            | Self::SendTxAckRbf
+            | Self::SendTxSignatures
+            | Self::SendFundingSigned
+            | Self::SendUpdateAddHtlc
+            | Self::SendCommitmentSigned
+            | Self::SendRevokeAndAck
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
+            | Self::RecvSpliceAck
+            | Self::RecvSpliceLocked
+            | Self::RecvCommitmentSigned
+            | Self::RecvRevokeAndAck
+            | Self::SendUpdateFailHtlc
+            | Self::SendUpdateFulfillHtlc
+            | Self::SendChannelReestablish
+            | Self::SendUpdateFailMalformedHtlc
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => vec![],
@@ -771,6 +1211,10 @@ impl Operation {
                 .iter()
                 .map(|&f| (Self::ExtractAcceptChannel(f), f.output_type()))
                 .collect(),
+            Self::RecvTxComplete => {
+                vec![(Self::ExtractTxCompleteChannelId, VariableType::ChannelId)]
+            }
+            Self::RecvTxAbort => vec![(Self::ExtractTxAbortChannelId, VariableType::ChannelId)],
         }
     }
 
@@ -787,7 +1231,9 @@ impl Operation {
             | Self::LoadForwardingFee(_)
             | Self::LoadU16(_)
             | Self::LoadU8(_)
+            | Self::LoadU32(_)
             | Self::LoadBytes(_)
+            | Self::LoadMessage(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
             | Self::LoadChannelId(_)
@@ -797,6 +1243,8 @@ impl Operation {
             | Self::LoadChainHashFromContext
             | Self::DerivePoint
             | Self::ExtractAcceptChannel(_)
+            | Self::ExtractTxCompleteChannelId
+            | Self::ExtractTxAbortChannelId
             | Self::BuildOpenChannel
             | Self::BuildChannelAnnouncement
             | Self::BuildNodeAnnouncement { .. }
@@ -809,9 +1257,34 @@ impl Operation {
             | Self::SendFundingCreated
             | Self::SendChannelReady { .. }
             | Self::SendShutdown
+            | Self::SendStfu
+            | Self::SendSpliceInit
+            | Self::SendSpliceAck
+            | Self::SendSpliceLocked
+            | Self::SendTxAddInput { .. }
+            | Self::SendTxAddOutput
+            | Self::SendTxComplete
+            | Self::SendTxAbort
+            | Self::SendTxInitRbf
+            | Self::SendTxAckRbf
+            | Self::SendTxSignatures
+            | Self::SendFundingSigned
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
+            | Self::RecvSpliceAck
+            | Self::RecvSpliceLocked
+            | Self::SendUpdateAddHtlc
+            | Self::SendCommitmentSigned
+            | Self::SendRevokeAndAck
+            | Self::RecvTxAbort
+            | Self::RecvTxComplete
+            | Self::RecvCommitmentSigned
+            | Self::RecvRevokeAndAck
+            | Self::SendUpdateFailHtlc
+            | Self::SendUpdateFulfillHtlc
+            | Self::SendChannelReestablish
+            | Self::SendUpdateFailMalformedHtlc
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction => true,
         }
@@ -835,7 +1308,9 @@ impl Operation {
             | Self::LoadForwardingFee(_)
             | Self::LoadU16(_)
             | Self::LoadU8(_)
+            | Self::LoadU32(_)
             | Self::LoadBytes(_)
+            | Self::LoadMessage(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
             | Self::LoadChannelId(_)
@@ -845,6 +1320,8 @@ impl Operation {
             | Self::LoadChainHashFromContext
             | Self::DerivePoint
             | Self::ExtractAcceptChannel(_)
+            | Self::ExtractTxCompleteChannelId
+            | Self::ExtractTxAbortChannelId
             | Self::BuildOpenChannel
             | Self::BuildChannelAnnouncement
             | Self::BuildNodeAnnouncement { .. }
@@ -853,7 +1330,26 @@ impl Operation {
             | Self::SendMessage
             | Self::SendOpenChannel
             | Self::SendChannelReady { .. }
-            | Self::SendShutdown => true,
+            | Self::SendShutdown
+            | Self::SendStfu
+            | Self::SendSpliceInit
+            | Self::SendSpliceAck
+            | Self::SendSpliceLocked
+            | Self::SendTxAddInput { .. }
+            | Self::SendTxAddOutput
+            | Self::SendTxComplete
+            | Self::SendTxAbort
+            | Self::SendTxInitRbf
+            | Self::SendTxAckRbf
+            | Self::SendTxSignatures
+            | Self::SendFundingSigned
+            | Self::SendUpdateAddHtlc
+            | Self::SendCommitmentSigned
+            | Self::SendRevokeAndAck
+            | Self::SendUpdateFailHtlc
+            | Self::SendUpdateFulfillHtlc
+            | Self::SendChannelReestablish
+            | Self::SendUpdateFailMalformedHtlc => true,
             // `CreateFundingTransaction` selects coins from the wallet, whose
             // contents change as transactions are created and broadcast.
             // `SendFundingCreated` builds its message from the recorded
@@ -866,6 +1362,12 @@ impl Operation {
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
+            | Self::RecvSpliceAck
+            | Self::RecvSpliceLocked
+            | Self::RecvTxAbort
+            | Self::RecvTxComplete
+            | Self::RecvCommitmentSigned
+            | Self::RecvRevokeAndAck
             | Self::MineBlocks(_)
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => false,
@@ -893,13 +1395,16 @@ impl Operation {
             | Self::LoadForwardingFee(_)
             | Self::LoadU16(_)
             | Self::LoadU8(_)
+            | Self::LoadU32(_)
             | Self::LoadBytes(_)
+            | Self::LoadMessage(_)
             | Self::LoadFeatures(_)
             | Self::LoadPrivateKey(_)
             | Self::LoadChannelId(_)
             | Self::LoadShutdownScript(_)
             | Self::LoadChannelType(_)
             | Self::ExtractAcceptChannel(_)
+            | Self::SendTxAddInput { .. }
             | Self::BuildNodeAnnouncement { .. }
             | Self::SendChannelReady { .. }
             | Self::MineBlocks(_) => true,
@@ -907,6 +1412,8 @@ impl Operation {
             Self::LoadTargetPubkeyFromContext
             | Self::LoadChainHashFromContext
             | Self::DerivePoint
+            | Self::ExtractTxCompleteChannelId
+            | Self::ExtractTxAbortChannelId
             | Self::CreateFundingTransaction
             | Self::BuildOpenChannel
             | Self::BuildChannelAnnouncement
@@ -916,9 +1423,33 @@ impl Operation {
             | Self::SendOpenChannel
             | Self::SendFundingCreated
             | Self::SendShutdown
+            | Self::SendStfu
+            | Self::SendSpliceInit
+            | Self::SendSpliceAck
+            | Self::SendSpliceLocked
+            | Self::SendTxAddOutput
+            | Self::SendTxComplete
+            | Self::SendTxAbort
+            | Self::SendTxInitRbf
+            | Self::SendTxAckRbf
+            | Self::SendTxSignatures
+            | Self::SendFundingSigned
             | Self::RecvAcceptChannel
             | Self::RecvFundingSigned
             | Self::RecvChannelReady
+            | Self::RecvSpliceAck
+            | Self::RecvSpliceLocked
+            | Self::SendUpdateAddHtlc
+            | Self::SendCommitmentSigned
+            | Self::SendRevokeAndAck
+            | Self::RecvTxAbort
+            | Self::RecvTxComplete
+            | Self::RecvCommitmentSigned
+            | Self::RecvRevokeAndAck
+            | Self::SendUpdateFailHtlc
+            | Self::SendUpdateFulfillHtlc
+            | Self::SendChannelReestablish
+            | Self::SendUpdateFailMalformedHtlc
             | Self::BroadcastTransaction
             | Self::LookupShortChannelId => false,
         }

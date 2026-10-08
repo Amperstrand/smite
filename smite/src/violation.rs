@@ -50,4 +50,25 @@ pub enum Violation {
     /// i.e. one for which no state was ever established.
     #[error("unknown channel: no tracked state for channel_id {0}")]
     UnknownChannel(ChannelId),
+
+    /// The target sent a message outside the quiescence-allowed set while
+    /// quiescent, as judged by [`crate::oracles::QuiescenceOracle`]. BOLT 2:
+    /// once quiescent, a node MUST NOT send any message other than `stfu`,
+    /// `warning`, `error`, and the messages of the pending operation
+    /// (splicing / interactive transaction construction).
+    #[error("quiescence broken: target sent {1} on quiescent channel {0}")]
+    QuiescenceBroken(ChannelId, String),
+
+    /// We sent `tx_abort` for a channel, kept interacting with the target,
+    /// and it never echoed the `tx_abort` back (BOLT 2: upon `tx_abort`,
+    /// the receiving node MUST echo it).
+    #[error("missing tx_abort echo for channel_id {0}")]
+    MissingTxAbortEcho(ChannelId),
+
+    /// The target's `splice_ack` broke a BOLT 2 requirement, as judged by
+    /// [`crate::oracles::SpliceAckOracle`]: it acknowledged a `splice_init`
+    /// whose `funding_contribution_satoshis` splices out more than our
+    /// tracked channel balance — a negotiation the target MUST reject.
+    #[error("invalid splice_ack for channel_id {0}: {1}")]
+    InvalidSpliceAck(ChannelId, String),
 }

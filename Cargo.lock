@@ -697,6 +697,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "smite-requirements"
+version = "0.1.0"
+dependencies = [
+ "bitcoin",
+ "postcard",
+ "serde",
+ "serde_json",
+ "smite",
+ "smite-ir",
+ "thiserror",
+]
+
+[[package]]
 name = "smite-scenarios"
 version = "0.0.0"
 dependencies = [
@@ -726,6 +739,7 @@ dependencies = [
  "serde_json",
  "simple_logger",
  "smite-ir",
+ "smite-requirements",
  "tempfile",
  "thiserror",
  "toml",
